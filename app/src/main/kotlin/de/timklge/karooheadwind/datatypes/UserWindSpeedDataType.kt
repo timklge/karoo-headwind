@@ -32,7 +32,9 @@ class UserWindSpeedDataType(
         val job = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.getRelativeHeadingFlow(context)
                 .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
-                .combine(context.streamSettings(karooSystem)) { (value, data), settings -> StreamData(value, data, settings) }
+                .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
+                    StreamData(value, data.firstOrNull(), settings)
+                }
                 .filter { it.weatherResponse != null }
                 .collect { streamData ->
                     val windSpeed = streamData.weatherResponse?.current?.windSpeed ?: 0.0

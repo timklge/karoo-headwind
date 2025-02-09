@@ -64,8 +64,8 @@ class WeatherDataType(
 
             currentWeatherData
                 .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data?.current?.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data?.current?.weatherCode?.toDouble() ?: 0.0)))))
+                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.firstOrNull()?.current?.weatherCode}")
+                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.firstOrNull()?.current?.weatherCode?.toDouble() ?: 0.0)))))
                 }
         }
         emitter.setCancellable {
@@ -107,7 +107,7 @@ class WeatherDataType(
             previewFlow()
         } else {
             context.streamCurrentWeatherData()
-                .combine(context.streamSettings(karooSystem)) { data, settings -> StreamData(data, settings) }
+                .combine(context.streamSettings(karooSystem)) { data, settings -> StreamData(data.firstOrNull(), settings) }
                 .combine(karooSystem.streamUserProfile()) { data, profile -> data.copy(profile = profile) }
                 .combine(karooSystem.getHeadingFlow(context)) { data, heading -> data.copy(headingResponse = heading) }
         }

@@ -45,7 +45,9 @@ class HeadwindDirectionDataType(
     override fun startStream(emitter: Emitter<StreamState>) {
         val job = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.getRelativeHeadingFlow(applicationContext)
-                .combine(applicationContext.streamCurrentWeatherData()) { headingResponse, data -> StreamData(headingResponse, data?.current?.windDirection, data?.current?.windSpeed) }
+                .combine(applicationContext.streamCurrentWeatherData()) { headingResponse, data ->
+                    StreamData(headingResponse, data.firstOrNull()?.current?.windDirection, data.firstOrNull()?.current?.windSpeed)
+                }
                 .combine(applicationContext.streamSettings(karooSystem)) { data, settings -> data.copy(settings = settings) }
                 .collect { streamData ->
                     val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
