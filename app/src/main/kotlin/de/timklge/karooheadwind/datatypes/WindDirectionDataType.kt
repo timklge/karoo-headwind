@@ -30,7 +30,6 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
@@ -39,6 +38,15 @@ import kotlin.math.roundToInt
 class WindDirectionDataType(val karooSystem: KarooSystemService, context: Context) : BaseDataType(context, "windDirection"){
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
+
+    companion object {
+        private val windDirections = arrayOf(
+            "N", "NNE", "NE", "ENE",
+            "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW",
+            "W", "WNW", "NW", "NNW"
+        )
+    }
 
     override fun getValue(data: OpenMeteoCurrentWeatherResponse): Double {
         return data.current.windDirection
@@ -74,18 +82,9 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
                     emitter.updateView(result.remoteViews)
                 }
                 .collect { windBearing ->
-                    val windCardinalDirection = ((windBearing % 360) / 45.0).roundToInt() % 8
-                    val text = when(windCardinalDirection){
-                        0 -> "N"
-                        1 -> "NE"
-                        2 -> "E"
-                        3 -> "SE"
-                        4 -> "S"
-                        5 -> "SW"
-                        6 -> "W"
-                        7 -> "NW"
-                        else -> "N/A"
-                    }
+                    val windCardinalDirectionIndex = ((windBearing % 360) / 22.5).roundToInt() % 16
+
+                    val text = windDirections[windCardinalDirectionIndex]
                     Log.d( KarooHeadwindExtension.TAG,"Updating wind direction view")
                     val result = glance.compose(context, DpSize.Unspecified) {
                         Box(modifier = GlanceModifier.fillMaxSize(),
