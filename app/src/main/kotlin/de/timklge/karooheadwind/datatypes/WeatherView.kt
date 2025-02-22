@@ -119,7 +119,7 @@ fun Weather(baseBitmap: Bitmap, current: WeatherInterpretation, windBearing: Int
                 Spacer(modifier = GlanceModifier.width(5.dp))
             }
 
-            val precipitationProbabilityLabel = if (precipitationProbability != null) "${precipitationProbability}%," else ""
+            val precipitationProbabilityLabel = if (precipitationProbability != null) "${precipitationProbability}% " else ""
             Text(
                 text = "${precipitationProbabilityLabel}${ceil(precipitation).toInt().coerceIn(0..9)}",
                 style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(fontSize, TextUnitType.Sp))
