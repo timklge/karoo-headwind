@@ -28,6 +28,7 @@ import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.UserProfile
@@ -55,22 +56,6 @@ class WeatherDataType(
 
     companion object {
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
-    }
-
-    // FIXME: Remove. Currently, the data field will permanently show "no sensor" if no data stream is provided
-    override fun startStream(emitter: Emitter<StreamState>) {
-        val job = CoroutineScope(Dispatchers.IO).launch {
-            val currentWeatherData = applicationContext.streamCurrentWeatherData()
-
-            currentWeatherData
-                .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data?.current?.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data?.current?.weatherCode?.toDouble() ?: 0.0)))))
-                }
-        }
-        emitter.setCancellable {
-            job.cancel()
-        }
     }
 
     data class StreamData(val data: OpenMeteoCurrentWeatherResponse?, val settings: HeadwindSettings,
@@ -113,8 +98,9 @@ class WeatherDataType(
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
-            dataFlow
-                .collect { (data, settings, userProfile, headingResponse) ->
+            emitter.onNext(ShowCustomStreamState("", null))
+
+            dataFlow.collect { (data, settings, userProfile, headingResponse) ->
                     Log.d(KarooHeadwindExtension.TAG, "Updating weather view")
 
                     if (data == null){
