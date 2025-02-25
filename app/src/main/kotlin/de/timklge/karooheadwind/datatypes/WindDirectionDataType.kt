@@ -21,6 +21,7 @@ import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
 import de.timklge.karooheadwind.streamDataFlow
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.internal.ViewEmitter
+import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
@@ -69,6 +70,8 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
+            emitter.onNext(ShowCustomStreamState("", null))
+
             val flow = if (config.preview){
                 previewFlow()
             } else {
@@ -77,10 +80,6 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
             }
 
             flow
-                .onCompletion {
-                    val result = glance.compose(context, DpSize.Unspecified) { }
-                    emitter.updateView(result.remoteViews)
-                }
                 .collect { windBearing ->
                     val windCardinalDirectionIndex = ((windBearing % 360) / 22.5).roundToInt() % 16
 

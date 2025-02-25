@@ -24,10 +24,9 @@ import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
-import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
-import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.UserProfile
@@ -70,19 +69,6 @@ class TailwindAndRideSpeedDataType(
     private val applicationContext: Context
 ) : DataTypeImpl("karoo-headwind", "tailwind-and-ride-speed") {
     private val glance = GlanceRemoteViews()
-
-    override fun startStream(emitter: Emitter<StreamState>) {
-        val job = CoroutineScope(Dispatchers.IO).launch {
-            karooSystem.getRelativeHeadingFlow(applicationContext)
-                .collect { diff ->
-                    val value = (diff as? HeadingResponse.Value)?.diff ?: 0.0
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to value))))
-                }
-        }
-        emitter.setCancellable {
-            job.cancel()
-        }
-    }
 
     data class StreamData(val headingResponse: HeadingResponse,
                           val absoluteWindDirection: Double?,
@@ -146,6 +132,8 @@ class TailwindAndRideSpeedDataType(
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
+            emitter.onNext(ShowCustomStreamState("", null))
+
             flow.collect { streamData ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating headwind direction view")
 
