@@ -7,12 +7,13 @@ import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
+import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
+import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.UserWindSpeedDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType
@@ -52,7 +53,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.3") {
+class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.5") {
     companion object {
         const val TAG = "karoo-headwind"
     }
@@ -78,6 +79,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.3") {
             WindDirectionDataType(karooSystem, applicationContext),
             PrecipitationDataType(applicationContext),
             SurfacePressureDataType(applicationContext),
+            SealevelPressureDataType(applicationContext),
             UserWindSpeedDataType(karooSystem, applicationContext)
         )
     }

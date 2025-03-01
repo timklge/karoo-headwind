@@ -42,6 +42,7 @@ import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.UserProfile
@@ -74,28 +75,11 @@ class WeatherForecastDataType(
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
     }
 
-    // FIXME: Remove. Currently, the data field will permanently show "no sensor" if no data stream is provided
-    override fun startStream(emitter: Emitter<StreamState>) {
-        val job = CoroutineScope(Dispatchers.IO).launch {
-            val currentWeatherData = applicationContext.streamCurrentWeatherData()
-
-            currentWeatherData
-                .filter { it.isNotEmpty() }
-                .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.first().data.current.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.first().data.current.weatherCode.toDouble() ?: 0.0)))))
-                }
-        }
-        emitter.setCancellable {
-            job.cancel()
-        }
-    }
-
-    data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean)
-
     data class StreamData(val data: List<WeatherDataResponse>?, val settings: SettingsAndProfile,
                           val widgetSettings: HeadwindWidgetSettings? = null, val profile: UserProfile? = null,
                           val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null)
+
+    data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean)
 
     private fun previewFlow(): Flow<StreamData> = flow {
         val isImperial = karooSystem.streamUserProfile().first().preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
@@ -112,7 +96,7 @@ class WeatherForecastDataType(
                 val forecastWindDirection = (0..<12).map { 0.0 + (0..360).random() }
                 val forecastWindGusts = (0..<12).map { 0.0 + (0..10).random() }
                 val weatherData = OpenMeteoCurrentWeatherResponse(
-                    OpenMeteoData(Instant.now().epochSecond, 0, 20.0, 50, 3.0, 0, 1013.25, 15.0, 30.0, 30.0, WeatherInterpretation.getKnownWeatherCodes().random()),
+                    OpenMeteoData(Instant.now().epochSecond, 0, 20.0, 50, 3.0, 0, 1013.25, 980.0, 15.0, 30.0, 30.0, WeatherInterpretation.getKnownWeatherCodes().random()),
                     0.0, 0.0, "Europe/Berlin", 30.0, 0,
 
                     OpenMeteoForecastData(forecastTimes, forecastTemperatures, forecastPrecipitationPropability,
@@ -162,6 +146,8 @@ class WeatherForecastDataType(
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
+            emitter.onNext(ShowCustomStreamState("", null))
+
             dataFlow.collect { (allData, settingsAndProfile, widgetSettings, userProfile, headingResponse, upcomingRoute) ->
                     Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -118,7 +119,7 @@ data class HeadwindStats(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -134,6 +135,7 @@ fun MainScreen() {
     val location by karooSystem.getGpsCoordinateFlow(ctx).collectAsStateWithLifecycle(null)
 
     var savedDialogVisible by remember { mutableStateOf(false) }
+    var exitDialogVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -238,6 +240,28 @@ fun MainScreen() {
             } else {
                 Text(modifier = Modifier.padding(5.dp), text = "No weather data received yet, waiting for GPS fix...")
             }
+
+            FilledTonalButton(modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp), onClick = {
+                exitDialogVisible = true
+            }) {
+                Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = "Exit")
+                Spacer(modifier = Modifier.width(5.dp))
+                Text("Exit")
+            }
+        }
+
+        if (exitDialogVisible) {
+            AlertDialog(onDismissRequest = { exitDialogVisible = false },
+                confirmButton = { Button(onClick = {
+                    onFinish()
+                }) { Text("Yes") } },
+                dismissButton = { Button(onClick = {
+                    exitDialogVisible = false
+                }) { Text("No") } },
+                text = { Text("Do you really want to exit?") }
+            )
         }
     }
 
