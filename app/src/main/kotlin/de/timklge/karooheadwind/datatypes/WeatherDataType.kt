@@ -17,7 +17,6 @@ import de.timklge.karooheadwind.OpenMeteoData
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.PrecipitationUnit
 import de.timklge.karooheadwind.screens.TemperatureUnit
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
@@ -64,8 +63,8 @@ class WeatherDataType(
 
             currentWeatherData
                 .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.firstOrNull()?.current?.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.firstOrNull()?.current?.weatherCode?.toDouble() ?: 0.0)))))
+                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.firstOrNull()?.data?.current?.weatherCode}")
+                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.firstOrNull()?.data?.current?.weatherCode?.toDouble() ?: 0.0)))))
                 }
         }
         emitter.setCancellable {
@@ -102,14 +101,12 @@ class WeatherDataType(
             de.timklge.karooheadwind.R.drawable.arrow_0
         )
 
-
         val dataFlow = if (config.preview){
             previewFlow()
         } else {
-            context.streamCurrentWeatherData()
-                .combine(context.streamSettings(karooSystem)) { data, settings -> StreamData(data.firstOrNull(), settings) }
-                .combine(karooSystem.streamUserProfile()) { data, profile -> data.copy(profile = profile) }
-                .combine(karooSystem.getHeadingFlow(context)) { data, heading -> data.copy(headingResponse = heading) }
+            combine(context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), karooSystem.getHeadingFlow(context)) { data, settings, profile, heading ->
+                StreamData(data.firstOrNull()?.data, settings, profile, heading)
+            }
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
@@ -130,25 +127,25 @@ class WeatherDataType(
 
                     val result = glance.compose(context, DpSize.Unspecified) {
                         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
-                            Weather(baseBitmap,
+                            Weather(
+                                baseBitmap,
                                 current = interpretation,
                                 windBearing = data.current.windDirection.roundToInt(),
                                 windSpeed = data.current.windSpeed.roundToInt(),
                                 windGusts = data.current.windGusts.roundToInt(),
-                                windSpeedUnit = settings.windUnit,
                                 precipitation = data.current.precipitation,
                                 precipitationProbability = null,
-                                precipitationUnit = if (userProfile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
                                 temperature = data.current.temperature.roundToInt(),
                                 temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                                 timeLabel = formattedTime,
-                                dateLabel = formattedDate,
                                 rowAlignment = when (config.alignment){
                                     ViewConfig.Alignment.LEFT -> Alignment.Horizontal.Start
                                     ViewConfig.Alignment.CENTER -> Alignment.Horizontal.CenterHorizontally
                                     ViewConfig.Alignment.RIGHT -> Alignment.Horizontal.End
                                 },
-                                singleDisplay = true
+                                dateLabel = formattedDate,
+                                singleDisplay = true,
+                                isImperial = userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                             )
                         }
                     }

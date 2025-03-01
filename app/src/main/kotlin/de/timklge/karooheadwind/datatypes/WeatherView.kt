@@ -32,9 +32,8 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.WeatherInterpretation
-import de.timklge.karooheadwind.screens.PrecipitationUnit
 import de.timklge.karooheadwind.screens.TemperatureUnit
-import de.timklge.karooheadwind.screens.WindUnit
+import kotlin.math.absoluteValue
 import kotlin.math.ceil
 
 fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
@@ -52,10 +51,23 @@ fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
 @OptIn(ExperimentalGlancePreviewApi::class)
 @Preview(widthDp = 200, heightDp = 150)
 @Composable
-fun Weather(baseBitmap: Bitmap, current: WeatherInterpretation, windBearing: Int, windSpeed: Int, windGusts: Int, windSpeedUnit: WindUnit,
-            precipitation: Double, precipitationProbability: Int?, precipitationUnit: PrecipitationUnit,
-            temperature: Int, temperatureUnit: TemperatureUnit, timeLabel: String? = null, rowAlignment: Alignment.Horizontal = Alignment.Horizontal.CenterHorizontally,
-            dateLabel: String? = null, singleDisplay: Boolean = false) {
+fun Weather(
+    baseBitmap: Bitmap,
+    current: WeatherInterpretation,
+    windBearing: Int,
+    windSpeed: Int,
+    windGusts: Int,
+    precipitation: Double,
+    precipitationProbability: Int?,
+    temperature: Int,
+    temperatureUnit: TemperatureUnit,
+    distance: Double? = null,
+    timeLabel: String? = null,
+    rowAlignment: Alignment.Horizontal = Alignment.Horizontal.CenterHorizontally,
+    dateLabel: String? = null,
+    singleDisplay: Boolean = false,
+    isImperial: Boolean?
+) {
 
     val fontSize = 14f
 
@@ -80,6 +92,29 @@ fun Weather(baseBitmap: Bitmap, current: WeatherInterpretation, windBearing: Int
                         fontSize = TextUnit(fontSize, TextUnitType.Sp)
                     )
                 )
+            }
+        }
+
+        if (distance != null && !singleDisplay && isImperial != null){
+            val distanceInUserUnit = (distance / (if(!isImperial) 1000.0 else 1609.34)).toInt()
+            val label = "${distanceInUserUnit.absoluteValue}${if(!isImperial) "km" else "mi"}"
+            val text = if(distanceInUserUnit > 0){
+                "In $label"
+            } else {
+                "$label ago"
+            }
+
+            if (distanceInUserUnit != 0){
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = text,
+                        style = TextStyle(
+                            color = ColorProvider(Color.Black, Color.White),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = TextUnit(fontSize, TextUnitType.Sp)
+                        )
+                    )
+                }
             }
         }
 

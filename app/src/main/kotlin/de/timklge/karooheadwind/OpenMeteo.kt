@@ -37,14 +37,19 @@ suspend fun KarooSystemService.makeOpenMeteoHttpRequest(gpsCoordinates: List<Gps
                 "GET",
                 url,
                 waitForConnection = false,
+                headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG, "Accept-Encoding" to "gzip"),
             ),
-        ) { event: OnHttpResponse ->
-            Log.d(KarooHeadwindExtension.TAG, "Http response event $event")
+        onEvent = { event: OnHttpResponse ->
             if (event.state is HttpResponseState.Complete){
+                Log.d(KarooHeadwindExtension.TAG, "Http response received")
                 trySend(event.state as HttpResponseState.Complete)
                 close()
             }
-        }
+        },
+        onError = { err ->
+            Log.d(KarooHeadwindExtension.TAG, "Http error: $err")
+            close(RuntimeException(err))
+        })
         awaitClose {
             removeConsumer(listenerId)
         }

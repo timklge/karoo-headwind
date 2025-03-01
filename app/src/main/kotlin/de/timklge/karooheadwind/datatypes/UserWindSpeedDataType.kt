@@ -33,7 +33,7 @@ class UserWindSpeedDataType(
             karooSystem.getRelativeHeadingFlow(context)
                 .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
                 .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
-                    StreamData(value, data.firstOrNull(), settings)
+                    StreamData(value, data.firstOrNull()?.data, settings)
                 }
                 .filter { it.weatherResponse != null }
                 .collect { streamData ->

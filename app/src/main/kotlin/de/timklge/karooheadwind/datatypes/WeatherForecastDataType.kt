@@ -24,14 +24,16 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
 import de.timklge.karooheadwind.OpenMeteoData
 import de.timklge.karooheadwind.OpenMeteoForecastData
+import de.timklge.karooheadwind.UpcomingRoute
+import de.timklge.karooheadwind.WeatherDataResponse
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.screens.HeadwindSettings
 import de.timklge.karooheadwind.screens.HeadwindWidgetSettings
-import de.timklge.karooheadwind.screens.PrecipitationUnit
 import de.timklge.karooheadwind.screens.TemperatureUnit
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import io.hammerhead.karooext.KarooSystemService
@@ -51,6 +53,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -79,8 +82,8 @@ class WeatherForecastDataType(
             currentWeatherData
                 .filter { it.isNotEmpty() }
                 .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.first().current.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.first().current.weatherCode.toDouble() ?: 0.0)))))
+                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.first().data.current.weatherCode}")
+                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.first().data.current.weatherCode.toDouble() ?: 0.0)))))
                 }
         }
         emitter.setCancellable {
@@ -88,31 +91,42 @@ class WeatherForecastDataType(
         }
     }
 
-    data class StreamData(val data: List<OpenMeteoCurrentWeatherResponse>?, val settings: HeadwindSettings,
-                          val widgetSettings: HeadwindWidgetSettings? = null, val profile: UserProfile? = null, val headingResponse: HeadingResponse? = null)
+    data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean)
+
+    data class StreamData(val data: List<WeatherDataResponse>?, val settings: SettingsAndProfile,
+                          val widgetSettings: HeadwindWidgetSettings? = null, val profile: UserProfile? = null,
+                          val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null)
 
     private fun previewFlow(): Flow<StreamData> = flow {
+        val isImperial = karooSystem.streamUserProfile().first().preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+
         while (true){
-            val timeAtFullHour = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
-            val forecastTimes = (0..<12).map { timeAtFullHour + it * 60 * 60 }
-            val forecastTemperatures = (0..<12).map { 20.0 + (-20..20).random() }
-            val forecastPrecipitationPropability = (0..<12).map { (0..100).random() }
-            val forecastPrecipitation = (0..<12).map { 0.0 + (0..10).random() }
-            val forecastWeatherCodes = (0..<12).map { WeatherInterpretation.getKnownWeatherCodes().random() }
-            val forecastWindSpeed = (0..<12).map { 0.0 + (0..10).random() }
-            val forecastWindDirection = (0..<12).map { 0.0 + (0..360).random() }
-            val forecastWindGusts = (0..<12).map { 0.0 + (0..10).random() }
+            val data = (0..<10).map { index ->
+                val timeAtFullHour = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
+                val forecastTimes = (0..<12).map { timeAtFullHour + it * 60 * 60 }
+                val forecastTemperatures = (0..<12).map { 20.0 + (-20..20).random() }
+                val forecastPrecipitationPropability = (0..<12).map { (0..100).random() }
+                val forecastPrecipitation = (0..<12).map { 0.0 + (0..10).random() }
+                val forecastWeatherCodes = (0..<12).map { WeatherInterpretation.getKnownWeatherCodes().random() }
+                val forecastWindSpeed = (0..<12).map { 0.0 + (0..10).random() }
+                val forecastWindDirection = (0..<12).map { 0.0 + (0..360).random() }
+                val forecastWindGusts = (0..<12).map { 0.0 + (0..10).random() }
+                val weatherData = OpenMeteoCurrentWeatherResponse(
+                    OpenMeteoData(Instant.now().epochSecond, 0, 20.0, 50, 3.0, 0, 1013.25, 15.0, 30.0, 30.0, WeatherInterpretation.getKnownWeatherCodes().random()),
+                    0.0, 0.0, "Europe/Berlin", 30.0, 0,
+
+                    OpenMeteoForecastData(forecastTimes, forecastTemperatures, forecastPrecipitationPropability,
+                        forecastPrecipitation, forecastWeatherCodes, forecastWindSpeed, forecastWindDirection,
+                        forecastWindGusts)
+                )
+                val gpsCoords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * 20_000.0)
+
+                WeatherDataResponse(weatherData, gpsCoords)
+            }
+
 
             emit(
-                StreamData(
-                    listOf(OpenMeteoCurrentWeatherResponse(
-                        OpenMeteoData(Instant.now().epochSecond, 0, 20.0, 50, 3.0, 0, 1013.25, 15.0, 30.0, 30.0, WeatherInterpretation.getKnownWeatherCodes().random()),
-                        0.0, 0.0, "Europe/Berlin", 30.0, 0,
-
-                        OpenMeteoForecastData(forecastTimes, forecastTemperatures, forecastPrecipitationPropability,
-                            forecastPrecipitation, forecastWeatherCodes, forecastWindSpeed, forecastWindDirection,
-                            forecastWindGusts)
-                    )), HeadwindSettings())
+                StreamData(data, SettingsAndProfile(HeadwindSettings(), isImperial))
             )
 
             delay(5_000)
@@ -131,22 +145,28 @@ class WeatherForecastDataType(
             de.timklge.karooheadwind.R.drawable.arrow_0
         )
 
+        val settingsAndProfileStream = context.streamSettings(karooSystem).combine(karooSystem.streamUserProfile()) { settings, userProfile ->
+            SettingsAndProfile(settings = settings, isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
+        }
+
         val dataFlow = if (config.preview){
             previewFlow()
         } else {
-            context.streamCurrentWeatherData()
-                .combine(context.streamSettings(karooSystem)) { data, settings -> StreamData(data, settings) }
-                .combine(karooSystem.streamUserProfile()) { data, profile -> data.copy(profile = profile) }
-                .combine(context.streamWidgetSettings()) { data, widgetSettings -> data.copy(widgetSettings = widgetSettings) }
-                .combine(karooSystem.getHeadingFlow(context)) { data, headingResponse -> data.copy(headingResponse = headingResponse) }
+            combine(context.streamCurrentWeatherData(),
+                settingsAndProfileStream,
+                context.streamWidgetSettings(),
+                karooSystem.getHeadingFlow(context),
+                karooSystem.streamUpcomingRoute()) { weatherData, settings, widgetSettings, heading, upcomingRoute ->
+                    StreamData(data = weatherData, settings = settings, widgetSettings = widgetSettings, headingResponse = heading, upcomingRoute = upcomingRoute)
+            }
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
-            dataFlow.collect { (data, settings, widgetSettings, userProfile, headingResponse) ->
+            dataFlow.collect { (allData, settingsAndProfile, widgetSettings, userProfile, headingResponse, upcomingRoute) ->
                     Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
-                    if (data == null){
-                        emitter.updateView(getErrorWidget(glance, context, settings, headingResponse).remoteViews)
+                    if (allData == null){
+                        emitter.updateView(getErrorWidget(glance, context, settingsAndProfile.settings, headingResponse).remoteViews)
 
                         return@collect
                     }
@@ -156,22 +176,31 @@ class WeatherForecastDataType(
 
                         if (!config.preview) modifier = modifier.clickable(onClick = actionRunCallback<CycleHoursAction>())
 
-                        Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
+                        Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.Start) {
                             val hourOffset = widgetSettings?.currentForecastHourOffset ?: 0
+                            val positionOffset = if (allData.size == 1) 0 else hourOffset
 
                             var previousDate: String? = let {
-                                val unixTime = data.forecastData?.time?.getOrNull(hourOffset)
+                                val unixTime = allData.getOrNull(positionOffset)?.data?.forecastData?.time?.getOrNull(hourOffset)
                                 val formattedDate = unixTime?.let { Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)) }
 
                                 formattedDate
                             }
 
-                            for (index in hourOffset..hourOffset + 2){
-                                if (index >= (data.forecastData?.weatherCode?.size ?: 0)) {
+                            for (baseIndex in hourOffset..hourOffset + 2){
+                                val positionIndex = if (allData.size == 1) 0 else baseIndex
+
+                                if (allData.getOrNull(positionIndex) == null) break
+                                if (baseIndex >= (allData.getOrNull(positionOffset)?.data?.forecastData?.weatherCode?.size ?: 0)) {
                                     break
                                 }
 
-                                if (index > hourOffset) {
+                                val data = allData.getOrNull(positionIndex)?.data
+                                val distanceAlongRoute = allData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
+
+                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $distanceAlongRoute")
+
+                                if (baseIndex > hourOffset) {
                                     Spacer(
                                         modifier = GlanceModifier.fillMaxHeight().background(
                                             ColorProvider(Color.Black, Color.White)
@@ -179,28 +208,60 @@ class WeatherForecastDataType(
                                     )
                                 }
 
-                                val interpretation = WeatherInterpretation.fromWeatherCode(data.forecastData?.weatherCode?.get(index) ?: 0)
-                                val unixTime = data.forecastData?.time?.get(index) ?: 0
-                                val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
-                                val hasNewDate = formattedDate != previousDate || index == 0
+                                val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
+                                    distanceAlongRoute?.minus(currentDistanceAlongRoute)
+                                }
 
-                                Weather(baseBitmap,
-                                    current = interpretation,
-                                    windBearing = data.forecastData?.windDirection?.get(index)?.roundToInt() ?: 0,
-                                    windSpeed = data.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
-                                    windGusts = data.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
-                                    windSpeedUnit = settings.windUnit,
-                                    precipitation = data.forecastData?.precipitation?.get(index) ?: 0.0,
-                                    precipitationProbability = data.forecastData?.precipitationProbability?.get(index) ?: 0,
-                                    precipitationUnit = if (userProfile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
-                                    temperature = data.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
-                                    temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
-                                    timeLabel = formattedTime,
-                                    dateLabel = if (hasNewDate) formattedDate else null
-                                )
+                                val isCurrent = baseIndex == 0 && positionIndex == 0
 
-                                previousDate = formattedDate
+                                if (isCurrent && data?.current != null){
+                                    val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
+                                    val unixTime = data.current.time
+                                    val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val hasNewDate = formattedDate != previousDate || baseIndex == 0
+
+                                    Weather(
+                                        baseBitmap,
+                                        current = interpretation,
+                                        windBearing = data.current.windDirection.roundToInt(),
+                                        windSpeed = data.current.windSpeed.roundToInt(),
+                                        windGusts = data.current.windGusts.roundToInt(),
+                                        precipitation = data.current.precipitation,
+                                        precipitationProbability = null,
+                                        temperature = data.current.temperature.roundToInt(),
+                                        temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                        timeLabel = formattedTime,
+                                        dateLabel = if (hasNewDate) formattedDate else null,
+                                        isImperial = userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                                    )
+
+                                    previousDate = formattedDate
+                                } else {
+                                    val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(baseIndex) ?: 0)
+                                    val unixTime = data?.forecastData?.time?.get(baseIndex) ?: 0
+                                    val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val hasNewDate = formattedDate != previousDate || baseIndex == 0
+
+                                    Weather(
+                                        baseBitmap,
+                                        current = interpretation,
+                                        windBearing = data?.forecastData?.windDirection?.get(baseIndex)?.roundToInt() ?: 0,
+                                        windSpeed = data?.forecastData?.windSpeed?.get(baseIndex)?.roundToInt() ?: 0,
+                                        windGusts = data?.forecastData?.windGusts?.get(baseIndex)?.roundToInt() ?: 0,
+                                        precipitation = data?.forecastData?.precipitation?.get(baseIndex) ?: 0.0,
+                                        precipitationProbability = data?.forecastData?.precipitationProbability?.get(baseIndex) ?: 0,
+                                        temperature = data?.forecastData?.temperature?.get(baseIndex)?.roundToInt() ?: 0,
+                                        temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                        timeLabel = formattedTime,
+                                        dateLabel = if (hasNewDate) formattedDate else null,
+                                        distance = distanceFromCurrent,
+                                        isImperial = settingsAndProfile.isImperial
+                                    )
+
+                                    previousDate = formattedDate
+                                }
                             }
                         }
                     }

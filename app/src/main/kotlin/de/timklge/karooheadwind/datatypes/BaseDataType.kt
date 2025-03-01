@@ -29,7 +29,7 @@ abstract class BaseDataType(
             currentWeatherData
                 .filterNotNull()
                 .collect { data ->
-                    val value = data.firstOrNull()?.let { w -> getValue(w) }
+                    val value = data.firstOrNull()?.data?.let { w -> getValue(w) }
                     Log.d(KarooHeadwindExtension.TAG, "$dataTypeId: $value")
                     if (value != null){
                         emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to value))))

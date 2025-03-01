@@ -21,10 +21,13 @@ class CycleHoursAction : ActionCallback {
         Log.d(KarooHeadwindExtension.TAG, "Cycling hours")
 
         val currentSettings = context.streamWidgetSettings().first()
-        val data = context.streamCurrentWeatherData().firstOrNull()?.firstOrNull()
+        val data = context.streamCurrentWeatherData().firstOrNull()
 
         var hourOffset = currentSettings.currentForecastHourOffset + 3
-        if (data == null || hourOffset >= ((data.forecastData?.weatherCode?.size) ?: 0)) {
+        val requestedPositions = data?.size
+        val requestedHours = data?.firstOrNull()?.data?.forecastData?.weatherCode?.size
+
+        if (data == null || requestedHours == null || requestedPositions == null || hourOffset >= requestedHours || (requestedPositions > 1 && hourOffset >= requestedPositions)) {
             hourOffset = 0
         }
 
