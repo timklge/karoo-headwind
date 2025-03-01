@@ -130,6 +130,7 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
     }
 
     var lastKnownDistanceAlongRoute = 0.0
+    var lastKnownRoutePolyline: LineString? = null
 
     val navigationStateStream = streamNavigationState()
         .map { it.state as? OnNavigationState.NavigationState.NavigatingRoute }
@@ -139,8 +140,12 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
         .combine(distanceToDestinationStream) { routePolyline, distanceToDestination ->
             if (routePolyline != null){
                 val length = TurfMeasurement.length(routePolyline, TurfConstants.UNIT_METERS)
+                if (routePolyline != lastKnownRoutePolyline){
+                    lastKnownDistanceAlongRoute = 0.0
+                }
                 val distanceAlongRoute = distanceToDestination?.let { toDest -> length - toDest } ?: lastKnownDistanceAlongRoute
                 lastKnownDistanceAlongRoute = distanceAlongRoute
+                lastKnownRoutePolyline = routePolyline
 
                 UpcomingRoute(distanceAlongRoute, routePolyline, length)
             } else {

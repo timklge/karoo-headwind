@@ -133,7 +133,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.5") {
                     delay(1.hours)
                 }
             }
-            .map { (settings, gps, profile, upcomingRoute) ->
+            .map { (settings: HeadwindSettings, gps, profile, upcomingRoute) ->
                 Log.d(TAG, "Acquired updated gps coordinates: $gps")
 
                 val lastKnownStats = try {
@@ -150,7 +150,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.5") {
                 if (upcomingRoute != null){
                     val positionOnRoute = upcomingRoute.distanceAlongRoute
                     Log.i(TAG, "Position on route: ${positionOnRoute}m")
-                    val distancePerHour = 20_000.0
+                    val distancePerHour = settings.getForecastMetersPerHour(profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).toDouble()
                     val msSinceFullHour = let {
                         val now = LocalDateTime.now()
                         val startOfHour = now.truncatedTo(ChronoUnit.HOURS)

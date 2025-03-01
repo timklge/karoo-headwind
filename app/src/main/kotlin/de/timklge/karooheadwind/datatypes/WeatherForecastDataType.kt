@@ -38,12 +38,8 @@ import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
-import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
-import io.hammerhead.karooext.models.DataPoint
-import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.ShowCustomStreamState
-import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
@@ -53,8 +49,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -81,8 +76,8 @@ class WeatherForecastDataType(
 
     data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean)
 
-    private fun previewFlow(): Flow<StreamData> = flow {
-        val isImperial = karooSystem.streamUserProfile().first().preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+    private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> = flow {
+        val settingsAndProfile = settingsAndProfileStream.firstOrNull()
 
         while (true){
             val data = (0..<10).map { index ->
@@ -103,14 +98,16 @@ class WeatherForecastDataType(
                         forecastPrecipitation, forecastWeatherCodes, forecastWindSpeed, forecastWindDirection,
                         forecastWindGusts)
                 )
-                val gpsCoords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * 20_000.0)
+
+                val distancePerHour = settingsAndProfile?.settings?.getForecastMetersPerHour(settingsAndProfile.isImperial)?.toDouble() ?: 0.0
+                val gpsCoords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour)
 
                 WeatherDataResponse(weatherData, gpsCoords)
             }
 
 
             emit(
-                StreamData(data, SettingsAndProfile(HeadwindSettings(), isImperial))
+                StreamData(data, SettingsAndProfile(HeadwindSettings(), settingsAndProfile?.isImperial == true))
             )
 
             delay(5_000)
@@ -134,7 +131,7 @@ class WeatherForecastDataType(
         }
 
         val dataFlow = if (config.preview){
-            previewFlow()
+            previewFlow(settingsAndProfileStream)
         } else {
             combine(context.streamCurrentWeatherData(),
                 settingsAndProfileStream,
@@ -183,8 +180,9 @@ class WeatherForecastDataType(
 
                                 val data = allData.getOrNull(positionIndex)?.data
                                 val distanceAlongRoute = allData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
+                                val position = allData.getOrNull(positionIndex)?.requestedPosition?.let { "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}" }
 
-                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $distanceAlongRoute")
+                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $position")
 
                                 if (baseIndex > hourOffset) {
                                     Spacer(

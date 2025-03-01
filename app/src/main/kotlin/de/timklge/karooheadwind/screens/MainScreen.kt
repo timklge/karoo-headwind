@@ -90,10 +90,16 @@ data class HeadwindSettings(
     val welcomeDialogAccepted: Boolean = false,
     val windDirectionIndicatorTextSetting: WindDirectionIndicatorTextSetting = WindDirectionIndicatorTextSetting.HEADWIND_SPEED,
     val windDirectionIndicatorSetting: WindDirectionIndicatorSetting = WindDirectionIndicatorSetting.HEADWIND_DIRECTION,
-    val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_2
+    val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_2,
+    val forecastedKmPerHour: Int = 20,
+    val forecastedMilesPerHour: Int = 12,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())
+    }
+
+    fun getForecastMetersPerHour(isImperial: Boolean): Int {
+        return if (isImperial) forecastedMilesPerHour * 1609 else forecastedKmPerHour * 1000
     }
 }
 
