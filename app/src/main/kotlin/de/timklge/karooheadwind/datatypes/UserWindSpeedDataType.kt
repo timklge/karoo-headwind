@@ -34,7 +34,9 @@ class UserWindSpeedDataType(
         fun streamValues(context: Context, karooSystem: KarooSystemService): Flow<Double> = flow {
             karooSystem.getRelativeHeadingFlow(context)
                 .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
-                .combine(context.streamSettings(karooSystem)) { (value, data), settings -> StreamData(value, data, settings) }
+                .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
+                    StreamData(value, data.firstOrNull()?.data, settings)
+                }
                 .filter { it.weatherResponse != null }
                 .collect { streamData ->
                     val windSpeed = streamData.weatherResponse?.current?.windSpeed ?: 0.0

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import io.hammerhead.karooext.KarooSystemService
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 
@@ -28,8 +30,8 @@ fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingRes
         .combine(currentWeatherData) { bearing, data -> bearing to data }
         .map { (bearing, data) ->
             when {
-                bearing is HeadingResponse.Value && data != null -> {
-                    val windBearing = data.current.windDirection + 180
+                bearing is HeadingResponse.Value && data.isNotEmpty() -> {
+                    val windBearing = data.first().data.current.windDirection + 180
                     val diff = signedAngleDifference(bearing.diff, windBearing)
 
                     Log.d(KarooHeadwindExtension.TAG, "Wind bearing: Heading $bearing vs wind $windBearing => $diff")
@@ -37,7 +39,7 @@ fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingRes
                     HeadingResponse.Value(diff)
                 }
                 bearing is HeadingResponse.NoGps -> HeadingResponse.NoGps
-                bearing is HeadingResponse.NoWeatherData || data == null -> HeadingResponse.NoWeatherData
+                bearing is HeadingResponse.NoWeatherData || data.isEmpty() -> HeadingResponse.NoWeatherData
                 else -> bearing
             }
         }

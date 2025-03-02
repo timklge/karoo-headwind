@@ -115,7 +115,7 @@ class TailwindAndRideSpeedDataType(
             karooSystem.getRelativeHeadingFlow(context)
                 .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
                 .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
-                    StreamData(value, data?.current?.windDirection, data?.current?.windSpeed, settings)
+                    StreamData(value, data.firstOrNull()?.data?.current?.windDirection, data.firstOrNull()?.data?.current?.windSpeed, settings)
                 }
                 .combine(karooSystem.streamUserProfile()) { streamData, userProfile ->
                     val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL

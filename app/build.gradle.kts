@@ -15,8 +15,8 @@ android {
         applicationId = "de.timklge.karooheadwind"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.2.5"
+        versionCode = 14
+        versionName = "1.3"
     }
 
     signingConfigs {
@@ -55,6 +55,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.mapbox.sdk.turf)
     implementation(libs.hammerhead.karoo.ext)
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.androidx.lifeycle)
