@@ -165,7 +165,7 @@ class WeatherForecastDataType(
 
                             var previousDate: String? = let {
                                 val unixTime = allData.getOrNull(positionOffset)?.data?.forecastData?.time?.getOrNull(hourOffset)
-                                val formattedDate = unixTime?.let { Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)) }
+                                val formattedDate = unixTime?.let { getShortDateFormatter().format(Instant.ofEpochSecond(unixTime)) }
 
                                 formattedDate
                             }
@@ -182,8 +182,6 @@ class WeatherForecastDataType(
                                 val distanceAlongRoute = allData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
                                 val position = allData.getOrNull(positionIndex)?.requestedPosition?.let { "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}" }
 
-                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $position")
-
                                 if (baseIndex > hourOffset) {
                                     Spacer(
                                         modifier = GlanceModifier.fillMaxHeight().background(
@@ -191,6 +189,8 @@ class WeatherForecastDataType(
                                         ).width(1.dp)
                                     )
                                 }
+
+                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $position")
 
                                 val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
                                     distanceAlongRoute?.minus(currentDistanceAlongRoute)
@@ -202,7 +202,7 @@ class WeatherForecastDataType(
                                     val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                     val unixTime = data.current.time
                                     val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                     val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                     Weather(
@@ -225,7 +225,7 @@ class WeatherForecastDataType(
                                     val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(baseIndex) ?: 0)
                                     val unixTime = data?.forecastData?.time?.get(baseIndex) ?: 0
                                     val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                     val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                     Weather(
