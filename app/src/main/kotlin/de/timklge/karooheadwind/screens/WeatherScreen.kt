@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.PrecipitationUnit
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
@@ -42,10 +41,7 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
@@ -96,8 +92,6 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
-                dateLabel = formattedDate,
-                timeLabel = formattedTime,
                 baseBitmap = baseBitmap,
                 current = WeatherInterpretation.fromWeatherCode(currentWeatherData.current.weatherCode),
                 windBearing = currentWeatherData.current.windDirection.roundToInt(),
@@ -106,10 +100,11 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 precipitation = currentWeatherData.current.precipitation,
                 temperature = currentWeatherData.current.temperature.toInt(),
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
+                timeLabel = formattedTime,
+                dateLabel = formattedDate,
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
                 includeDistanceLabel = false,
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
             )
         }
 
@@ -215,15 +210,14 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 windSpeed = data?.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
                 windGusts = data?.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
                 precipitation = data?.forecastData?.precipitation?.get(index) ?: 0.0,
-                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
                 temperature = data?.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
                 dateLabel = formattedForecastDate,
                 distance = distanceFromCurrent,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
-                includeDistanceLabel = true
+                includeDistanceLabel = true,
+                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
             )
         }
 
