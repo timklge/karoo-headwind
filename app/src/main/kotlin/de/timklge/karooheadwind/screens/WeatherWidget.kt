@@ -45,6 +45,7 @@ fun WeatherWidget(
     timeLabel: String? = null,
     dateLabel: String? = null,
     distance: Double? = null,
+    includeDistanceLabel: Boolean = false,
     precipitationProbability: Int? = null,
     precipitationUnit: PrecipitationUnit,
     isImperial: Boolean
@@ -65,11 +66,20 @@ fun WeatherWidget(
                 }
 
                 if (distance != null) {
-                    val distanceInUserUnit = (distance / (if (!isImperial) 1000.0 else 1609.34)).toInt()
-                    val label = "${distanceInUserUnit.absoluteValue}${if (!isImperial) "km" else "mi"}"
+                    val distanceInUserUnit = (distance / (if(!isImperial) 1000.0 else 1609.34)).toInt()
+                    val label = "${distanceInUserUnit.absoluteValue}${if(!isImperial) "km" else "mi"}"
+                    val text = if (includeDistanceLabel){
+                        if(distanceInUserUnit > 0){
+                            "In $label"
+                        } else {
+                            "$label ago"
+                        }
+                    } else {
+                        label
+                    }
 
                     Text(
-                        text = label,
+                        text = text,
                         style = TextStyle(
                             fontSize = 14.sp
                         )

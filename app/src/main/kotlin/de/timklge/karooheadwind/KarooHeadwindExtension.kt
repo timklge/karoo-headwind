@@ -155,27 +155,46 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
                         ChronoUnit.MILLIS.between(startOfHour, now)
                     }
                     val msToNextFullHour = (1_000 * 60 * 60) - msSinceFullHour
-                    val calculatedDistanceToNextFullHour = (msToNextFullHour / (1_000.0 * 60 * 60)) * distancePerHour
-                    val distanceToNextFullHour = if (calculatedDistanceToNextFullHour > 5_000) calculatedDistanceToNextFullHour else distancePerHour
+                    val calculatedDistanceToNextFullHour = ((msToNextFullHour / (1_000.0 * 60 * 60)) * distancePerHour).coerceIn(0.0, distancePerHour)
 
-                    Log.d(TAG, "Minutes to next full hour: ${msToNextFullHour / 1000 / 60}, Distance to next full hour: ${(distanceToNextFullHour / 1000).roundToInt()}km (calculated: ${(calculatedDistanceToNextFullHour / 1000).roundToInt()}km)")
+                    Log.d(TAG, "Minutes to next full hour: ${msToNextFullHour / 1000 / 60}, Distance to next full hour: ${(calculatedDistanceToNextFullHour / 1000).roundToInt()}km")
 
                     requestedGpsCoordinates = buildList {
                         add(gps)
 
-                        var currentPosition = positionOnRoute + distanceToNextFullHour
+                        var currentPosition = positionOnRoute + calculatedDistanceToNextFullHour
                         var lastRequestedPosition = currentPosition
-                        while (currentPosition < upcomingRoute.routeLength && size < 10){
-                            val point = TurfMeasurement.along(upcomingRoute.routePolyline, currentPosition, TurfConstants.UNIT_METERS)
-                            add(GpsCoordinates(point.latitude(), point.longitude(), distanceAlongRoute = currentPosition))
+                        while (currentPosition < upcomingRoute.routeLength && size < 10) {
+                            val point = TurfMeasurement.along(
+                                upcomingRoute.routePolyline,
+                                currentPosition,
+                                TurfConstants.UNIT_METERS
+                            )
+                            add(
+                                GpsCoordinates(
+                                    point.latitude(),
+                                    point.longitude(),
+                                    distanceAlongRoute = currentPosition
+                                )
+                            )
 
                             lastRequestedPosition = currentPosition
                             currentPosition += distancePerHour
                         }
 
-                        if (upcomingRoute.routeLength > lastRequestedPosition + 5_000){
-                            val point = TurfMeasurement.along(upcomingRoute.routePolyline, upcomingRoute.routeLength, TurfConstants.UNIT_METERS)
-                            add(GpsCoordinates(point.latitude(), point.longitude(), distanceAlongRoute = upcomingRoute.routeLength))
+                        if (upcomingRoute.routeLength > lastRequestedPosition + 5_000) {
+                            val point = TurfMeasurement.along(
+                                upcomingRoute.routePolyline,
+                                upcomingRoute.routeLength,
+                                TurfConstants.UNIT_METERS
+                            )
+                            add(
+                                GpsCoordinates(
+                                    point.latitude(),
+                                    point.longitude(),
+                                    distanceAlongRoute = upcomingRoute.routeLength
+                                )
+                            )
                         }
                     }
                 } else {

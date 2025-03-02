@@ -54,6 +54,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 @Composable
@@ -112,6 +113,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
                 precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
+                includeDistanceLabel = false,
             )
         }
 
@@ -203,28 +205,28 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 distanceAlongRoute?.minus(currentDistanceAlongRoute)
             }
 
+            val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
+            val unixTime = data?.forecastData?.time?.get(index) ?: 0
+            val formattedForecastTime = WeatherForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
+            val formattedForecastDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
 
-                val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
-                val unixTime = data?.forecastData?.time?.get(index) ?: 0
-                val formattedForecastTime = WeatherForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                val formattedForecastDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
-
-                WeatherWidget(
-                    baseBitmap,
-                    current = interpretation,
-                    windBearing = data?.forecastData?.windDirection?.get(index)?.roundToInt() ?: 0,
-                    windSpeed = data?.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
-                    windGusts = data?.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
-                    precipitation = data?.forecastData?.precipitation?.get(index) ?: 0.0,
-                    precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
-                    temperature = data?.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
-                    temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
-                    timeLabel = formattedForecastTime,
-                    dateLabel = formattedForecastDate,
-                    distance = distanceFromCurrent,
-                    isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                    precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
-                )
+            WeatherWidget(
+                baseBitmap,
+                current = interpretation,
+                windBearing = data?.forecastData?.windDirection?.get(index)?.roundToInt() ?: 0,
+                windSpeed = data?.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
+                windGusts = data?.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
+                precipitation = data?.forecastData?.precipitation?.get(index) ?: 0.0,
+                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
+                temperature = data?.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
+                temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                timeLabel = formattedForecastTime,
+                dateLabel = formattedForecastDate,
+                distance = distanceFromCurrent,
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
+                includeDistanceLabel = true
+            )
         }
 
         if (exitDialogVisible) {
