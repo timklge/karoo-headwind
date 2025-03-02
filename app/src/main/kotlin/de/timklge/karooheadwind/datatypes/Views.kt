@@ -20,8 +20,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.HeadingResponse
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.screens.HeadwindSettings
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
 suspend fun getErrorWidget(glance: GlanceRemoteViews, context: Context, settings: HeadwindSettings?, headingResponse: HeadingResponse?): RemoteViewsCompositionResult {

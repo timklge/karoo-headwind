@@ -7,5 +7,5 @@
   "latestVersionCode": 14,
   "developer": "timklge",
   "description": "Provides headwind direction, wind speed and other weather data fields",
-  "releaseNotes": "Forecast weather along route in fixed intervals if route is loaded",
+  "releaseNotes": "* Forecast weather along route in fixed intervals if route is loaded\n* Show current weather in app menu"
 }

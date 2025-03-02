@@ -2,9 +2,9 @@ package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
 import de.timklge.karooheadwind.HeadingResponse
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
 import de.timklge.karooheadwind.getRelativeHeadingFlow
-import de.timklge.karooheadwind.screens.HeadwindSettings
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
 import io.hammerhead.karooext.KarooSystemService
