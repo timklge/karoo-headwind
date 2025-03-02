@@ -163,7 +163,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
                         add(gps)
 
                         var currentPosition = positionOnRoute + calculatedDistanceToNextFullHour
-                        var lastRequestedPosition = currentPosition
+                        var lastRequestedPosition = positionOnRoute
+
                         while (currentPosition < upcomingRoute.routeLength && size < 10) {
                             val point = TurfMeasurement.along(
                                 upcomingRoute.routePolyline,
@@ -182,7 +183,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
                             currentPosition += distancePerHour
                         }
 
-                        if (upcomingRoute.routeLength > lastRequestedPosition + 5_000) {
+                        if (upcomingRoute.routeLength > lastRequestedPosition + 1_000) {
                             val point = TurfMeasurement.along(
                                 upcomingRoute.routePolyline,
                                 upcomingRoute.routeLength,

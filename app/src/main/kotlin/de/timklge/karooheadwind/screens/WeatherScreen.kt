@@ -26,12 +26,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.PrecipitationUnit
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
+import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamStats
@@ -41,10 +41,7 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
@@ -91,15 +88,10 @@ fun WeatherScreen(onFinish: () -> Unit) {
         val requestedWeatherPosition = weatherData.firstOrNull()?.requestedPosition
 
         val formattedTime = currentWeatherData?.let { timeFormatter.format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
-        val formattedDate = currentWeatherData?.let { Instant.ofEpochSecond(currentWeatherData.current.time).atZone(ZoneId.systemDefault()).toLocalDate().format(
-            DateTimeFormatter.ofLocalizedDate(
-            FormatStyle.SHORT))
-        }
+        val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
-                dateLabel = formattedDate,
-                timeLabel = formattedTime,
                 baseBitmap = baseBitmap,
                 current = WeatherInterpretation.fromWeatherCode(currentWeatherData.current.weatherCode),
                 windBearing = currentWeatherData.current.windDirection.roundToInt(),
@@ -108,10 +100,11 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 precipitation = currentWeatherData.current.precipitation,
                 temperature = currentWeatherData.current.temperature.toInt(),
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
+                timeLabel = formattedTime,
+                dateLabel = formattedDate,
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
                 includeDistanceLabel = false,
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
             )
         }
 
@@ -210,7 +203,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
             val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
             val unixTime = data?.forecastData?.time?.get(index) ?: 0
             val formattedForecastTime = WeatherForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
-            val formattedForecastDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+            val formattedForecastDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
 
             WeatherWidget(
                 baseBitmap,
@@ -219,15 +212,14 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 windSpeed = data?.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
                 windGusts = data?.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
                 precipitation = data?.forecastData?.precipitation?.get(index) ?: 0.0,
-                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
                 temperature = data?.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
                 dateLabel = formattedForecastDate,
                 distance = distanceFromCurrent,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH,
-                includeDistanceLabel = true
+                includeDistanceLabel = true,
+                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
             )
         }
 

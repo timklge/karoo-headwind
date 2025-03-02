@@ -5,6 +5,8 @@ import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.GlanceModifier
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.glance.layout.Alignment
@@ -13,6 +15,7 @@ import androidx.glance.layout.fillMaxSize
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.MainActivity
 import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
 import de.timklge.karooheadwind.OpenMeteoData
 import de.timklge.karooheadwind.TemperatureUnit
@@ -43,7 +46,6 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
@@ -124,11 +126,13 @@ class WeatherDataType(
 
                     val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                     val formattedTime = timeFormatter.format(Instant.ofEpochSecond(data.current.time))
-                    val formattedDate = Instant.ofEpochSecond(data.current.time).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(
-                        FormatStyle.SHORT))
+                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(data.current.time))
 
                     val result = glance.compose(context, DpSize.Unspecified) {
-                        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                        var modifier = GlanceModifier.fillMaxSize()
+                        if (!config.preview) modifier = modifier.clickable(onClick = actionStartActivity<MainActivity>())
+
+                        Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
                             Weather(
                                 baseBitmap,
                                 current = interpretation,

@@ -24,7 +24,6 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.layout.wrapContentWidth
 import androidx.glance.preview.ExperimentalGlancePreviewApi
-import androidx.glance.preview.Preview
 import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -33,8 +32,18 @@ import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
+
+fun getShortDateFormatter(): DateTimeFormatter = DateTimeFormatter.ofPattern(
+    when (Locale.getDefault().country) {
+        "US" -> "MM/dd"
+        else -> "dd.MM"
+    }
+).withZone(ZoneId.systemDefault())
 
 fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
     return when (interpretation){
@@ -49,7 +58,6 @@ fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
 }
 
 @OptIn(ExperimentalGlancePreviewApi::class)
-@Preview(widthDp = 200, heightDp = 150)
 @Composable
 fun Weather(
     baseBitmap: Bitmap,
@@ -69,7 +77,7 @@ fun Weather(
     isImperial: Boolean?
 ) {
 
-    val fontSize = 14f
+    val fontSize = if (singleDisplay) 19f else 14f
 
     Column(modifier = if (singleDisplay) GlanceModifier.fillMaxSize().padding(1.dp) else GlanceModifier.fillMaxHeight().padding(1.dp).width(86.dp), horizontalAlignment = rowAlignment) {
         Row(modifier = GlanceModifier.defaultWeight().wrapContentWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
@@ -130,7 +138,7 @@ fun Weather(
             }
 
             Image(
-                modifier = GlanceModifier.height(16.dp).width(12.dp).padding(1.dp),
+                modifier = if (singleDisplay) GlanceModifier.height(20.dp).width(16.dp) else GlanceModifier.height(16.dp).width(12.dp).padding(1.dp),
                 provider = ImageProvider(R.drawable.thermometer),
                 contentDescription = "Temperature",
                 contentScale = ContentScale.Fit,
@@ -163,13 +171,12 @@ fun Weather(
             Spacer(modifier = GlanceModifier.width(5.dp))
 
             Image(
-                modifier = GlanceModifier.height(16.dp).width(12.dp).padding(1.dp),
+                modifier = if (singleDisplay) GlanceModifier.height(20.dp).width(16.dp) else GlanceModifier.height(16.dp).width(12.dp).padding(1.dp),
                 provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, windBearing + 180)),
                 contentDescription = "Current wind direction",
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
             )
-
 
             Text(
                 text = "$windSpeed,${windGusts}",
