@@ -54,7 +54,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.5") {
+class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
     companion object {
         const val TAG = "karoo-headwind"
     }
