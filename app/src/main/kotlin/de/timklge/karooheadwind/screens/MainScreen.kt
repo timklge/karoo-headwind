@@ -40,7 +40,7 @@ import io.hammerhead.karooext.KarooSystemService
 import kotlinx.coroutines.launch
 
 @Composable
-fun MainScreen(onFinish: () -> Unit) {
+fun MainScreen(close: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -50,6 +50,14 @@ fun MainScreen(onFinish: () -> Unit) {
     var tabIndex by remember { mutableIntStateOf(0) }
 
     val tabs = listOf("Weather", "Settings")
+
+    fun onFinish() {
+        if (tabIndex > 0){
+            tabIndex--
+        } else {
+            close()
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -84,8 +92,8 @@ fun MainScreen(onFinish: () -> Unit) {
                     }
                 }
                 when (tabIndex) {
-                    0 -> WeatherScreen(onFinish)
-                    1 -> SettingsScreen(onFinish)
+                    0 -> WeatherScreen(::onFinish)
+                    1 -> SettingsScreen(::onFinish)
                 }
             }
         }
@@ -120,7 +128,9 @@ fun MainScreen(onFinish: () -> Unit) {
                 .align(Alignment.BottomStart)
                 .padding(bottom = 10.dp)
                 .size(54.dp)
-                .clickable { onFinish() }
+                .clickable {
+                    onFinish()
+                }
         )
     }
 }
