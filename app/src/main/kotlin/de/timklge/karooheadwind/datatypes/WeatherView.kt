@@ -36,6 +36,13 @@ import de.timklge.karooheadwind.WeatherInterpretation
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 
+fun getShortDateFormatter(): DateTimeFormatter = DateTimeFormatter.ofPattern(
+    when (Locale.getDefault().country) {
+        "US" -> "MM/dd"
+        else -> "dd.MM"
+    }
+).withZone(ZoneId.systemDefault())
+
 fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
     return when (interpretation){
         WeatherInterpretation.CLEAR -> R.drawable.bx_clear

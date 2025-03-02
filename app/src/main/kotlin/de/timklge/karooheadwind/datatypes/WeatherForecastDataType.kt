@@ -165,7 +165,7 @@ class WeatherForecastDataType(
 
                             var previousDate: String? = let {
                                 val unixTime = allData.getOrNull(positionOffset)?.data?.forecastData?.time?.getOrNull(hourOffset)
-                                val formattedDate = unixTime?.let { Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)) }
+                                val formattedDate = unixTime?.let { getShortDateFormatter().format(Instant.ofEpochSecond(unixTime)) }
 
                                 formattedDate
                             }
@@ -202,7 +202,7 @@ class WeatherForecastDataType(
                                     val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                     val unixTime = data.current.time
                                     val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                     val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                     Weather(
@@ -225,7 +225,7 @@ class WeatherForecastDataType(
                                     val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(baseIndex) ?: 0)
                                     val unixTime = data?.forecastData?.time?.get(baseIndex) ?: 0
                                     val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                    val formattedDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+                                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                     val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                     Weather(
