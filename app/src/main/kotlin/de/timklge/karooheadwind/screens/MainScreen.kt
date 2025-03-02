@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -20,18 +21,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
@@ -39,7 +43,9 @@ import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamStats
+import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -136,8 +142,11 @@ fun MainScreen(onFinish: () -> Unit) {
     var selectedWindDirectionIndicatorTextSetting by remember { mutableStateOf(WindDirectionIndicatorTextSetting.HEADWIND_SPEED) }
     var selectedWindDirectionIndicatorSetting by remember { mutableStateOf(WindDirectionIndicatorSetting.HEADWIND_DIRECTION) }
     var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_2) }
+    var forecastKmPerHour by remember { mutableStateOf("20") }
+    var forecastMilesPerHour by remember { mutableStateOf("12") }
 
-    val stats by ctx.streamStats().collectAsState(HeadwindStats())
+    val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
+    val stats by ctx.streamStats().collectAsStateWithLifecycle(HeadwindStats())
     val location by karooSystem.getGpsCoordinateFlow(ctx).collectAsStateWithLifecycle(null)
 
     var savedDialogVisible by remember { mutableStateOf(false) }
@@ -150,6 +159,8 @@ fun MainScreen(onFinish: () -> Unit) {
             selectedWindDirectionIndicatorTextSetting = settings.windDirectionIndicatorTextSetting
             selectedWindDirectionIndicatorSetting = settings.windDirectionIndicatorSetting
             selectedRoundLocationSetting = settings.roundLocationTo
+            forecastKmPerHour = settings.forecastedKmPerHour.toString()
+            forecastMilesPerHour = settings.forecastedMilesPerHour.toString()
         }
     }
 
@@ -200,6 +211,24 @@ fun MainScreen(onFinish: () -> Unit) {
                 selectedRoundLocationSetting = RoundLocationSetting.entries.find { unit -> unit.id == selectedOption.id }!!
             }
 
+            if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL){
+                OutlinedTextField(value = forecastMilesPerHour, modifier = Modifier.fillMaxWidth(),
+                    onValueChange = { forecastMilesPerHour = it },
+                    label = { Text("Forecast Distance per Hour") },
+                    suffix = { Text("mi") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+            } else {
+                OutlinedTextField(value = forecastKmPerHour, modifier = Modifier.fillMaxWidth(),
+                    onValueChange = { forecastKmPerHour = it },
+                    label = { Text("Forecast Distance per Hour") },
+                    suffix = { Text("km") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true
+                )
+            }
+
 
             FilledTonalButton(modifier = Modifier
                 .fillMaxWidth()
@@ -208,7 +237,9 @@ fun MainScreen(onFinish: () -> Unit) {
                         welcomeDialogAccepted = true,
                         windDirectionIndicatorSetting = selectedWindDirectionIndicatorSetting,
                         windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
-                        roundLocationTo = selectedRoundLocationSetting)
+                        roundLocationTo = selectedRoundLocationSetting,
+                        forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
+                        forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20)
 
                     coroutineScope.launch {
                         saveSettings(ctx, newSettings)
