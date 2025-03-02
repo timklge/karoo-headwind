@@ -47,16 +47,20 @@ data class HeadwindWidgetSettings(
     }
 }
 
+//Moded with openweahtermap.org
 @Serializable
 data class HeadwindStats(
     val lastSuccessfulWeatherRequest: Long? = null,
     val lastSuccessfulWeatherPosition: GpsCoordinates? = null,
     val failedWeatherRequest: Long? = null,
+    val lastSuccessfulWeatherProvider: WeatherDataProvider? = null,
 ){
     companion object {
         val defaultStats = Json.encodeToString(HeadwindStats())
     }
 }
+
+
 
 @Serializable
 data class HeadwindSettings(
@@ -67,6 +71,8 @@ data class HeadwindSettings(
     val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_2,
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,
+    val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
+    val openWeatherMapApiKey: String = "cde014c2fab1dbabe2387e57f3ecc051"
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())
@@ -75,4 +81,11 @@ data class HeadwindSettings(
     fun getForecastMetersPerHour(isImperial: Boolean): Int {
         return if (isImperial) forecastedMilesPerHour * 1609 else forecastedKmPerHour * 1000
     }
+}
+
+//added openweathermap.org
+
+enum class WeatherDataProvider(val id: String, val label: String) {
+    OPEN_METEO("open-meteo", "Open-Meteo"),
+    OPEN_WEATHER_MAP("open-weather-map", "OpenWeatherMap")
 }

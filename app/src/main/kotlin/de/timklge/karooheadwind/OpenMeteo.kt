@@ -13,14 +13,18 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.timeout
+import kotlinx.coroutines.flow.first
 import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(FlowPreview::class)
-suspend fun KarooSystemService.makeOpenMeteoHttpRequest(gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
-    val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
-    val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
-
+suspend fun KarooSystemService.originalOpenMeteoRequest(
+    gpsCoordinates: List<GpsCoordinates>,
+    settings: HeadwindSettings,
+    profile: UserProfile?,
+    precipitationUnit: PrecipitationUnit = PrecipitationUnit.MILLIMETERS,
+    temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS
+): HttpResponseState.Complete {
     return callbackFlow {
         // https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=surface_pressure,pressure_msl,temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timeformat=unixtime&past_hours=1&forecast_days=1&forecast_hours=12
         val lats = gpsCoordinates.joinToString(",") { String.format(Locale.US, "%.6f", it.lat) }
@@ -52,9 +56,56 @@ suspend fun KarooSystemService.makeOpenMeteoHttpRequest(gpsCoordinates: List<Gps
         }
     }.timeout(30.seconds).catch { e: Throwable ->
         if (e is TimeoutCancellationException){
-            emit(HttpResponseState.Complete(500, mapOf(), null, "Timeout"))
-        } else {
-            throw e
-        }
+                Log.d(KarooHeadwindExtension.TAG, "Http request timed out")
+                emit(HttpResponseState.Complete(408, emptyMap(), null, "Request timed out"))
+            } else {
+                Log.d(KarooHeadwindExtension.TAG, "Http request failed", e)
+                emit(HttpResponseState.Complete(500, emptyMap(), null, e.message))
+            }
     }.single()
+}
+
+@OptIn(FlowPreview::class)
+suspend fun KarooSystemService.makeOpenMeteoHttpRequest(
+    gpsCoordinates: List<GpsCoordinates>,
+    settings: HeadwindSettings,
+    profile: UserProfile?,
+    context: android.content.Context // Agregar el contexto como parámetro
+): HttpResponseState.Complete {
+    val provider = WeatherProviderFactory.getProvider(settings)
+    val response = provider.getWeatherData(this, gpsCoordinates, settings, profile)
+
+    if (response.error != null) {
+        if (provider is OpenWeatherMapProvider) {
+            WeatherProviderFactory.handleOpenWeatherMapFailure()
+        }
+    } else {
+
+        val usedProvider = when(provider) {
+            is OpenWeatherMapProvider -> WeatherDataProvider.OPEN_WEATHER_MAP
+            is OpenMeteoProvider -> WeatherDataProvider.OPEN_METEO
+            else -> null
+        }
+
+        if (provider is OpenWeatherMapProvider) {
+            WeatherProviderFactory.resetOpenWeatherMapFailures()
+        } else if (provider is OpenMeteoProvider) {
+            WeatherProviderFactory.handleOpenMeteoSuccess()
+        }
+
+
+        try {
+            val lastKnownStats = context.streamStats().first()
+            val stats = lastKnownStats.copy(
+                lastSuccessfulWeatherRequest = System.currentTimeMillis(),
+                lastSuccessfulWeatherPosition = gpsCoordinates.firstOrNull(),
+                lastSuccessfulWeatherProvider = usedProvider
+            )
+            saveStats(context, stats)
+        } catch(e: Exception) {
+            Log.e(KarooHeadwindExtension.TAG, "Error saving stats with provider $usedProvider", e)
+        }
+    }
+
+    return response
 }

@@ -201,7 +201,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
                     requestedGpsCoordinates = mutableListOf(gps)
                 }
 
-                val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile)
+                //val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile)
+                val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile, applicationContext)
                 if (response.error != null){
                     try {
                         val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
