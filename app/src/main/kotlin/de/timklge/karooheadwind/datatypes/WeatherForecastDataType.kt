@@ -182,8 +182,6 @@ class WeatherForecastDataType(
                                 val distanceAlongRoute = allData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
                                 val position = allData.getOrNull(positionIndex)?.requestedPosition?.let { "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}" }
 
-                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $position")
-
                                 if (baseIndex > hourOffset) {
                                     Spacer(
                                         modifier = GlanceModifier.fillMaxHeight().background(
@@ -191,6 +189,8 @@ class WeatherForecastDataType(
                                         ).width(1.dp)
                                     )
                                 }
+
+                                Log.d(KarooHeadwindExtension.TAG, "Distance along route ${positionIndex}: $position")
 
                                 val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
                                     distanceAlongRoute?.minus(currentDistanceAlongRoute)
