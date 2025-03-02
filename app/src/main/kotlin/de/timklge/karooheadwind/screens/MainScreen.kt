@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,11 +26,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,6 +44,8 @@ fun MainScreen(onFinish: () -> Unit) {
 
     var welcomeDialogVisible by remember { mutableStateOf(false) }
     var tabIndex by remember { mutableIntStateOf(0) }
+    var forecastKmPerHour by remember { mutableStateOf("20") }
+    var forecastMilesPerHour by remember { mutableStateOf("12") }
 
     val tabs = listOf("Weather", "Settings")
 
@@ -75,7 +81,7 @@ fun MainScreen(onFinish: () -> Unit) {
         }
     }
 
-    if (welcomeDialogVisible){  
+    if (welcomeDialogVisible){
         AlertDialog(onDismissRequest = { },
             confirmButton = { Button(onClick = {
                 coroutineScope.launch {
