@@ -32,6 +32,7 @@ import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
+import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamStats
@@ -91,10 +92,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
         val requestedWeatherPosition = weatherData.firstOrNull()?.requestedPosition
 
         val formattedTime = currentWeatherData?.let { timeFormatter.format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
-        val formattedDate = currentWeatherData?.let { Instant.ofEpochSecond(currentWeatherData.current.time).atZone(ZoneId.systemDefault()).toLocalDate().format(
-            DateTimeFormatter.ofLocalizedDate(
-            FormatStyle.SHORT))
-        }
+        val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
@@ -208,7 +206,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
             val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
             val unixTime = data?.forecastData?.time?.get(index) ?: 0
             val formattedForecastTime = WeatherForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
-            val formattedForecastDate = Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT))
+            val formattedForecastDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
 
             WeatherWidget(
                 baseBitmap,

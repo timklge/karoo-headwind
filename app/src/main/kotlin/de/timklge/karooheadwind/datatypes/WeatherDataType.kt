@@ -129,7 +129,10 @@ class WeatherDataType(
                     val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(data.current.time))
 
                     val result = glance.compose(context, DpSize.Unspecified) {
-                        Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                        var modifier = GlanceModifier.fillMaxSize()
+                        if (!config.preview) modifier = modifier.clickable(onClick = actionStartActivity<MainActivity>())
+
+                        Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
                             Weather(
                                 baseBitmap,
                                 current = interpretation,

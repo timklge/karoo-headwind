@@ -50,6 +50,8 @@ fun WeatherWidget(
     precipitationUnit: PrecipitationUnit,
     isImperial: Boolean
 ) {
+    val fontSize = 20.sp
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(5.dp), 
             verticalAlignment = Alignment.CenterVertically,
@@ -60,7 +62,7 @@ fun WeatherWidget(
                     Text(
                         text = dateLabel,
                         style = TextStyle(
-                            fontSize = 14.sp
+                            fontSize = fontSize
                         )
                     )
                 }
@@ -81,7 +83,7 @@ fun WeatherWidget(
                     Text(
                         text = text,
                         style = TextStyle(
-                            fontSize = 14.sp
+                            fontSize = fontSize
                         )
                     )
                 }
@@ -91,7 +93,7 @@ fun WeatherWidget(
                         text = timeLabel,
                         style = TextStyle(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = fontSize
                         )
                     )
                 }
@@ -104,7 +106,7 @@ fun WeatherWidget(
                 modifier = Modifier.size(72.dp)
             )
 
-            Column {
+            Column(horizontalAlignment = Alignment.End) {
                 // Temperature (larger)
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -134,10 +136,16 @@ fun WeatherWidget(
                     val precipitationProbabilityLabel =
                         if (precipitationProbability != null) "${precipitationProbability}% " else ""
 
+                    Icon(
+                        painter = painterResource(id = R.drawable.droplet_regular),
+                        contentDescription = "Precipitation",
+                        modifier = Modifier.size(18.dp)
+                    )
+
                     Text(
-                        text = "${precipitationProbabilityLabel}${ceil(precipitation).toInt()}${precipitationUnit.unitDisplay}",
+                        text = "${precipitationProbabilityLabel}${ceil(precipitation).toInt()}",
                         style = TextStyle(
-                            fontSize = 14.sp
+                            fontSize = fontSize
                         )
                     )
                 }
@@ -151,7 +159,7 @@ fun WeatherWidget(
                         bitmap = getArrowBitmapByBearing(baseBitmap, windBearing).asImageBitmap(),
                         colorFilter = ColorFilter.tint(Color.Black),
                         contentDescription = "Wind direction",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(20.dp)
                     )
 
                     Spacer(modifier = Modifier.width(4.dp))
@@ -159,7 +167,7 @@ fun WeatherWidget(
                     Text(
                         text = "$windSpeed,$windGusts",
                         style = TextStyle(
-                            fontSize = 14.sp
+                            fontSize = fontSize
                         )
                     )
                 }
