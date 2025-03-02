@@ -47,6 +47,7 @@ import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import java.util.zip.GZIPInputStream
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -210,34 +211,38 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.2.5") {
             }.retry(Long.MAX_VALUE) { e ->
                 Log.w(TAG, "Failed to get weather data", e)
                 delay(1.minutes); true
-            }
-                .collect { response ->
-                    try {
-                        val inputStream = java.io.ByteArrayInputStream(response.body ?: ByteArray(0))
+            }.collect { response ->
+                try {
+                    val inputStream = java.io.ByteArrayInputStream(response.body ?: ByteArray(0))
+                    val lowercaseHeaders = response.headers.map { (k: String, v: String) -> k.lowercase() to v.lowercase() }.toMap()
+                    val isGzippedResponse = lowercaseHeaders["content-encoding"]?.contains("gzip") == true
+                    val responseString = if(isGzippedResponse){
                         val gzipStream = withContext(Dispatchers.IO) { GZIPInputStream(inputStream) }
-                        val responseString = gzipStream.use { stream -> String(stream.readBytes()) }
-
-                        if (requestedGpsCoordinates.size == 1){
-                            val weatherData = jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(responseString)
-                            val data = WeatherDataResponse(weatherData, requestedGpsCoordinates.single())
-
-                            saveCurrentData(applicationContext, listOf(data))
-
-                            Log.d(TAG, "Got updated weather info: $data")
-                        } else {
-                            val weatherData = jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(responseString)
-                            val data = weatherData.fastZip(requestedGpsCoordinates) { weather, gps -> WeatherDataResponse(weather, gps) }
-
-                            saveCurrentData(applicationContext, data)
-
-                            Log.d(TAG, "Got updated weather info: $data")
-                        }
-
-                        saveWidgetSettings(applicationContext, HeadwindWidgetSettings(currentForecastHourOffset = 0))
-                    } catch(e: Exception){
-                        Log.e(TAG, "Failed to read current weather data", e)
+                        gzipStream.use { stream -> String(stream.readBytes()) }
+                    } else {
+                        inputStream.use { stream -> String(stream.readBytes()) }
                     }
+                    if (requestedGpsCoordinates.size == 1){
+                        val weatherData = jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(responseString)
+                        val data = WeatherDataResponse(weatherData, requestedGpsCoordinates.single())
+
+                        saveCurrentData(applicationContext, listOf(data))
+
+                        Log.d(TAG, "Got updated weather info: $data")
+                    } else {
+                        val weatherData = jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(responseString)
+                        val data = weatherData.fastZip(requestedGpsCoordinates) { weather, gps -> WeatherDataResponse(weather, gps) }
+
+                        saveCurrentData(applicationContext, data)
+
+                        Log.d(TAG, "Got updated weather info: $data")
+                    }
+
+                    saveWidgetSettings(applicationContext, HeadwindWidgetSettings(currentForecastHourOffset = 0))
+                } catch(e: Exception){
+                    Log.e(TAG, "Failed to read current weather data", e)
                 }
+            }
         }
     }
 
