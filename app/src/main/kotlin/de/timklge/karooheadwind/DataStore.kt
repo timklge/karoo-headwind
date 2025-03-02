@@ -8,10 +8,6 @@ import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.HeadwindStats
-import de.timklge.karooheadwind.screens.HeadwindWidgetSettings
-import de.timklge.karooheadwind.screens.WindUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.OnNavigationState
@@ -21,16 +17,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 
@@ -102,7 +95,8 @@ fun Context.streamSettings(karooSystemService: KarooSystemService): Flow<Headwin
             if (settingsJson.contains(settingsKey)){
                 jsonWithUnknownKeys.decodeFromString<HeadwindSettings>(settingsJson[settingsKey]!!)
             } else {
-                val defaultSettings = jsonWithUnknownKeys.decodeFromString<HeadwindSettings>(HeadwindSettings.defaultSettings)
+                val defaultSettings = jsonWithUnknownKeys.decodeFromString<HeadwindSettings>(
+                    HeadwindSettings.defaultSettings)
 
                 val preferredUnits = karooSystemService.streamUserProfile().first().preferredUnit
 
@@ -138,6 +132,7 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
             navigationState?.let { LineString.fromPolyline(it.routePolyline, 5) }
         }
         .combine(distanceToDestinationStream) { routePolyline, distanceToDestination ->
+            Log.d(KarooHeadwindExtension.TAG, "Route polyline size: ${routePolyline?.coordinates()?.size}, distance to destination: $distanceToDestination")
             if (routePolyline != null){
                 val length = TurfMeasurement.length(routePolyline, TurfConstants.UNIT_METERS)
                 if (routePolyline != lastKnownRoutePolyline){

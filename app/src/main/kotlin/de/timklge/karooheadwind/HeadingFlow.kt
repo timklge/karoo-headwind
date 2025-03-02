@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 
@@ -91,7 +90,10 @@ suspend fun KarooSystemService.updateLastKnownGps(context: Context) {
 }
 
 fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinates?> {
-    // return flowOf(GpsCoordinates(52.5164069,13.3784))
+    return flow {
+        emit(GpsCoordinates(52.5164069,13.3784))
+        awaitCancellation()
+    }
 
     val initialFlow = flow {
         val lastKnownPosition = context.getLastKnownPosition()

@@ -2,9 +2,6 @@ package de.timklge.karooheadwind
 
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.PrecipitationUnit
-import de.timklge.karooheadwind.screens.TemperatureUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HttpResponseState
 import io.hammerhead.karooext.models.OnHttpResponse

@@ -7,12 +7,11 @@ import androidx.compose.ui.unit.DpSize
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import de.timklge.karooheadwind.HeadingResponse
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
-import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.streamCurrentWeatherData
-import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamSettings
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -30,8 +29,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 

@@ -11,13 +11,13 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
 import de.timklge.karooheadwind.HeadingResponse
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
 import de.timklge.karooheadwind.OpenMeteoData
+import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
-import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.TemperatureUnit
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
@@ -83,7 +83,8 @@ class WeatherDataType(
                     0.0, 0.0, "Europe/Berlin", 30.0, 0,
 
                     null
-            ), HeadwindSettings()))
+            ), HeadwindSettings()
+            ))
 
             delay(5_000)
         }

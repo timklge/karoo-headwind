@@ -7,13 +7,13 @@ import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
+import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
-import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
-import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.UserWindSpeedDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType
@@ -21,9 +21,6 @@ import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
-import de.timklge.karooheadwind.screens.HeadwindSettings
-import de.timklge.karooheadwind.screens.HeadwindStats
-import de.timklge.karooheadwind.screens.HeadwindWidgetSettings
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.models.UserProfile
@@ -47,7 +44,6 @@ import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import java.util.zip.GZIPInputStream
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
