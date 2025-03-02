@@ -35,6 +35,7 @@ enum class TemperatureUnit(val id: String, val label: String, val unitDisplay: S
 enum class RoundLocationSetting(val id: String, val label: String, val km: Int){
     KM_1("1 km", "1 km", 1),
     KM_2("2 km", "2 km", 2),
+    KM_3("3 km", "3 km", 3),
     KM_5("5 km", "5 km", 5)
 }
 
@@ -68,7 +69,7 @@ data class HeadwindSettings(
     val welcomeDialogAccepted: Boolean = false,
     val windDirectionIndicatorTextSetting: WindDirectionIndicatorTextSetting = WindDirectionIndicatorTextSetting.HEADWIND_SPEED,
     val windDirectionIndicatorSetting: WindDirectionIndicatorSetting = WindDirectionIndicatorSetting.HEADWIND_DIRECTION,
-    val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_2,
+    val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_3,
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,

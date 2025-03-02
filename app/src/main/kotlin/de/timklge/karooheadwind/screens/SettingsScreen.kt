@@ -60,7 +60,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             WindDirectionIndicatorSetting.HEADWIND_DIRECTION
         )
     }
-    var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_2) }
+    var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_3) }
     var forecastKmPerHour by remember { mutableStateOf("20") }
     var forecastMilesPerHour by remember { mutableStateOf("12") }
 
