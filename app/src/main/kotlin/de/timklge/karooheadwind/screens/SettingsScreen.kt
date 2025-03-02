@@ -1,55 +1,45 @@
 package de.timklge.karooheadwind.screens
 
+import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
-import de.timklge.karooheadwind.HeadwindStats
+import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.RoundLocationSetting
 import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.WindUnit
-import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
-import kotlin.math.roundToInt
+import kotlinx.coroutines.runBlocking
 
 @Composable
 fun SettingsScreen(onFinish: () -> Unit) {
@@ -74,11 +64,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var forecastMilesPerHour by remember { mutableStateOf("12") }
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
-    val stats by ctx.streamStats().collectAsStateWithLifecycle(HeadwindStats())
-    val location by karooSystem.getGpsCoordinateFlow(ctx).collectAsStateWithLifecycle(null)
-
-    var savedDialogVisible by remember { mutableStateOf(false) }
-    var exitDialogVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -94,6 +79,43 @@ fun SettingsScreen(onFinish: () -> Unit) {
     LaunchedEffect(Unit) {
         karooSystem.connect { connected ->
             karooConnected = connected
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            karooSystem.disconnect()
+        }
+    }
+
+    suspend fun updateSettings(){
+        Log.d(KarooHeadwindExtension.TAG, "Saving settings")
+
+        val newSettings = HeadwindSettings(
+            windUnit = selectedWindUnit,
+            welcomeDialogAccepted = true,
+            windDirectionIndicatorSetting = selectedWindDirectionIndicatorSetting,
+            windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
+            roundLocationTo = selectedRoundLocationSetting,
+            forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
+            forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20
+        )
+
+        saveSettings(ctx, newSettings)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            runBlocking {
+                updateSettings()
+            }
+        }
+    }
+
+    BackHandler {
+        coroutineScope.launch {
+            updateSettings()
+            onFinish()
         }
     }
 
@@ -183,30 +205,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             )
         }
 
-
-        FilledTonalButton(modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp), onClick = {
-            val newSettings = HeadwindSettings(
-                windUnit = selectedWindUnit,
-                welcomeDialogAccepted = true,
-                windDirectionIndicatorSetting = selectedWindDirectionIndicatorSetting,
-                windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
-                roundLocationTo = selectedRoundLocationSetting,
-                forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
-                forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20
-            )
-
-            coroutineScope.launch {
-                saveSettings(ctx, newSettings)
-                savedDialogVisible = true
-            }
-        }) {
-            Icon(Icons.Default.Done, contentDescription = "Save")
-            Spacer(modifier = Modifier.width(5.dp))
-            Text("Save")
-        }
-
         if (!karooConnected) {
             Text(
                 modifier = Modifier.padding(5.dp),
@@ -214,41 +212,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             )
         }
 
-        FilledTonalButton(modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp), onClick = {
-            exitDialogVisible = true
-        }) {
-            Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = "Exit")
-            Spacer(modifier = Modifier.width(5.dp))
-            Text("Exit")
-        }
-    }
-
-    if (exitDialogVisible) {
-        AlertDialog(onDismissRequest = { exitDialogVisible = false },
-            confirmButton = {
-                Button(onClick = {
-                    onFinish()
-                }) { Text("Yes") }
-            },
-            dismissButton = {
-                Button(onClick = {
-                    exitDialogVisible = false
-                }) { Text("No") }
-            },
-            text = { Text("Do you really want to exit?") }
-        )
-    }
-
-    if (savedDialogVisible){
-        AlertDialog(onDismissRequest = { savedDialogVisible = false },
-            confirmButton = {
-                Button(onClick = {
-                    savedDialogVisible = false
-                }) { Text("OK") }
-            },
-            text = { Text("Settings saved successfully.") }
-        )
+        Spacer(modifier = Modifier.padding(30.dp))
     }
 }

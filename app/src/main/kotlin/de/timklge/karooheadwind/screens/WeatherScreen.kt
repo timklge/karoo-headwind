@@ -9,22 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +33,6 @@ import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.getGpsCoordinateFlow
-import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUpcomingRoute
@@ -54,21 +46,18 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
-import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 @Composable
 fun WeatherScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf<Boolean?>(null) }
     val ctx = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val karooSystem = remember { KarooSystemService(ctx) }
+            val karooSystem = remember { KarooSystemService(ctx) }
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
     val stats by ctx.streamStats().collectAsStateWithLifecycle(HeadwindStats())
     val location by karooSystem.getGpsCoordinateFlow(ctx).collectAsStateWithLifecycle(null)
     val weatherData by ctx.streamCurrentWeatherData().collectAsStateWithLifecycle(emptyList())
-    var exitDialogVisible by remember { mutableStateOf(false) }
 
     val baseBitmap = BitmapFactory.decodeResource(
         ctx.resources,
@@ -81,7 +70,16 @@ fun WeatherScreen(onFinish: () -> Unit) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp)) {
+    DisposableEffect(Unit) {
+        onDispose {
+            karooSystem.disconnect()
+        }
+    }
+
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(5.dp)) {
         if (karooConnected == false) {
             Text(
                 modifier = Modifier.padding(5.dp),
@@ -176,7 +174,6 @@ fun WeatherScreen(onFinish: () -> Unit) {
             )
         }
 
-        val heading by karooSystem.getHeadingFlow(ctx).collectAsStateWithLifecycle(null)
         val upcomingRoute by karooSystem.streamUpcomingRoute().collectAsStateWithLifecycle(null)
 
         for (index in 1..12){
@@ -195,9 +192,12 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
             if (index > 1) {
                 Spacer(
-                    modifier = Modifier.fillMaxWidth().background(
-                        Color.Black
-                    ).height(1.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Color.Black
+                        )
+                        .height(1.dp)
                 )
             }
 
@@ -229,30 +229,6 @@ fun WeatherScreen(onFinish: () -> Unit) {
             )
         }
 
-        if (exitDialogVisible) {
-            AlertDialog(onDismissRequest = { exitDialogVisible = false },
-                confirmButton = {
-                    Button(onClick = {
-                        onFinish()
-                    }) { Text("Yes") }
-                },
-                dismissButton = {
-                    Button(onClick = {
-                        exitDialogVisible = false
-                    }) { Text("No") }
-                },
-                text = { Text("Do you really want to exit?") }
-            )
-        }
-
-        FilledTonalButton(modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp), onClick = {
-            exitDialogVisible = true
-        }) {
-            Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = "Exit")
-            Spacer(modifier = Modifier.width(5.dp))
-            Text("Exit")
-        }
+        Spacer(modifier = Modifier.padding(30.dp))
     }
 }
