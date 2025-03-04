@@ -68,6 +68,7 @@ data class HeadwindSettings(
     val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_3,
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,
+    val lastUpdateRequested: Long? = null,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())

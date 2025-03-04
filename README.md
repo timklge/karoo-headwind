@@ -10,9 +10,10 @@ Compatible with Karoo 2 and Karoo 3 devices.
 
 <a href="https://www.buymeacoffee.com/timklge" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
-![Settings](preview0.png)
-![Field setup](preview1.png)
-![Data page](preview2.png)
+![Page](preview0.png)
+![Field](preview1.png)
+![Overview](preview2.png)
+![Setup](preview3.png)
 
 ## Installation
 
@@ -37,7 +38,8 @@ After installing this app on your Karoo and opening it once from the main menu, 
 
 - Headwind (graphical, 1x1 field): Shows the headwind direction and speed as a circle with a triangular direction indicator. The speed is shown at the center in your set unit of measurement (default is kilometers per hour if you have set up metric units in your Karoo, otherwise miles per hour). Both direction and speed are relative to the current riding direction by default, i. e., riding directly into a wind of 20 km/h will show a headwind speed of 20 km/h, while riding in the same direction will show -20 km/h. You can change this behavior in the app settings to show the absolute wind direction and speed instead.
 - Tailwind with riding speed (graphical, 1x1 field): Shows an arrow indicating the current headwind direction next to a label reading your current speed and the speed of the tailwind. If you ride against a headwind of 5 mph, it will show "-5". If you ride in the same direction of a 5 mph wind, it will read "+5". Text and arrow are colored based on the tailwind speed, with red indicating a strong headwind and green indicating a strong tailwind.
-- Weather forecast (graphical, 2x1 field): Shows three columns indicating the current weather conditions (sunny, cloudy, ...), wind direction, precipitation and temperature forecasted for the next three hours. Tap on this widget to cycle through the 12 hour forecast.
+- Weather forecast (graphical, 2x1 field): Shows three columns indicating the current weather conditions (sunny, cloudy, ...), wind direction, precipitation and temperature forecasted for the next three hours. Tap on this widget to cycle through the 12 hour forecast. If you have a route loaded, the forecast widget will show the forecasted weather along points of the route, with an estimated traveled distance per hour of 20 km / 12 miles by default.
+- Current weather (graphical, 1x1 field): Shows current weather conditions (same as forecast widget, but only for the current time). Tap on this widget to open the headwind app with a forecast overview.
 - Additionally, data fields that only show the current data value for headwind speed, humidity, cloud cover, absolute wind speed, absolute wind gust speed, absolute wind direction, rainfall and surface pressure can be added if desired.
 
 The app will automatically attempt to download weather data for your current approximate location from the [open-meteo.com](https://open-meteo.com) API once your device has acquired a GPS fix. The API service is free for non-commercial use. Your location is rounded to approximately two kilometers to maintain privacy. The data is updated when you ride more than two kilometers from the location where the weather data was downloaded or after one hour at the latest. If the app cannot connect to the weather service, it will retry the download every minute. Downloading weather data should work on Karoo 2 if you have a SIM card inserted or on Karoo 3 via your phone's internet connection if you have the Karoo companion app installed.
