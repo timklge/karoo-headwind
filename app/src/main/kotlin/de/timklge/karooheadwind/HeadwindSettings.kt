@@ -69,6 +69,7 @@ data class HeadwindSettings(
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,
     val lastUpdateRequested: Long? = null,
+    val showDistanceInForecast: Boolean = true,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())
