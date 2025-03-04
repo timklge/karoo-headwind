@@ -29,6 +29,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.datatypes.ForecastDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
@@ -200,7 +201,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
             val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
             val unixTime = data?.forecastData?.time?.get(index) ?: 0
-            val formattedForecastTime = WeatherForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
+            val formattedForecastTime = ForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
             val formattedForecastDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
 
             WeatherWidget(

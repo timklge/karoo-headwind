@@ -4,13 +4,16 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -21,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,6 +66,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_3) }
     var forecastKmPerHour by remember { mutableStateOf("20") }
     var forecastMilesPerHour by remember { mutableStateOf("12") }
+    var showDistanceInForecast by remember { mutableStateOf(true) }
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
 
@@ -73,6 +78,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selectedRoundLocationSetting = settings.roundLocationTo
             forecastKmPerHour = settings.forecastedKmPerHour.toString()
             forecastMilesPerHour = settings.forecastedMilesPerHour.toString()
+            showDistanceInForecast = settings.showDistanceInForecast
         }
     }
 
@@ -98,7 +104,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
             windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
             roundLocationTo = selectedRoundLocationSetting,
             forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
-            forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20
+            forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20,
+            showDistanceInForecast = showDistanceInForecast
         )
 
         saveSettings(ctx, newSettings)
@@ -203,6 +210,12 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true
             )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = showDistanceInForecast, onCheckedChange = { showDistanceInForecast = it})
+            Spacer(modifier = Modifier.width(10.dp))
+            Text("Show Distance in Forecast")
         }
 
         if (!karooConnected) {

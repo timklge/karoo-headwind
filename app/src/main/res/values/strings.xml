@@ -25,10 +25,18 @@
     <string name="weather_description">Current weather conditions</string>
     <string name="weather_forecast">Weather Forecast</string>
     <string name="weather_forecast_description">Current hourly weather forecast</string>
+    <string name="temperature_forecast">Temperature Forecast</string>
+    <string name="temperature_forecast_description">Current hourly temperature forecast</string>
+    <string name="wind_forecast">Wind Forecast</string>
+    <string name="wind_forecast_description">Current hourly wind forecast</string>
+    <string name="precipitation_forecast">Precipitation Forecast</string>
+    <string name="precipitation_forecast_description">Current hourly precipitation forecast</string>
     <string name="headwind_speed">Headwind speed</string>
     <string name="headwind_speed_description">Current headwind speed</string>
     <string name="temperature">Temperature</string>
     <string name="temperature_description">Current temperature in configured unit</string>
     <string name="userwind_speed_description">Current headwind or wind speed based on user setting</string>
     <string name="userwind_speed">Set wind speed</string>
+    <string name="graphical_forecast">Graphical Forecast</string>
+    <string name="graphical_forecast_description">Current graphical weather forecast</string>
 </resources>

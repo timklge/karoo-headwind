@@ -60,7 +60,7 @@ fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
 @OptIn(ExperimentalGlancePreviewApi::class)
 @Composable
 fun Weather(
-    baseBitmap: Bitmap,
+    arrowBitmap: Bitmap,
     current: WeatherInterpretation,
     windBearing: Int,
     windSpeed: Int,
@@ -172,7 +172,7 @@ fun Weather(
 
             Image(
                 modifier = if (singleDisplay) GlanceModifier.height(20.dp).width(16.dp) else GlanceModifier.height(16.dp).width(12.dp).padding(1.dp),
-                provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, windBearing + 180)),
+                provider = ImageProvider(getArrowBitmapByBearing(arrowBitmap, windBearing + 180)),
                 contentDescription = "Current wind direction",
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))

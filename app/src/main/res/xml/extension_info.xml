@@ -33,6 +33,34 @@
         typeId="weatherForecast" />
 
     <DataType
+        description="@string/temperature_forecast_description"
+        displayName="@string/temperature_forecast"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="temperatureForecast" />
+
+    <DataType
+        description="@string/precipitation_forecast_description"
+        displayName="@string/precipitation_forecast"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="precipitationForecast" />
+
+    <DataType
+        description="@string/wind_forecast_description"
+        displayName="@string/wind_forecast"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="windForecast" />
+
+    <DataType
+        description="@string/graphical_forecast_description"
+        displayName="@string/graphical_forecast"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="graphicalForecast" />
+
+    <DataType
         description="@string/headwind_speed_description"
         displayName="@string/headwind_speed"
         graphical="false"
