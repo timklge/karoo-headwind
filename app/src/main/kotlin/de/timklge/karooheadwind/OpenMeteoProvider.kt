@@ -12,11 +12,7 @@ class OpenMeteoProvider : WeatherProvider {
         settings: HeadwindSettings,
         profile: UserProfile?
     ): HttpResponseState.Complete {
-        val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL)
-            PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
-        val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL)
-            TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
 
-        return karooSystem.originalOpenMeteoRequest(coordinates, settings, profile, precipitationUnit, temperatureUnit)
+        return karooSystem.originalOpenMeteoRequest(coordinates, settings, profile)
     }
 }
