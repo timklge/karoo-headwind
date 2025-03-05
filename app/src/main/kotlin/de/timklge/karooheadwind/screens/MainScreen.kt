@@ -3,7 +3,6 @@ package de.timklge.karooheadwind.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,10 +13,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,8 +39,11 @@ import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import io.hammerhead.karooext.KarooSystemService
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(close: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
@@ -49,7 +54,28 @@ fun MainScreen(close: () -> Unit) {
     var welcomeDialogVisible by remember { mutableStateOf(false) }
     var tabIndex by remember { mutableIntStateOf(0) }
 
+    var isRefreshing by remember { mutableStateOf(false) }
+    val swipeRefreshState = rememberPullToRefreshState()
+
     val tabs = listOf("Weather", "Settings")
+
+    fun refreshData() {
+        coroutineScope.launch {
+            isRefreshing = true
+            // Set the lastUpdateRequested value to trigger a weather update in the KarooHeadwindExtension
+            val settings = ctx.streamSettings(karooSystem).first()
+            saveSettings(ctx, settings.copy(lastUpdateRequested = System.currentTimeMillis()))
+            delay(1000) // Give some time to show the refreshing indicator
+            isRefreshing = false
+        }
+    }
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            delay(2000) // Timeout after 2 seconds if the refresh doesn't complete
+            isRefreshing = false
+        }
+    }
 
     fun onFinish() {
         if (tabIndex > 0){
@@ -77,7 +103,7 @@ fun MainScreen(close: () -> Unit) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = isRefreshing, onRefresh = { refreshData() }) {
         Column(modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)) {

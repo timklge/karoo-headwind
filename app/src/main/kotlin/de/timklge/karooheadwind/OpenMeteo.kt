@@ -18,13 +18,10 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(FlowPreview::class)
-suspend fun KarooSystemService.originalOpenMeteoRequest(
-    gpsCoordinates: List<GpsCoordinates>,
-    settings: HeadwindSettings,
-    profile: UserProfile?,
-    precipitationUnit: PrecipitationUnit = PrecipitationUnit.MILLIMETERS,
-    temperatureUnit: TemperatureUnit = TemperatureUnit.CELSIUS
-): HttpResponseState.Complete {
+suspend fun KarooSystemService.originalOpenMeteoRequest(gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
+    val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
+    val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
+
     return callbackFlow {
         // https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=surface_pressure,pressure_msl,temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timeformat=unixtime&past_hours=1&forecast_days=1&forecast_hours=12
         val lats = gpsCoordinates.joinToString(",") { String.format(Locale.US, "%.6f", it.lat) }
@@ -56,12 +53,10 @@ suspend fun KarooSystemService.originalOpenMeteoRequest(
         }
     }.timeout(30.seconds).catch { e: Throwable ->
         if (e is TimeoutCancellationException){
-                Log.d(KarooHeadwindExtension.TAG, "Http request timed out")
-                emit(HttpResponseState.Complete(408, emptyMap(), null, "Request timed out"))
-            } else {
-                Log.d(KarooHeadwindExtension.TAG, "Http request failed", e)
-                emit(HttpResponseState.Complete(500, emptyMap(), null, e.message))
-            }
+            emit(HttpResponseState.Complete(500, mapOf(), null, "Timeout"))
+        } else {
+            throw e
+        }
     }.single()
 }
 

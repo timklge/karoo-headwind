@@ -7,18 +7,22 @@ import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import de.timklge.karooheadwind.datatypes.GraphicalForecastDataType
 import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
+import de.timklge.karooheadwind.datatypes.PrecipitationForecastDataType
 import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
 import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
+import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
 import de.timklge.karooheadwind.datatypes.UserWindSpeedDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
+import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
 import io.hammerhead.karooext.KarooSystemService
@@ -50,7 +54,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
+class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
     companion object {
         const val TAG = "karoo-headwind"
     }
@@ -66,7 +70,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
             TailwindAndRideSpeedDataType(karooSystem, applicationContext),
             HeadwindSpeedDataType(karooSystem, applicationContext),
             WeatherDataType(karooSystem, applicationContext),
-            WeatherForecastDataType(karooSystem, applicationContext),
+            WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
             RelativeHumidityDataType(applicationContext),
             CloudCoverDataType(applicationContext),
@@ -77,7 +81,11 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3") {
             PrecipitationDataType(applicationContext),
             SurfacePressureDataType(applicationContext),
             SealevelPressureDataType(applicationContext),
-            UserWindSpeedDataType(karooSystem, applicationContext)
+            UserWindSpeedDataType(karooSystem, applicationContext),
+            TemperatureForecastDataType(karooSystem),
+            PrecipitationForecastDataType(karooSystem),
+            WindForecastDataType(karooSystem),
+            GraphicalForecastDataType(karooSystem)
         )
     }
 

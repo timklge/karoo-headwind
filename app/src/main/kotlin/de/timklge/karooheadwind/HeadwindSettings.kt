@@ -72,6 +72,8 @@ data class HeadwindSettings(
     val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_3,
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,
+    val lastUpdateRequested: Long? = null,
+    val showDistanceInForecast: Boolean = true,
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_WEATHER_MAP,
     val openWeatherMapApiKey: String = "cde014c2fab1dbabe2387e57f3ecc051"
 ){
