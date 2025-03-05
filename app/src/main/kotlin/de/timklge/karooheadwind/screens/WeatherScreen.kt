@@ -203,7 +203,6 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
             val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
             val unixTime = data?.forecastData?.time?.get(index) ?: 0
-
             val formattedForecastTime = ForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
             val formattedForecastDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
 

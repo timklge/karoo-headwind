@@ -210,7 +210,6 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
                     requestedGpsCoordinates = mutableListOf(gps)
                 }
 
-                //val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile)
                 val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile, applicationContext)
                 if (response.error != null){
                     try {
