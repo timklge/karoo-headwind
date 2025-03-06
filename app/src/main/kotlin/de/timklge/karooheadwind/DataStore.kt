@@ -118,8 +118,7 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
         emit(null)
 
         streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .filter { it != 0.0 } // FIXME why is 0 sometimes emitted if no route is loaded?
+            .map { (it as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION) }
             .collect { emit(it) }
     }
 
