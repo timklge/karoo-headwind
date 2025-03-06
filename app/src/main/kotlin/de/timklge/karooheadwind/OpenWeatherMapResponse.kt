@@ -114,15 +114,3 @@ data class Sys(
     val sunrise: Long? = null,
     val sunset: Long? = null
 )
-
-
-@Serializable
-data class OpenWeatherMapCurrentWeatherResponse(
-    val current: OpenMeteoData,
-    val latitude: Double,
-    val longitude: Double,
-    val timezone: String,
-    val elevation: Double = 0.0,
-    @SerialName("utc_offset_seconds") val utfOffsetSeconds: Int = 0,
-    @SerialName("hourly") val forecastData: OpenMeteoForecastData? = null
-)
