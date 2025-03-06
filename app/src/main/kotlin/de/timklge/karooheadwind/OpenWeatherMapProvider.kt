@@ -9,7 +9,6 @@ import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.single
@@ -17,6 +16,75 @@ import kotlinx.coroutines.flow.timeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
+
+@Serializable
+data class OneCallResponse(
+    val lat: Double,
+    val lon: Double,
+    val timezone: String,
+    @SerialName("timezone_offset") val timezoneOffset: Int,
+    val current: CurrentWeather,
+    val hourly: List<HourlyForecast>
+)
+
+@Serializable
+data class CurrentWeather(
+    val dt: Long,
+    val sunrise: Long,
+    val sunset: Long,
+    val temp: Double,
+    val feels_like: Double,
+    val pressure: Int,
+    val humidity: Int,
+    val clouds: Int,
+    val visibility: Int,
+    val wind_speed: Double,
+    val wind_deg: Int,
+    val wind_gust: Double? = null,
+    val rain: Rain? = null,
+    val snow: Snow? = null,
+    val weather: List<Weather>
+)
+
+@Serializable
+data class HourlyForecast(
+    val dt: Long,
+    val temp: Double,
+    val feels_like: Double,
+    val pressure: Int,
+    val humidity: Int,
+    val clouds: Int,
+    val visibility: Int,
+    val wind_speed: Double,
+    val wind_deg: Int,
+    val wind_gust: Double? = null,
+    val pop: Double,
+    val rain: Rain? = null,
+    val snow: Snow? = null,
+    val weather: List<Weather>
+)
+
+
+@Serializable
+data class Weather(
+    val id: Int,
+    val main: String,
+    val description: String,
+    val icon: String
+)
+
+@Serializable
+data class Rain(
+    @SerialName("1h") val h1: Double = 0.0,
+    @SerialName("3h") val h3: Double = 0.0
+)
+
+@Serializable
+data class Snow(
+    @SerialName("1h") val h1: Double = 0.0,
+    @SerialName("3h") val h3: Double = 0.0
+)
+
 
 class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
     override suspend fun getWeatherData(
@@ -26,205 +94,101 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
         profile: UserProfile?
     ): HttpResponseState.Complete {
 
-        val currentResponse = makeOpenWeatherMapCurrentRequest(service, coordinates, apiKey)
-        if (currentResponse.error != null || currentResponse.body == null) {
-            return currentResponse
-        }
+        val response = makeOpenWeatherMapRequest(service, coordinates, apiKey)
 
-        val forecastResponse = makeOpenWeatherMapForecastRequest(service, coordinates, apiKey)
-        if (forecastResponse.error != null) {
-            Log.w(KarooHeadwindExtension.TAG, "Error en pronóstico: ${forecastResponse.error}")
+        if (response.error != null || response.body == null) {
+            return response
         }
 
         try {
-            val currentResponseBody = currentResponse.body?.let { String(it) }
-                ?: throw Exception("Respuesta nula del clima actual")
-            val owmCurrentResponse = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapResponse>(currentResponseBody)
-            val currentData = owmCurrentResponse.toOpenMeteoData()
-
-            var forecastData: OpenMeteoForecastData? = null
-            if (forecastResponse.error == null && forecastResponse.body != null) {
-                val forecastResponseBody = forecastResponse.body?.let { String(it) }
-                    ?: throw Exception("Respuesta nula del pronóstico")
-
-                try {
-                    val owmForecastResponse = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapForecastResponse>(forecastResponseBody)
-                    forecastData = owmForecastResponse.toOpenMeteoForecastData()
-                } catch (e: Exception) {
-                    Log.e(KarooHeadwindExtension.TAG, "Error procesando pronóstico", e)
-                }
-            }
-
-            val convertedResponse = OpenMeteoCurrentWeatherResponse(
-                current = currentData,
-                latitude = owmCurrentResponse.coord.lat,
-                longitude = owmCurrentResponse.coord.lon,
-                timezone = "UTC",
-                elevation = 0.0,
-                utfOffsetSeconds = owmCurrentResponse.timezone,
-                forecastData = forecastData,
-                provider = WeatherDataProvider.OPEN_WEATHER_MAP
-            )
-
-            Log.d(KarooHeadwindExtension.TAG, "Proveedor establecido: ${convertedResponse.provider}")
+            val responseBody = response.body?.let { String(it) }
+                ?: throw Exception("Respuesta nula de OpenWeatherMap")
 
 
-            val finalBody = if (coordinates.size > 1) {
+            if (coordinates.size > 1) {
+                val responses = mutableListOf<OpenMeteoCurrentWeatherResponse>()
 
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap generando respuesta en formato array")
-                jsonWithUnknownKeys.encodeToString(listOf(convertedResponse))
+
+                val oneCallResponse = jsonWithUnknownKeys.decodeFromString<OneCallResponse>(responseBody)
+                responses.add(convertToOpenMeteoFormat(oneCallResponse))
+
+                val finalBody = jsonWithUnknownKeys.encodeToString(responses)
+                return HttpResponseState.Complete(
+                    statusCode = response.statusCode,
+                    headers = response.headers,
+                    body = finalBody.toByteArray(),
+                    error = null
+                )
             } else {
 
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap generando respuesta en formato objeto individual")
-                jsonWithUnknownKeys.encodeToString(convertedResponse)
-            }
+                val oneCallResponse = jsonWithUnknownKeys.decodeFromString<OneCallResponse>(responseBody)
+                val convertedResponse = convertToOpenMeteoFormat(oneCallResponse)
 
-            return HttpResponseState.Complete(
-                statusCode = currentResponse.statusCode,
-                headers = currentResponse.headers,
-                body = finalBody.toByteArray(),
-                error = null
-            )
+                val finalBody = jsonWithUnknownKeys.encodeToString(convertedResponse)
+                return HttpResponseState.Complete(
+                    statusCode = response.statusCode,
+                    headers = response.headers,
+                    body = finalBody.toByteArray(),
+                    error = null
+                )
+            }
         } catch (e: Exception) {
-            Log.e(KarooHeadwindExtension.TAG, "Error procesando respuesta", e)
+            Log.e(KarooHeadwindExtension.TAG, "Error OpenWeatherMap answer processing", e)
             return HttpResponseState.Complete(
                 statusCode = 500,
-                headers = emptyMap(),
+                headers = mapOf(),
                 body = null,
-                error = "Error en respuesta: ${e.message}"
+                error = "Error processing data: ${e.message}"
             )
         }
     }
 
-    @OptIn(FlowPreview::class)
-    private suspend fun makeOpenWeatherMapCurrentRequest(
-        service: KarooSystemService,
-        coordinates: List<GpsCoordinates>,
-        apiKey: String
-    ): HttpResponseState.Complete {
-        return callbackFlow {
-            val coordinate = coordinates.first()
-            val url = "https://api.openweathermap.org/data/2.5/weather?lat=${coordinate.lat}&lon=${coordinate.lon}&appid=$apiKey&units=metric"
+    private fun convertToOpenMeteoFormat(oneCallResponse: OneCallResponse): OpenMeteoCurrentWeatherResponse {
 
-            Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap current: $url")
+        val current = OpenMeteoData(
+            time = oneCallResponse.current.dt,
+            interval = 3600,
+            temperature = oneCallResponse.current.temp,
+            relativeHumidity = oneCallResponse.current.humidity,
+            precipitation = oneCallResponse.current.rain?.h1 ?: 0.0,
+            cloudCover = oneCallResponse.current.clouds,
+            surfacePressure = oneCallResponse.current.pressure.toDouble(),
+            sealevelPressure = oneCallResponse.current.pressure.toDouble(),
+            windSpeed = oneCallResponse.current.wind_speed,
+            windDirection = oneCallResponse.current.wind_deg.toDouble(),
+            windGusts = oneCallResponse.current.wind_gust ?: oneCallResponse.current.wind_speed,
+            weatherCode = convertWeatherCodeToOpenMeteo(oneCallResponse.current.weather.firstOrNull()?.id ?: 800)
+        )
 
-            val listenerId = service.addConsumer(
-                OnHttpResponse.MakeHttpRequest(
-                    "GET",
-                    url,
-                    waitForConnection = false,
-                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG)
-                ),
-                onEvent = { event: OnHttpResponse ->
-                    if (event.state is HttpResponseState.Complete) {
-                        trySendBlocking(event.state as HttpResponseState.Complete)
-                        close()
-                    }
-                },
-                onError = { err ->
-                    Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap current Http error: $err")
-                    close(RuntimeException(err))
-                }
-            )
-            awaitClose {
-                service.removeConsumer(listenerId)
-            }
-        }.timeout(20.seconds).catch { e: Throwable ->
-            if (e is TimeoutCancellationException) {
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap current Http request timed out")
-                emit(HttpResponseState.Complete(statusCode = 408, headers = emptyMap(), body = null, error = "Request timed out"))
-            } else {
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap current Http request failed", e)
-                emit(HttpResponseState.Complete(statusCode = 500, headers = emptyMap(), body = null, error = e.message))
-            }
-        }.single()
-    }
 
-    @OptIn(FlowPreview::class)
-    private suspend fun makeOpenWeatherMapForecastRequest(
-        service: KarooSystemService,
-        coordinates: List<GpsCoordinates>,
-        apiKey: String
-    ): HttpResponseState.Complete {
-        return callbackFlow {
-            val coordinate = coordinates.first()
-            val url = "https://api.openweathermap.org/data/2.5/forecast?lat=${coordinate.lat}&lon=${coordinate.lon}&appid=$apiKey&units=metric"
+        val forecastHours = minOf(12, oneCallResponse.hourly.size)
+        val hourlyForecasts = oneCallResponse.hourly.take(forecastHours)
 
-            Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap forecast: $url")
+        val forecastData = OpenMeteoForecastData(
+            time = hourlyForecasts.map { it.dt },
+            temperature = hourlyForecasts.map { it.temp },
+            precipitationProbability = hourlyForecasts.map { (it.pop * 100).toInt() },
+            precipitation = hourlyForecasts.map { it.rain?.h1 ?: 0.0 },
+            weatherCode = hourlyForecasts.map { convertWeatherCodeToOpenMeteo(it.weather.firstOrNull()?.id ?: 800) },
+            windSpeed = hourlyForecasts.map { it.wind_speed },
+            windDirection = hourlyForecasts.map { it.wind_deg.toDouble() },
+            windGusts = hourlyForecasts.map { it.wind_gust ?: it.wind_speed }
+        )
 
-            val listenerId = service.addConsumer(
-                OnHttpResponse.MakeHttpRequest(
-                    "GET",
-                    url,
-                    waitForConnection = false,
-                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG)
-                ),
-                onEvent = { event: OnHttpResponse ->
-                    if (event.state is HttpResponseState.Complete) {
-                        trySendBlocking(event.state as HttpResponseState.Complete)
-                        close()
-                    }
-                },
-                onError = { err ->
-                    Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap forecast Http error: $err")
-                    close(RuntimeException(err))
-                }
-            )
-            awaitClose {
-                service.removeConsumer(listenerId)
-            }
-        }.timeout(20.seconds).catch { e: Throwable ->
-            if (e is TimeoutCancellationException) {
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap forecast Http request timed out")
-                emit(HttpResponseState.Complete(statusCode = 408, headers = emptyMap(), body = null, error = "Request timed out"))
-            } else {
-                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap forecast Http request failed", e)
-                emit(HttpResponseState.Complete(statusCode = 500, headers = emptyMap(), body = null, error = e.message))
-            }
-        }.single()
-    }
-}
-
-@Serializable
-data class OpenWeatherMapForecastResponse(
-    val list: List<OpenWeatherMapForecastItem>,
-    val city: OpenWeatherMapCity
-) {
-    fun toOpenMeteoForecastData(): OpenMeteoForecastData {
-        val times = mutableListOf<Long>()
-        val temperatures = mutableListOf<Double>()
-        val precipProbabilities = mutableListOf<Int>()
-        val precipitations = mutableListOf<Double>()
-        val weatherCodes = mutableListOf<Int>()
-        val windSpeeds = mutableListOf<Double>()
-        val windDirections = mutableListOf<Double>()
-        val windGusts = mutableListOf<Double>()
-
-        list.forEach { item ->
-            times.add(item.dt)
-            temperatures.add(item.main.temp)
-
-            precipProbabilities.add((item.pop * 100).toInt())
-            precipitations.add(item.rain?.h3 ?: 0.0)
-            windSpeeds.add(item.wind.speed)
-            windDirections.add(item.wind.deg.toDouble())
-            windGusts.add(item.wind.gust ?: item.wind.speed)
-            weatherCodes.add(convertWeatherCodeToOpenMeteo(item.weather.firstOrNull()?.id ?: 800))
-        }
-
-        return OpenMeteoForecastData(
-            time = times,
-            temperature = temperatures,
-            precipitationProbability = precipProbabilities,
-            precipitation = precipitations,
-            weatherCode = weatherCodes,
-            windSpeed = windSpeeds,
-            windDirection = windDirections,
-            windGusts = windGusts
+        return OpenMeteoCurrentWeatherResponse(
+            current = current,
+            latitude = oneCallResponse.lat,
+            longitude = oneCallResponse.lon,
+            timezone = oneCallResponse.timezone,
+            elevation = 0.0,
+            utfOffsetSeconds = oneCallResponse.timezoneOffset,
+            forecastData = forecastData,
+            provider = WeatherDataProvider.OPEN_WEATHER_MAP
         )
     }
 
     private fun convertWeatherCodeToOpenMeteo(owmCode: Int): Int {
+        // Mapping OpenWeatherMap a WMO OpenMeteo
         return when (owmCode) {
             in 200..299 -> 95 // Tormentas
             in 300..399 -> 51 // Llovizna
@@ -235,29 +199,50 @@ data class OpenWeatherMapForecastResponse(
             else -> 0
         }
     }
+
+    @OptIn(FlowPreview::class)
+    private suspend fun makeOpenWeatherMapRequest(
+        service: KarooSystemService,
+        coordinates: List<GpsCoordinates>,
+        apiKey: String
+    ): HttpResponseState.Complete {
+        return callbackFlow {
+            val coordinate = coordinates.first()
+            // URL API 3.0 con endpoint onecall
+            val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
+                    "&appid=$apiKey&units=metric&exclude=minutely,daily,alerts"
+
+            Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap API 3.0: $url")
+
+            val listenerId = service.addConsumer(
+                OnHttpResponse.MakeHttpRequest(
+                    "GET",
+                    url,
+                    waitForConnection = false,
+                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG)
+                ),
+                onEvent = { event: OnHttpResponse ->
+                    if (event.state is HttpResponseState.Complete) {
+                        Log.d(KarooHeadwindExtension.TAG, "Http response received from OpenWeatherMap")
+                        trySend(event.state as HttpResponseState.Complete)
+                        close()
+                    }
+                },
+                onError = { err ->
+                    Log.e(KarooHeadwindExtension.TAG, "Http error: $err")
+                    close(RuntimeException(err))
+                }
+            )
+
+            awaitClose {
+                service.removeConsumer(listenerId)
+            }
+        }.timeout(30.seconds).catch { e: Throwable ->
+            if (e is TimeoutCancellationException) {
+                emit(HttpResponseState.Complete(500, mapOf(), null, "Timeout"))
+            } else {
+                throw e
+            }
+        }.single()
+    }
 }
-
-@Serializable
-data class OpenWeatherMapForecastItem(
-    val dt: Long,
-    val main: Main,
-    val weather: List<Weather>,
-    val clouds: Clouds,
-    val wind: Wind,
-    val visibility: Int,
-    val pop: Double,
-    val rain: Rain? = null,
-    val snow: Snow? = null,
-    @SerialName("dt_txt") val dtTxt: String
-)
-
-@Serializable
-data class OpenWeatherMapCity(
-    val id: Int,
-    val name: String,
-    val coord: Coordinates,
-    val country: String,
-    val timezone: Int,
-    val sunrise: Long,
-    val sunset: Long
-)
