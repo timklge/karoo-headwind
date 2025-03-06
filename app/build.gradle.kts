@@ -15,8 +15,8 @@ android {
         applicationId = "de.timklge.karooheadwind"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.3.1"
+        versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
+        versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
     }
 
     signingConfigs {
@@ -51,7 +51,38 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+}
+
+tasks.register("generateManifest") {
+    description = "Generates manifest.json with current version information"
+    group = "build"
+
+    doLast {
+        val manifestFile = file("$projectDir/manifest.json")
+        val manifest = mapOf(
+            "label" to "karoo-headwind",
+            "packageName" to "de.timklge.karooheadwind",
+            "iconUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/karoo-headwind.png",
+            "latestApkUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/app-release.apk",
+            "latestVersion" to android.defaultConfig.versionName,
+            "latestVersionCode" to android.defaultConfig.versionCode,
+            "developer" to "timklge",
+            "description" to "Provides headwind direction, wind speed and other weather data fields.",
+            "releaseNotes" to "* Show current weather in app menu\n" +
+                    "* Add individual forecast fields\n" +
+                    "* Fix distance update in route forecast"
+        )
+
+        val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
+        manifestFile.writeText(gson)
+        println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
+    }
+}
+
+tasks.named("assemble") {
+    dependsOn("generateManifest")
 }
 
 dependencies {
