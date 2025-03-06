@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.timeout
-import kotlinx.coroutines.flow.first
 import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
@@ -64,8 +63,7 @@ suspend fun KarooSystemService.originalOpenMeteoRequest(gpsCoordinates: List<Gps
 suspend fun KarooSystemService.makeOpenMeteoHttpRequest(
     gpsCoordinates: List<GpsCoordinates>,
     settings: HeadwindSettings,
-    profile: UserProfile?,
-    context: android.content.Context // Agregar el contexto como parámetro
+    profile: UserProfile?
 ): HttpResponseState.Complete {
     val provider = WeatherProviderFactory.getProvider(settings)
     val response = provider.getWeatherData(this, gpsCoordinates, settings, profile)
@@ -76,29 +74,10 @@ suspend fun KarooSystemService.makeOpenMeteoHttpRequest(
         }
     } else {
 
-        val usedProvider = when(provider) {
-            is OpenWeatherMapProvider -> WeatherDataProvider.OPEN_WEATHER_MAP
-            is OpenMeteoProvider -> WeatherDataProvider.OPEN_METEO
-            else -> null
-        }
-
         if (provider is OpenWeatherMapProvider) {
             WeatherProviderFactory.resetOpenWeatherMapFailures()
         } else if (provider is OpenMeteoProvider) {
             WeatherProviderFactory.handleOpenMeteoSuccess()
-        }
-
-
-        try {
-            val lastKnownStats = context.streamStats().first()
-            val stats = lastKnownStats.copy(
-                lastSuccessfulWeatherRequest = System.currentTimeMillis(),
-                lastSuccessfulWeatherPosition = gpsCoordinates.firstOrNull(),
-                lastSuccessfulWeatherProvider = usedProvider
-            )
-            saveStats(context, stats)
-        } catch(e: Exception) {
-            Log.e(KarooHeadwindExtension.TAG, "Error saving stats with provider $usedProvider", e)
         }
     }
 

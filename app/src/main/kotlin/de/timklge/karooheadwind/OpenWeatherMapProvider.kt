@@ -31,33 +31,29 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
             return currentResponse
         }
 
-
         val forecastResponse = makeOpenWeatherMapForecastRequest(service, coordinates, apiKey)
         if (forecastResponse.error != null) {
-            Log.w(KarooHeadwindExtension.TAG, "Error in forecast: ${forecastResponse.error}")
+            Log.w(KarooHeadwindExtension.TAG, "Error en pronóstico: ${forecastResponse.error}")
         }
 
         try {
-
             val currentResponseBody = currentResponse.body?.let { String(it) }
-                ?: throw Exception("Null answer to current weather")
+                ?: throw Exception("Respuesta nula del clima actual")
             val owmCurrentResponse = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapResponse>(currentResponseBody)
             val currentData = owmCurrentResponse.toOpenMeteoData()
-
 
             var forecastData: OpenMeteoForecastData? = null
             if (forecastResponse.error == null && forecastResponse.body != null) {
                 val forecastResponseBody = forecastResponse.body?.let { String(it) }
-                    ?: throw Exception("Null answer to forecast")
+                    ?: throw Exception("Respuesta nula del pronóstico")
 
                 try {
                     val owmForecastResponse = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapForecastResponse>(forecastResponseBody)
                     forecastData = owmForecastResponse.toOpenMeteoForecastData()
                 } catch (e: Exception) {
-                    Log.e(KarooHeadwindExtension.TAG, "Error processing forecast", e)
+                    Log.e(KarooHeadwindExtension.TAG, "Error procesando pronóstico", e)
                 }
             }
-
 
             val convertedResponse = OpenMeteoCurrentWeatherResponse(
                 current = currentData,
@@ -70,20 +66,32 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
                 provider = WeatherDataProvider.OPEN_WEATHER_MAP
             )
 
-            val convertedJson = jsonWithUnknownKeys.encodeToString(convertedResponse)
+            Log.d(KarooHeadwindExtension.TAG, "Proveedor establecido: ${convertedResponse.provider}")
+
+
+            val finalBody = if (coordinates.size > 1) {
+
+                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap generando respuesta en formato array")
+                jsonWithUnknownKeys.encodeToString(listOf(convertedResponse))
+            } else {
+
+                Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap generando respuesta en formato objeto individual")
+                jsonWithUnknownKeys.encodeToString(convertedResponse)
+            }
+
             return HttpResponseState.Complete(
                 statusCode = currentResponse.statusCode,
                 headers = currentResponse.headers,
-                body = convertedJson.toByteArray(),
+                body = finalBody.toByteArray(),
                 error = null
             )
         } catch (e: Exception) {
-            Log.e(KarooHeadwindExtension.TAG, "Error answer", e)
+            Log.e(KarooHeadwindExtension.TAG, "Error procesando respuesta", e)
             return HttpResponseState.Complete(
                 statusCode = 500,
                 headers = emptyMap(),
                 body = null,
-                error = "Error in answers: ${e.message}"
+                error = "Error en respuesta: ${e.message}"
             )
         }
     }

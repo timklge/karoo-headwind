@@ -210,9 +210,10 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
                     requestedGpsCoordinates = mutableListOf(gps)
                 }
 
-                val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile, applicationContext)
+                val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile)
                 if (response.error != null){
                     try {
+
                         val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
                         launch { saveStats(this@KarooHeadwindExtension, stats) }
                     } catch(e: Exception){
@@ -221,9 +222,27 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
                     error("HTTP request failed: ${response.error}")
                 } else {
                     try {
+                        val responseBody = response.body?.let { String(it) }
+                        var weatherDataProvider: WeatherDataProvider? = null
+
+                            try {
+                                if (responseBody != null) {
+                                    if (responseBody.trim().startsWith("[")) {
+                                        val responseArray = jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(responseBody)
+                                        weatherDataProvider = responseArray.firstOrNull()?.provider
+                                    } else {
+                                        val responseObject = jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(responseBody)
+                                        weatherDataProvider = responseObject.provider
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error al decodificar proveedor", e)
+                            }
+
                         val stats = lastKnownStats.copy(
                             lastSuccessfulWeatherRequest = System.currentTimeMillis(),
-                            lastSuccessfulWeatherPosition = gps
+                            lastSuccessfulWeatherPosition = gps,
+                            lastSuccessfulWeatherProvider = weatherDataProvider
                         )
                         launch { saveStats(this@KarooHeadwindExtension, stats) }
                     } catch(e: Exception){

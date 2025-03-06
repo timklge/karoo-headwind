@@ -54,7 +54,7 @@ data class HeadwindStats(
     val lastSuccessfulWeatherRequest: Long? = null,
     val lastSuccessfulWeatherPosition: GpsCoordinates? = null,
     val failedWeatherRequest: Long? = null,
-    val lastSuccessfulWeatherProvider: WeatherDataProvider? = null,
+    val lastSuccessfulWeatherProvider: WeatherDataProvider? = null
 ){
     companion object {
         val defaultStats = Json.encodeToString(HeadwindStats())
@@ -88,6 +88,7 @@ data class HeadwindSettings(
 
 //added openweathermap.org
 
+@Serializable
 enum class WeatherDataProvider(val id: String, val label: String) {
     OPEN_METEO("open-meteo", "Open-Meteo"),
     OPEN_WEATHER_MAP("open-weather-map", "OpenWeatherMap")

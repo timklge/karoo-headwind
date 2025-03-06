@@ -31,7 +31,6 @@ import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.ForecastDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
-import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
@@ -156,7 +155,8 @@ fun WeatherScreen(onFinish: () -> Unit) {
             ).toLocalTime().truncatedTo(
                 ChronoUnit.SECONDS
             )
-            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "Unknow"
+
+            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "Unknown"
 
 
             Text(
