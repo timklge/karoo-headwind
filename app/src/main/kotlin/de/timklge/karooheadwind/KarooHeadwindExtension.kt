@@ -225,19 +225,25 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
                         val responseBody = response.body?.let { String(it) }
                         var weatherDataProvider: WeatherDataProvider? = null
 
-                            try {
-                                if (responseBody != null) {
-                                    if (responseBody.trim().startsWith("[")) {
-                                        val responseArray = jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(responseBody)
-                                        weatherDataProvider = responseArray.firstOrNull()?.provider
-                                    } else {
-                                        val responseObject = jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(responseBody)
-                                        weatherDataProvider = responseObject.provider
-                                    }
+                        try {
+                            if (responseBody != null) {
+                                if (responseBody.trim().startsWith("[")) {
+                                    val responseArray =
+                                        jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(
+                                            responseBody
+                                        )
+                                    weatherDataProvider = responseArray.firstOrNull()?.provider
+                                } else {
+                                    val responseObject =
+                                        jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(
+                                            responseBody
+                                        )
+                                    weatherDataProvider = responseObject.provider
                                 }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error al decodificar proveedor", e)
                             }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error al decodificar proveedor", e)
+                        }
 
                         val stats = lastKnownStats.copy(
                             lastSuccessfulWeatherRequest = System.currentTimeMillis(),
