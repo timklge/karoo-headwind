@@ -31,7 +31,7 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
             return currentResponse
         }
 
-        // Obtener pronóstico
+
         val forecastResponse = makeOpenWeatherMapForecastRequest(service, coordinates, apiKey)
         if (forecastResponse.error != null) {
             Log.w(KarooHeadwindExtension.TAG, "Error in forecast: ${forecastResponse.error}")
@@ -59,14 +59,15 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
             }
 
 
-            val convertedResponse = OpenWeatherMapCurrentWeatherResponse(
+            val convertedResponse = OpenMeteoCurrentWeatherResponse(
                 current = currentData,
                 latitude = owmCurrentResponse.coord.lat,
                 longitude = owmCurrentResponse.coord.lon,
                 timezone = "UTC",
                 elevation = 0.0,
                 utfOffsetSeconds = owmCurrentResponse.timezone,
-                forecastData = forecastData
+                forecastData = forecastData,
+                provider = WeatherDataProvider.OPEN_WEATHER_MAP
             )
 
             val convertedJson = jsonWithUnknownKeys.encodeToString(convertedResponse)
