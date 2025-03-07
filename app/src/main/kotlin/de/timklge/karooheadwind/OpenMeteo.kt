@@ -17,7 +17,7 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(FlowPreview::class)
-suspend fun KarooSystemService.makeOpenMeteoHttpRequest(gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
+suspend fun KarooSystemService.originalOpenMeteoRequest(gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
     val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
     val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
 
@@ -57,4 +57,29 @@ suspend fun KarooSystemService.makeOpenMeteoHttpRequest(gpsCoordinates: List<Gps
             throw e
         }
     }.single()
+}
+
+@OptIn(FlowPreview::class)
+suspend fun KarooSystemService.makeOpenMeteoHttpRequest(
+    gpsCoordinates: List<GpsCoordinates>,
+    settings: HeadwindSettings,
+    profile: UserProfile?
+): HttpResponseState.Complete {
+    val provider = WeatherProviderFactory.getProvider(settings)
+    val response = provider.getWeatherData(this, gpsCoordinates, settings, profile)
+
+    if (response.error != null) {
+        if (provider is OpenWeatherMapProvider) {
+            WeatherProviderFactory.handleOpenWeatherMapFailure()
+        }
+    } else {
+
+        if (provider is OpenWeatherMapProvider) {
+            WeatherProviderFactory.resetOpenWeatherMapFailures()
+        } else if (provider is OpenMeteoProvider) {
+            WeatherProviderFactory.handleOpenMeteoSuccess()
+        }
+    }
+
+    return response
 }

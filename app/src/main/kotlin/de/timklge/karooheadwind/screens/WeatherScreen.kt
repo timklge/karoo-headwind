@@ -157,9 +157,12 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 ChronoUnit.SECONDS
             )
 
+            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "Open-Meteo"
+
+
             Text(
                 modifier = Modifier.padding(5.dp),
-                text = "Last weather data received at $localDate ${localTime}${lastPositionDistanceStr}"
+                text = "Last weather data received from $providerName at $localDate ${localTime}${lastPositionDistanceStr}"
             )
         } else {
             Text(

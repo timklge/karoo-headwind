@@ -44,6 +44,9 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import androidx.compose.material3.MaterialTheme
+import de.timklge.karooheadwind.WeatherDataProvider
+
 
 @Composable
 fun SettingsScreen(onFinish: () -> Unit) {
@@ -70,6 +73,9 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
 
+    var selectedWeatherProvider by remember { mutableStateOf(WeatherDataProvider.OPEN_METEO) }
+    var openWeatherMapApiKey by remember { mutableStateOf("") }
+
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
             selectedWindUnit = settings.windUnit
@@ -79,6 +85,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
             forecastKmPerHour = settings.forecastedKmPerHour.toString()
             forecastMilesPerHour = settings.forecastedMilesPerHour.toString()
             showDistanceInForecast = settings.showDistanceInForecast
+            selectedWeatherProvider = settings.weatherProvider
+            openWeatherMapApiKey = settings.openWeatherMapApiKey
         }
     }
 
@@ -105,7 +113,9 @@ fun SettingsScreen(onFinish: () -> Unit) {
             roundLocationTo = selectedRoundLocationSetting,
             forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
             forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20,
-            showDistanceInForecast = showDistanceInForecast
+            showDistanceInForecast = showDistanceInForecast,
+            weatherProvider = selectedWeatherProvider,
+            openWeatherMapApiKey = openWeatherMapApiKey
         )
 
         saveSettings(ctx, newSettings)
@@ -225,6 +235,58 @@ fun SettingsScreen(onFinish: () -> Unit) {
             )
         }
 
+        WeatherProviderSection(
+            selectedProvider = selectedWeatherProvider,
+            apiKey = openWeatherMapApiKey,
+            onProviderChanged = { selectedWeatherProvider = it },
+            onApiKeyChanged = { openWeatherMapApiKey = it }
+        )
+
         Spacer(modifier = Modifier.padding(30.dp))
+
+    }
+}
+
+//added
+@Composable
+fun WeatherProviderSection(
+    selectedProvider: WeatherDataProvider,
+    apiKey: String,
+    onProviderChanged: (WeatherDataProvider) -> Unit,
+    onApiKeyChanged: (String) -> Unit
+) {
+
+    val weatherProviderOptions = WeatherDataProvider.entries.toList()
+        .map { provider -> DropdownOption(provider.id, provider.label) }
+    val weatherProviderSelection by remember(selectedProvider) {
+        mutableStateOf(weatherProviderOptions.find { option -> option.id == selectedProvider.id }!!)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        Dropdown(
+            label = "Weather Provider",
+            options = weatherProviderOptions,
+            selected = weatherProviderSelection
+        ) { selectedOption ->
+            onProviderChanged(WeatherDataProvider.entries.find { provider -> provider.id == selectedOption.id }!!)
+        }
+
+
+        if (selectedProvider == WeatherDataProvider.OPEN_WEATHER_MAP) {
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = { onApiKeyChanged(it) },
+                label = { Text("OpenWeatherMap API Key") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            )
+
+            Text(
+                text = "If you want to use OpenWeatherMap, you need to provide an API key. If you don't provide any correct, you'll get OpenMeteo weather data.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
