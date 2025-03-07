@@ -242,7 +242,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error al decodificar proveedor", e)
+                            Log.e(TAG, "Error decoding provider", e)
                         }
 
                         val stats = lastKnownStats.copy(
