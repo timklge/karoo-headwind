@@ -27,11 +27,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
+import de.timklge.karooheadwind.ServiceStatusSingleton
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.ForecastDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
-import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
@@ -113,7 +113,14 @@ fun WeatherScreen(onFinish: () -> Unit) {
         val lastPositionDistanceStr =
             lastPosition?.let { dist -> " (${dist.roundToInt()} km away)" } ?: ""
 
-        if (stats.failedWeatherRequest != null && (stats.lastSuccessfulWeatherRequest == null || stats.failedWeatherRequest!! > stats.lastSuccessfulWeatherRequest!!)) {
+        val serviceStatus by ServiceStatusSingleton.getInstance().getServiceStatus().collectAsStateWithLifecycle(false)
+
+        if (!serviceStatus){
+            Text(
+                modifier = Modifier.padding(5.dp),
+                text = "Attempting to connect to weather background service..."
+            )
+        } else if (stats.failedWeatherRequest != null && (stats.lastSuccessfulWeatherRequest == null || stats.failedWeatherRequest!! > stats.lastSuccessfulWeatherRequest!!)) {
             val successfulTime = LocalDateTime.ofInstant(
                 Instant.ofEpochMilli(
                     stats.lastSuccessfulWeatherRequest ?: 0

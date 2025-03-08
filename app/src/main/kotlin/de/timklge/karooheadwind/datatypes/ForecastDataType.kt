@@ -202,7 +202,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
             dataFlow.collect { (allData, settingsAndProfile, widgetSettings, userProfile, headingResponse, upcomingRoute) ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
-                if (allData == null){
+                if (allData.isNullOrEmpty()){
                     emitter.updateView(
                         getErrorWidget(
                             glance,
