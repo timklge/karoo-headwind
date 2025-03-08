@@ -74,8 +74,8 @@ data class HeadwindSettings(
     val forecastedMilesPerHour: Int = 12,
     val lastUpdateRequested: Long? = null,
     val showDistanceInForecast: Boolean = true,
-    val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_WEATHER_MAP,
-    val openWeatherMapApiKey: String = "cde014c2fab1dbabe2387e57f3ecc051"
+    val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
+    val openWeatherMapApiKey: String = ""
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())
