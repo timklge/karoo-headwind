@@ -28,6 +28,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -127,7 +128,10 @@ class HeadwindDirectionDataType(
             previewFlow()
         } else {
             val directionFlow = streamValues()
-            val speedFlow = UserWindSpeedDataType.streamValues(context, karooSystem)
+            val speedFlow = flow {
+                emit(0.0)
+                emitAll(UserWindSpeedDataType.streamValues(context, karooSystem))
+            }
 
             combine(directionFlow, speedFlow) { direction, speed ->
                 DirectionAndSpeed(direction, speed)

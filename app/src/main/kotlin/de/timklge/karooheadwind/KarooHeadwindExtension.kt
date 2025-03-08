@@ -89,14 +89,13 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", "1.3.1") {
         )
     }
 
-    data class StreamData(val settings: HeadwindSettings, val gps: GpsCoordinates?,
-                          val profile: UserProfile? = null, val upcomingRoute: UpcomingRoute? = null)
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     override fun onCreate() {
         super.onCreate()
 
         karooSystem = KarooSystemService(applicationContext)
+        ServiceStatusSingleton.getInstance().setServiceStatus(true)
 
         updateLastKnownGpsJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.updateLastKnownGps(this@KarooHeadwindExtension)
