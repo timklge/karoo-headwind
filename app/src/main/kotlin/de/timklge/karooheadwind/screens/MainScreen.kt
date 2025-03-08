@@ -19,7 +19,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +54,6 @@ fun MainScreen(close: () -> Unit) {
     var tabIndex by remember { mutableIntStateOf(0) }
 
     var isRefreshing by remember { mutableStateOf(false) }
-    val swipeRefreshState = rememberPullToRefreshState()
 
     val tabs = listOf("Weather", "Settings")
 
