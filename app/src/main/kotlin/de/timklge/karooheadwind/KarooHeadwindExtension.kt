@@ -97,6 +97,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         super.onCreate()
 
         karooSystem = KarooSystemService(applicationContext)
+        ServiceStatusSingleton.getInstance().setServiceStatus(true)
+
 
         updateLastKnownGpsJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.updateLastKnownGps(this@KarooHeadwindExtension)
