@@ -89,13 +89,13 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         )
     }
 
-
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     override fun onCreate() {
         super.onCreate()
 
         karooSystem = KarooSystemService(applicationContext)
         ServiceStatusSingleton.getInstance().setServiceStatus(true)
+
 
         updateLastKnownGpsJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.updateLastKnownGps(this@KarooHeadwindExtension)
