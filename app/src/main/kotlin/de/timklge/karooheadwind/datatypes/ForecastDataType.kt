@@ -85,10 +85,10 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
     }
 
     data class StreamData(val data: List<WeatherDataResponse>?, val settings: SettingsAndProfile,
-                          val widgetSettings: HeadwindWidgetSettings? = null, val profile: UserProfile? = null,
+                          val widgetSettings: HeadwindWidgetSettings? = null,
                           val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null)
 
-    data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean)
+    data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean, val isImperialTemperature: Boolean)
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
         flow {
@@ -150,7 +150,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                         data,
                         SettingsAndProfile(
                             HeadwindSettings(),
-                            settingsAndProfile?.isImperial == true
+                            settingsAndProfile?.isImperial == true,
+                            settingsAndProfile?.isImperialTemperature == true
                         )
                     )
                 )
@@ -173,7 +174,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         )
 
         val settingsAndProfileStream = context.streamSettings(karooSystem).combine(karooSystem.streamUserProfile()) { settings, userProfile ->
-            SettingsAndProfile(settings = settings, isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
+            SettingsAndProfile(settings = settings, isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                isImperialTemperature = userProfile.preferredUnit.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL)
         }
 
         val dataFlow = if (config.preview){
@@ -199,7 +201,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            dataFlow.collect { (allData, settingsAndProfile, widgetSettings, userProfile, headingResponse, upcomingRoute) ->
+            dataFlow.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
                 if (allData == null){
@@ -296,11 +298,11 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     precipitation = data.current.precipitation,
                                     precipitationProbability = null,
                                     temperature = data.current.temperature.roundToInt(),
-                                    temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = null,
-                                    isImperial = userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                                    isImperial = settingsAndProfile.isImperial
                                 )
 
                                 previousDate = formattedDate
@@ -331,7 +333,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     ) ?: 0,
                                     temperature = data?.forecastData?.temperature?.get(baseIndex)
                                         ?.roundToInt() ?: 0,
-                                    temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
