@@ -298,7 +298,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     precipitation = data.current.precipitation,
                                     precipitationProbability = null,
                                     temperature = data.current.temperature.roundToInt(),
-                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = null,
@@ -333,7 +333,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     ) ?: 0,
                                     temperature = data?.forecastData?.temperature?.get(baseIndex)
                                         ?.roundToInt() ?: 0,
-                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
