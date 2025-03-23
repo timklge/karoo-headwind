@@ -284,7 +284,7 @@ fun WeatherProviderSection(
             )
 
             Text(
-                text = "If you want to use OpenWeatherMap, you need to provide an API key. If you don't provide any correct, you'll get OpenMeteo weather data.",
+                text = "If you want to use OpenWeatherMap, you need to provide an API key. If you don't provide a correct key, OpenMeteo is used as a fallback.",
                 style = MaterialTheme.typography.bodySmall
             )
         }

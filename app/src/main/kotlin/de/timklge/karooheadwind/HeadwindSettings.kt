@@ -90,6 +90,6 @@ data class HeadwindSettings(
 
 @Serializable
 enum class WeatherDataProvider(val id: String, val label: String) {
-    OPEN_METEO("open-meteo", "Open-Meteo"),
+    OPEN_METEO("open-meteo", "OpenMeteo"),
     OPEN_WEATHER_MAP("open-weather-map", "OpenWeatherMap")
 }

@@ -164,7 +164,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 ChronoUnit.SECONDS
             )
 
-            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "Open-Meteo"
+            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "OpenMeteo"
 
 
             Text(
