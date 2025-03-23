@@ -102,7 +102,7 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
 
         try {
             val responseBody = response.body?.let { String(it) }
-                ?: throw Exception("Respuesta nula de OpenWeatherMap")
+                ?: throw Exception("Null response from OpenWeatherMap")
 
 
             if (coordinates.size > 1) {
@@ -188,14 +188,14 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
     }
 
     private fun convertWeatherCodeToOpenMeteo(owmCode: Int): Int {
-        // Mapping OpenWeatherMap a WMO OpenMeteo
+        // Mapping OpenWeatherMap to WMO OpenMeteo
         return when (owmCode) {
-            in 200..299 -> 95 // Tormentas
-            in 300..399 -> 51 // Llovizna
-            in 500..599 -> 61 // Lluvia
-            in 600..699 -> 71 // Nieve
-            800 -> 0        // Despejado
-            in 801..804 -> 1 // Nubosidad
+            in 200..299 -> 95 // Thunderstorm
+            in 300..399 -> 51 // Drizzle
+            in 500..599 -> 61 // Rain
+            in 600..699 -> 71 // Snow
+            800 -> 0        // Clear
+            in 801..804 -> 1 // Cloudy
             else -> 0
         }
     }
@@ -208,7 +208,7 @@ class OpenWeatherMapProvider(private val apiKey: String) : WeatherProvider {
     ): HttpResponseState.Complete {
         return callbackFlow {
             val coordinate = coordinates.first()
-            // URL API 3.0 con endpoint onecall
+            // URL API 3.0 with onecall endpoint
             val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
                     "&appid=$apiKey&units=metric&exclude=minutely,daily,alerts"
 

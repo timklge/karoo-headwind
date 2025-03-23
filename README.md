@@ -42,16 +42,20 @@ After installing this app on your Karoo and opening it once from the main menu, 
 - Current weather (graphical, 1x1 field): Shows current weather conditions (same as forecast widget, but only for the current time). Tap on this widget to open the headwind app with a forecast overview.
 - Additionally, data fields that only show the current data value for headwind speed, humidity, cloud cover, absolute wind speed, absolute wind gust speed, absolute wind direction, rainfall and surface pressure can be added if desired.
 
-This app can use open-meteo service or openweathermap. Use the correct one for your zone, open-meteo is easier to use because you cannot need to introduce an API key. Openweather need to have an API from Openweathermap, it's free for personal use and you don't need to pay for it, but you need to register in https://openweathermap.org/home/sign_in and get the one call API key.
-Openweathermap has more local stations and is more accurate than open-meteo for current weather (but it depends of the location).) If you use openweathermap without a correct key, this app will fallback to open-meteo.
+The app can use OpenMeteo or OpenWeatherMap as providers for live weather data.
 
-The app will automatically attempt to download weather data for your current approximate location  API once your device has acquired a GPS fix. The API service is free for non-commercial use. Your location is rounded to approximately two kilometers to maintain privacy. The data is updated when you ride more than two kilometers from the location where the weather data was downloaded or after one hour at the latest. If the app cannot connect to the weather service, it will retry the download every minute. Downloading weather data should work on Karoo 2 if you have a SIM card inserted or on Karoo 3 via your phone's internet connection if you have the Karoo companion app installed.
+- OpenMeteo is the default provider and does not require any configuration. 
+- OpenWeatherMap can provide more accurate data for some locations. Forecasts along the loaded route are not available using OpenWeatherMap. OpenWeatherMap is free for personal use, but you need to register at https://openweathermap.org/home/sign_in and obtain a one call API key. If you use OpenWeatherMap without a correct key, the app will fall back to OpenMeteo.
+
+The app will automatically attempt to download weather data from the selected data provider once your device has acquired a GPS fix. Your location is rounded to approximately three kilometers to maintain privacy.
+New weather data is downloaded when you ride more than three kilometers from the location where the weather data was downloaded for or after one hour at the latest.
+If the app cannot connect to the weather service, it will retry the download every minute. Downloading weather data should work on Karoo 2 if you have a SIM card inserted or on Karoo 3 via your phone's internet connection if you have the Karoo companion app installed.
 
 ## Credits
 
 - Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt))
 - Made possible by the generous usage terms of [open-meteo.com](https://open-meteo.com)
-- Made possible by the generous usage terms of [openweathermap.org](https://openweathermap.org)
+- Interfaces with [openweathermap.org](https://openweathermap.org)
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)
 
 ## Extension Developers: Headwind Data Type
