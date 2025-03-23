@@ -156,7 +156,8 @@ class HeadwindDirectionDataType(
                         baseBitmap,
                         windDirection.roundToInt(),
                         config.textSize,
-                        windSpeed?.toInt()?.toString() ?: ""
+                        windSpeed?.toInt()?.toString() ?: "",
+                        preview = config.preview
                     )
                 }
 
