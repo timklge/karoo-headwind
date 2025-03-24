@@ -8,8 +8,6 @@ This extension for Karoo devices adds a graphical data field that shows the curr
 
 Compatible with Karoo 2 and Karoo 3 devices.
 
-<a href="https://www.buymeacoffee.com/timklge" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
-
 ![Page](preview0.png)
 ![Field](preview1.png)
 ![Overview](preview2.png)
