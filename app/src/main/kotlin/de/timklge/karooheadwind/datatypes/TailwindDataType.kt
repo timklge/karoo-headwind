@@ -63,7 +63,7 @@ class TailwindDataType(
                 val bearing = (0..360).random().toDouble()
                 val windSpeed = (0..20).random()
                 val rideSpeed = (10..40).random().toDouble()
-                val gustSpeed = (0..40).random().toDouble()
+                val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
 
                 emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed))
 
