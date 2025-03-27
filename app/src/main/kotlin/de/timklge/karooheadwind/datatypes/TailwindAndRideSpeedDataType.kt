@@ -195,7 +195,8 @@ class TailwindAndRideSpeedDataType(
                         text,
                         subtextWithSign,
                         dayColor,
-                        nightColor
+                        nightColor,
+                        preview = config.preview
                     )
                 }
 

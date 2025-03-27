@@ -11,6 +11,8 @@ import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.background
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.color.ColorProvider
@@ -26,6 +28,7 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import de.timklge.karooheadwind.MainActivity
 import kotlin.math.roundToInt
 
 fun getArrowBitmapByBearing(baseBitmap: Bitmap, bearing: Int): Bitmap {
@@ -53,10 +56,12 @@ fun getArrowBitmapByBearing(baseBitmap: Bitmap, bearing: Int): Bitmap {
 fun HeadwindDirection(
     baseBitmap: Bitmap, bearing: Int, fontSize: Int,
     overlayText: String, overlaySubText: String? = null,
-    nightColor: Color = Color.Black, dayColor: Color = Color.White
+    nightColor: Color = Color.Black, dayColor: Color = Color.White, preview: Boolean = false
 ) {
+    val baseModifier = GlanceModifier.fillMaxSize().padding(5.dp).background(dayColor, nightColor).cornerRadius(10.dp)
+
     Box(
-        modifier = GlanceModifier.fillMaxSize().padding(5.dp).background(dayColor, nightColor).cornerRadius(10.dp),
+        modifier = if (!preview) baseModifier.clickable(actionStartActivity<MainActivity>()) else baseModifier,
         contentAlignment = Alignment(
             vertical = Alignment.Vertical.CenterVertically,
             horizontal = Alignment.Horizontal.CenterHorizontally,
