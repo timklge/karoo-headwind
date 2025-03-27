@@ -118,7 +118,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
         if (!serviceStatus){
             Text(
                 modifier = Modifier.padding(5.dp),
-                text = "Attempting to connect to weather background service..."
+                text = "Attempting to connect to weather background service... Please reboot your Karoo if this takes too long."
             )
         } else if (stats.failedWeatherRequest != null && (stats.lastSuccessfulWeatherRequest == null || stats.failedWeatherRequest!! > stats.lastSuccessfulWeatherRequest!!)) {
             val successfulTime = LocalDateTime.ofInstant(
@@ -164,9 +164,12 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 ChronoUnit.SECONDS
             )
 
+            val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "OpenMeteo"
+
+
             Text(
                 modifier = Modifier.padding(5.dp),
-                text = "Last weather data received at $localDate ${localTime}${lastPositionDistanceStr}"
+                text = "Last weather data received from $providerName at $localDate ${localTime}${lastPositionDistanceStr}"
             )
         } else {
             Text(

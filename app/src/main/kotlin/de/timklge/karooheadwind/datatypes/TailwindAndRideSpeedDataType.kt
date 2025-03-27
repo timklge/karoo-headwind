@@ -44,8 +44,9 @@ import kotlin.math.absoluteValue
 import kotlin.math.cos
 import kotlin.math.roundToInt
 
-fun interpolateColor(color1: Color, color2: Color, factor: Float): Color {
-    return Color(ColorUtils.blendARGB(color1.toArgb(), color2.toArgb(), factor))
+fun interpolateColor(color1: Color, color2: Color, lowerBound: Double, upperBound: Double, actualValue: Double): Color {
+    val factor = if (upperBound == lowerBound) 0.0 else ((actualValue - lowerBound) / (upperBound - lowerBound)).coerceIn(0.0, 1.0)
+    return Color(ColorUtils.blendARGB(color1.toArgb(), color2.toArgb(), factor.toFloat()))
 }
 
 fun interpolateWindColor(windSpeedInKmh: Double, night: Boolean, context: Context): Color {
@@ -55,11 +56,11 @@ fun interpolateWindColor(windSpeedInKmh: Double, night: Boolean, context: Contex
     val orange = Color(ContextCompat.getColor(context, if(night) R.color.orange else R.color.hOrange))
 
     return when {
-        windSpeedInKmh <= -15 -> green
-        windSpeedInKmh >= 30 -> red
-        windSpeedInKmh in -15.0..0.0 -> interpolateColor(green, default, (windSpeedInKmh + 15).toFloat() / 15)
-        windSpeedInKmh in 0.0..15.0 -> interpolateColor(default, orange, windSpeedInKmh.toFloat() / 15)
-        else -> interpolateColor(orange, red, (windSpeedInKmh - 15).toFloat() / 15)
+        windSpeedInKmh <= -10 -> green
+        windSpeedInKmh >= 15 -> red
+        windSpeedInKmh in -10.0..0.0 -> interpolateColor(green, default, -10.0, 0.0, windSpeedInKmh)
+        windSpeedInKmh in 0.0..10.0 -> interpolateColor(default, orange, 0.0, 10.0, windSpeedInKmh)
+        else -> interpolateColor(orange, red, 10.0, 15.0, windSpeedInKmh)
     }
 }
 

@@ -3,7 +3,6 @@ package de.timklge.karooheadwind.datatypes
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -15,6 +14,7 @@ import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.background
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -28,7 +28,6 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.MainActivity
 import kotlin.math.roundToInt
 
@@ -57,9 +56,10 @@ fun getArrowBitmapByBearing(baseBitmap: Bitmap, bearing: Int): Bitmap {
 fun HeadwindDirection(
     baseBitmap: Bitmap, bearing: Int, fontSize: Int,
     overlayText: String, overlaySubText: String? = null,
-    dayColor: Color = Color.Black, nightColor: Color = Color.White, preview: Boolean = false
+    nightColor: Color = Color.Black, dayColor: Color = Color.White, preview: Boolean = false
 ) {
-    val baseModifier = GlanceModifier.fillMaxSize().padding(5.dp)
+    val baseModifier = GlanceModifier.fillMaxSize().padding(5.dp).background(dayColor, nightColor).cornerRadius(10.dp)
+
     Box(
         modifier = if (!preview) baseModifier.clickable(actionStartActivity<MainActivity>()) else baseModifier,
         contentAlignment = Alignment(
@@ -74,14 +74,14 @@ fun HeadwindDirection(
                     provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, bearing)),
                     contentDescription = "Relative wind direction indicator",
                     contentScale = ContentScale.Fit,
-                    colorFilter = ColorFilter.tint(ColorProvider(dayColor, nightColor))
+                    colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
                 )
 
                 Text(
                     overlayText,
                     maxLines = 1,
-                    style = TextStyle(ColorProvider(dayColor, nightColor), fontSize = (0.6 * fontSize).sp, fontFamily = FontFamily.Monospace),
-                    modifier = GlanceModifier.background(Color(1f, 1f, 1f, 0.4f), Color(0f, 0f, 0f, 0.4f)).padding(1.dp)
+                    style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.6 * fontSize).sp, fontFamily = FontFamily.Monospace),
+                    modifier = GlanceModifier.padding(1.dp)
                 )
             } else {
                 Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
@@ -91,7 +91,7 @@ fun HeadwindDirection(
                                 provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, bearing)),
                                 contentDescription = "Relative wind direction indicator",
                                 contentScale = ContentScale.Fit,
-                                colorFilter = ColorFilter.tint(ColorProvider(dayColor, nightColor))
+                                colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
                             )
                         }
                     }
@@ -100,16 +100,16 @@ fun HeadwindDirection(
                         Text(
                             overlayText,
                             maxLines = 1,
-                            style = TextStyle(ColorProvider(dayColor, nightColor), fontSize = (0.65 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                            modifier = GlanceModifier.background(Color(1f, 1f, 1f, 0.4f), Color(0f, 0f, 0f, 0.4f)).padding(1.dp)
+                            style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.65 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
+                            modifier = GlanceModifier.padding(1.dp)
                         )
 
                         Row(){
                             Text(
                                 overlaySubText,
                                 maxLines = 1,
-                                style = TextStyle(ColorProvider(dayColor, nightColor), fontSize = (0.4 * fontSize).sp, fontFamily = FontFamily.Monospace),
-                                modifier = GlanceModifier.background(Color(1f, 1f, 1f, 0.4f), Color(0f, 0f, 0f, 0.4f)).padding(1.dp)
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.4 * fontSize).sp, fontFamily = FontFamily.Monospace),
+                                modifier = GlanceModifier.padding(1.dp)
                             )
                         }
                     }

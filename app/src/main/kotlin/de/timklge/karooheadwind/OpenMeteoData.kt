@@ -59,5 +59,6 @@ data class OpenMeteoCurrentWeatherResponse(
     val timezone: String,
     val elevation: Double,
     @SerialName("utc_offset_seconds") val utfOffsetSeconds: Int,
-    @SerialName("hourly") val forecastData: OpenMeteoForecastData?
+    @SerialName("hourly") val forecastData: OpenMeteoForecastData?,
+    val provider: WeatherDataProvider? = null
 )
