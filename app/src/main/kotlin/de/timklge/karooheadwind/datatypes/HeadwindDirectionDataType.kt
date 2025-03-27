@@ -157,7 +157,8 @@ class HeadwindDirectionDataType(
                         windDirection.roundToInt(),
                         config.textSize,
                         windSpeed?.toInt()?.toString() ?: "",
-                        preview = config.preview
+                        preview = config.preview,
+                        wideMode = false
                     )
                 }
 
