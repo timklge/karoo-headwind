@@ -4,12 +4,6 @@
     icon="@drawable/wind"
     id="karoo-headwind"
     scansDevices="false">
-    <DataType
-        description="@string/headwind_description"
-        displayName="@string/headwind"
-        graphical="true"
-        icon="@drawable/wind"
-        typeId="headwind" />
 
     <DataType
         description="@string/tailwind_and_speed_description"
@@ -17,6 +11,20 @@
         graphical="true"
         icon="@drawable/wind"
         typeId="tailwind-and-ride-speed" />
+
+    <DataType
+        description="@string/tailwind_description"
+        displayName="@string/tailwind"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="tailwind" />
+
+    <DataType
+        description="@string/headwind_description"
+        displayName="@string/headwind"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="headwind" />
 
     <DataType
         description="@string/weather_description"
