@@ -34,7 +34,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -52,20 +54,23 @@ class TailwindDataType(
     data class StreamData(val headingResponse: HeadingResponse,
                           val absoluteWindDirection: Double?,
                           val windSpeed: Double?,
-                          val settings: HeadwindSettings?,
-                          val rideSpeed: Double? = null,
-                          val gustSpeed: Double? = null,
-                          val isImperial: Boolean? = null)
+                          val settings: HeadwindSettings,
+                          val rideSpeed: Double?,
+                          val gustSpeed: Double?,
+                          val isImperial: Boolean)
 
-    private fun previewFlow(): Flow<StreamData> {
+    private fun previewFlow(profileFlow: Flow<UserProfile>): Flow<StreamData> {
         return flow {
+            val profile = profileFlow.first()
+
             while (true) {
                 val bearing = (0..360).random().toDouble()
                 val windSpeed = (0..20).random()
                 val rideSpeed = (10..40).random().toDouble()
                 val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
+                val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
-                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed))
+                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed, isImperial = isImperial))
 
                 delay(2_000)
             }
@@ -92,25 +97,21 @@ class TailwindDataType(
         }
 
         val flow = if (config.preview) {
-            previewFlow()
+            previewFlow(karooSystem.streamUserProfile())
         } else {
-            karooSystem.getRelativeHeadingFlow(context)
-                .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
-                .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
-                    StreamData(value, data.firstOrNull()?.data?.current?.windDirection, data.firstOrNull()?.data?.current?.windSpeed, settings)
+            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
+                val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                val absoluteWindDirection = weatherData.firstOrNull()?.data?.current?.windDirection
+                val windSpeed = weatherData.firstOrNull()?.data?.current?.windSpeed
+                val gustSpeed = weatherData.firstOrNull()?.data?.current?.windGusts
+                val rideSpeed = if (isImperial){
+                    rideSpeedInMs * 2.23694
+                } else {
+                    rideSpeedInMs * 3.6
                 }
-                .combine(karooSystem.streamUserProfile()) { streamData, userProfile ->
-                    val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                    streamData.copy(isImperial = isImperial)
-                }
-                .combine(streamSpeedInMs()) { streamData, rideSpeedInMs ->
-                    val rideSpeed = if (streamData.isImperial == true){
-                        rideSpeedInMs * 2.23694
-                    } else {
-                        rideSpeedInMs * 3.6
-                    }
-                    streamData.copy(rideSpeed = rideSpeed)
-                }
+
+                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed)
+            }
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
@@ -120,7 +121,7 @@ class TailwindDataType(
                 Log.d(KarooHeadwindExtension.TAG, "Updating tailwind direction view")
 
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
-                if (value == null || streamData.absoluteWindDirection == null || streamData.settings == null || streamData.windSpeed == null){
+                if (value == null || streamData.absoluteWindDirection == null || streamData.windSpeed == null){
                     var headingResponse = streamData.headingResponse
 
                     if (headingResponse is HeadingResponse.Value && (streamData.absoluteWindDirection == null || streamData.windSpeed == null)){
