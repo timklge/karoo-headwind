@@ -17,6 +17,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
+import de.timklge.karooheadwind.datatypes.TailwindDataType.StreamData
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -78,14 +80,18 @@ class TailwindAndRideSpeedDataType(
                           val rideSpeed: Double? = null,
                           val isImperial: Boolean? = null)
 
-    private fun previewFlow(): Flow<StreamData> {
+    private fun previewFlow(profileFlow: Flow<UserProfile>): Flow<de.timklge.karooheadwind.datatypes.TailwindDataType.StreamData> {
         return flow {
+            val profile = profileFlow.first()
+
             while (true) {
                 val bearing = (0..360).random().toDouble()
                 val windSpeed = (0..20).random()
                 val rideSpeed = (10..40).random().toDouble()
+                val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
+                val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
-                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed))
+                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed, isImperial = isImperial))
 
                 delay(2_000)
             }
@@ -111,25 +117,21 @@ class TailwindAndRideSpeedDataType(
         }
 
         val flow = if (config.preview) {
-            previewFlow()
+            previewFlow(karooSystem.streamUserProfile())
         } else {
-            karooSystem.getRelativeHeadingFlow(context)
-                .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
-                .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
-                    StreamData(value, data.firstOrNull()?.data?.current?.windDirection, data.firstOrNull()?.data?.current?.windSpeed, settings)
+            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
+                val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                val absoluteWindDirection = weatherData.firstOrNull()?.data?.current?.windDirection
+                val windSpeed = weatherData.firstOrNull()?.data?.current?.windSpeed
+                val gustSpeed = weatherData.firstOrNull()?.data?.current?.windGusts
+                val rideSpeed = if (isImperial){
+                    rideSpeedInMs * 2.23694
+                } else {
+                    rideSpeedInMs * 3.6
                 }
-                .combine(karooSystem.streamUserProfile()) { streamData, userProfile ->
-                    val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                    streamData.copy(isImperial = isImperial)
-                }
-                .combine(streamSpeedInMs()) { streamData, rideSpeedInMs ->
-                    val rideSpeed = if (streamData.isImperial == true){
-                        rideSpeedInMs * 2.23694
-                    } else {
-                        rideSpeedInMs * 3.6
-                    }
-                    streamData.copy(rideSpeed = rideSpeed)
-                }
+
+                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed)
+            }
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
@@ -159,6 +161,13 @@ class TailwindAndRideSpeedDataType(
 
                 val text = streamData.rideSpeed?.let { String.format(Locale.current.platformLocale, "%.1f", it) } ?: ""
 
+                val wideMode = config.gridSize.first == 60
+                val gustSpeedAddon = if (wideMode) {
+                    "-${streamData.gustSpeed?.roundToInt() ?: 0}"
+                } else {
+                    ""
+                }
+
                 val subtextWithSign = when (streamData.settings.windDirectionIndicatorTextSetting) {
                     WindDirectionIndicatorTextSetting.HEADWIND_SPEED -> {
                         val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
@@ -167,9 +176,9 @@ class TailwindAndRideSpeedDataType(
                         val sign = if (headwindSpeed < 0) "+" else {
                             if (headwindSpeed > 0) "-" else ""
                         }
-                        "$sign${headwindSpeed.roundToInt().absoluteValue} ${windSpeed.roundToInt()}"
+                        "$sign${headwindSpeed.roundToInt().absoluteValue} ${windSpeed.roundToInt()}${gustSpeedAddon}"
                     }
-                    WindDirectionIndicatorTextSetting.WIND_SPEED -> windSpeed.roundToInt().toString()
+                    WindDirectionIndicatorTextSetting.WIND_SPEED -> "${windSpeed.roundToInt()}${gustSpeedAddon}"
                     WindDirectionIndicatorTextSetting.NONE -> ""
                 }
 
@@ -196,7 +205,8 @@ class TailwindAndRideSpeedDataType(
                         subtextWithSign,
                         dayColor,
                         nightColor,
-                        preview = config.preview
+                        preview = config.preview,
+                        wideMode = wideMode,
                     )
                 }
 

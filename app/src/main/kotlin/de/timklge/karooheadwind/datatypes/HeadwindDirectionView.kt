@@ -21,12 +21,17 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
+import androidx.glance.layout.width
+import androidx.glance.layout.wrapContentHeight
 import androidx.glance.text.FontFamily
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.MainActivity
 import kotlin.math.roundToInt
@@ -56,7 +61,8 @@ fun getArrowBitmapByBearing(baseBitmap: Bitmap, bearing: Int): Bitmap {
 fun HeadwindDirection(
     baseBitmap: Bitmap, bearing: Int, fontSize: Int,
     overlayText: String, overlaySubText: String? = null,
-    nightColor: Color = Color.Black, dayColor: Color = Color.White, preview: Boolean = false
+    nightColor: Color = Color.Black, dayColor: Color = Color.White, preview: Boolean = false,
+    wideMode: Boolean
 ) {
     val baseModifier = GlanceModifier.fillMaxSize().padding(5.dp).background(dayColor, nightColor).cornerRadius(10.dp)
 
@@ -84,36 +90,68 @@ fun HeadwindDirection(
                     modifier = GlanceModifier.padding(1.dp)
                 )
             } else {
-                Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = GlanceModifier.size(40.dp)) {
-                            Image(
-                                provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, bearing)),
-                                contentDescription = "Relative wind direction indicator",
-                                contentScale = ContentScale.Fit,
-                                colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
-                            )
-                        }
-                    }
+                if (wideMode){
+                    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = GlanceModifier.size(50.dp)) {
+                                Image(
+                                    provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, bearing)),
+                                    contentDescription = "Relative wind direction indicator",
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
+                                )
+                            }
 
-                    Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
-                        Text(
-                            overlayText,
-                            maxLines = 1,
-                            style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.65 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                            modifier = GlanceModifier.padding(1.dp)
-                        )
-
-                        Row(){
                             Text(
                                 overlaySubText,
                                 maxLines = 1,
-                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.4 * fontSize).sp, fontFamily = FontFamily.Monospace),
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.35 * fontSize).sp, fontFamily = FontFamily.Monospace),
                                 modifier = GlanceModifier.padding(1.dp)
                             )
                         }
-                    }
 
+                        // Spacer(modifier = GlanceModifier.width(10.dp))
+
+                        Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight(), verticalAlignment = Alignment.CenterVertically, horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                overlayText,
+                                maxLines = 1,
+                                modifier = GlanceModifier.padding(5.dp),
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.75 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                } else {
+                    Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = GlanceModifier.size(40.dp)) {
+                                Image(
+                                    provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, bearing)),
+                                    contentDescription = "Relative wind direction indicator",
+                                    contentScale = ContentScale.Fit,
+                                    colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
+                                )
+                            }
+                        }
+
+                        Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
+                            Text(
+                                overlayText,
+                                maxLines = 1,
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.65 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
+                                modifier = GlanceModifier.padding(1.dp)
+                            )
+
+                            Row(){
+                                Text(
+                                    overlaySubText,
+                                    maxLines = 1,
+                                    style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.4 * fontSize).sp, fontFamily = FontFamily.Monospace),
+                                    modifier = GlanceModifier.padding(1.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

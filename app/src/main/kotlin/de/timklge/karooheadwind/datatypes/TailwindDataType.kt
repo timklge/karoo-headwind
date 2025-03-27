@@ -160,7 +160,7 @@ class TailwindDataType(
 
                 if (streamData.settings.windDirectionIndicatorSetting == WindDirectionIndicatorSetting.HEADWIND_DIRECTION) {
                     val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
-                    val windSpeedInKmh = if (streamData.isImperial == true){
+                    val windSpeedInKmh = if (streamData.isImperial){
                         headwindSpeed / 2.23694 * 3.6
                     } else {
                         headwindSpeed
@@ -177,7 +177,9 @@ class TailwindDataType(
                         mainText,
                         subtext,
                         dayColor,
-                        nightColor
+                        nightColor,
+                        wideMode = config.gridSize.first == 60,
+                        preview = config.preview,
                     )
                 }
 
