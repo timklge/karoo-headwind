@@ -70,9 +70,11 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "timklge",
             "description" to "Provides headwind direction, wind speed and other weather data fields.",
-            "releaseNotes" to "* Show current weather in app menu\n" +
-                    "* Add individual forecast fields\n" +
-                    "* Fix distance update in route forecast"
+            "releaseNotes" to "* Colorize field background instead of text\n" +
+                    "* Add OpenWeatherMap support contributed by lockevod\n" +
+                    "* Add tailwind field\n" +
+                    "* Add full-width variants of tailwind fields\n" +
+                    "* Open weather menu on click of fields\n"
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
