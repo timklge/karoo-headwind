@@ -105,7 +105,7 @@ fun HeadwindDirection(
                             Text(
                                 overlaySubText,
                                 maxLines = 1,
-                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.35 * fontSize).sp, fontFamily = FontFamily.Monospace),
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.25 * fontSize).sp, fontFamily = FontFamily.Monospace),
                                 modifier = GlanceModifier.padding(1.dp)
                             )
                         }
@@ -117,7 +117,7 @@ fun HeadwindDirection(
                                 overlayText,
                                 maxLines = 1,
                                 modifier = GlanceModifier.padding(5.dp),
-                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.75 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontSize = (0.6 * fontSize).sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                             )
                         }
                     }
