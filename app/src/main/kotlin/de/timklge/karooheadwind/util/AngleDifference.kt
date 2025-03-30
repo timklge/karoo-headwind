@@ -1,4 +1,4 @@
-package de.timklge.karooheadwind
+package de.timklge.karooheadwind.util
 
 import kotlin.math.abs
 

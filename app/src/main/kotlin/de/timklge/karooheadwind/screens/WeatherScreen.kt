@@ -1,7 +1,6 @@
 package de.timklge.karooheadwind.screens
 
 import android.graphics.BitmapFactory
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,15 +24,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindStats
-import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.ServiceStatusSingleton
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.ForecastDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
+import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUpcomingRoute
@@ -50,12 +49,28 @@ import kotlin.math.roundToInt
 fun WeatherScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf<Boolean?>(null) }
     val ctx = LocalContext.current
-            val karooSystem = remember { KarooSystemService(ctx) }
+    val karooSystem = remember { KarooSystemService(ctx) }
 
-    val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
-    val stats by ctx.streamStats().collectAsStateWithLifecycle(HeadwindStats())
-    val location by karooSystem.getGpsCoordinateFlow(ctx).collectAsStateWithLifecycle(null)
-    val weatherData by ctx.streamCurrentWeatherData().collectAsStateWithLifecycle(emptyList())
+    val profileFlow = remember { karooSystem.streamUserProfile() }
+    val profile by profileFlow.collectAsStateWithLifecycle(null)
+    
+    val statsFlow = remember { ctx.streamStats() }
+    val stats by statsFlow.collectAsStateWithLifecycle(HeadwindStats())
+    
+    val locationFlow = remember { karooSystem.getGpsCoordinateFlow(ctx) }
+    val location by locationFlow.collectAsStateWithLifecycle(null)
+    
+    val currentWeatherDataFlow = remember { ctx.streamCurrentWeatherData(karooSystem) }
+    val currentWeatherData by currentWeatherDataFlow.collectAsStateWithLifecycle(null)
+    
+    val forecastDataFlow = remember { ctx.streamCurrentForecastWeatherData() }
+    val forecastData by forecastDataFlow.collectAsStateWithLifecycle(null)
+
+    val upcomingRouteFlow = remember { karooSystem.streamUpcomingRoute() }
+    val upcomingRoute by upcomingRouteFlow.collectAsStateWithLifecycle(null)
+
+    val serviceStatusFlow = remember { ServiceStatusSingleton.getInstance().getServiceStatus() }
+    val serviceStatus by serviceStatusFlow.collectAsStateWithLifecycle(false)
 
     val baseBitmap = BitmapFactory.decodeResource(
         ctx.resources,
@@ -85,21 +100,20 @@ fun WeatherScreen(onFinish: () -> Unit) {
             )
         }
 
-        val currentWeatherData = weatherData.firstOrNull()?.data
-        val requestedWeatherPosition = weatherData.firstOrNull()?.requestedPosition
+        val requestedWeatherPosition = forecastData?.data?.firstOrNull()?.coords
 
-        val formattedTime = currentWeatherData?.let { timeFormatter.format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
-        val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(currentWeatherData.current.time)) }
+        val formattedTime = currentWeatherData?.let { timeFormatter.format(Instant.ofEpochSecond(it.time)) }
+        val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(it.time)) }
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
                 baseBitmap = baseBitmap,
-                current = WeatherInterpretation.fromWeatherCode(currentWeatherData.current.weatherCode),
-                windBearing = currentWeatherData.current.windDirection.roundToInt(),
-                windSpeed = currentWeatherData.current.windSpeed.roundToInt(),
-                windGusts = currentWeatherData.current.windGusts.roundToInt(),
-                precipitation = currentWeatherData.current.precipitation,
-                temperature = currentWeatherData.current.temperature.toInt(),
+                current = WeatherInterpretation.fromWeatherCode(currentWeatherData?.weatherCode),
+                windBearing = currentWeatherData?.windDirection?.roundToInt() ?: 0,
+                windSpeed = currentWeatherData?.windSpeed?.roundToInt() ?: 0,
+                windGusts = currentWeatherData?.windGusts?.roundToInt() ?: 0,
+                precipitation = currentWeatherData?.precipitation ?: 0.0,
+                temperature = currentWeatherData?.temperature?.toInt() ?: 0,
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedTime,
                 dateLabel = formattedDate,
@@ -112,8 +126,6 @@ fun WeatherScreen(onFinish: () -> Unit) {
         val lastPosition = location?.let { l -> stats.lastSuccessfulWeatherPosition?.distanceTo(l) }
         val lastPositionDistanceStr =
             lastPosition?.let { dist -> " (${dist.roundToInt()} km away)" } ?: ""
-
-        val serviceStatus by ServiceStatusSingleton.getInstance().getServiceStatus().collectAsStateWithLifecycle(false)
 
         if (!serviceStatus){
             Text(
@@ -178,21 +190,19 @@ fun WeatherScreen(onFinish: () -> Unit) {
             )
         }
 
-        val upcomingRoute by karooSystem.streamUpcomingRoute().collectAsStateWithLifecycle(null)
-
         for (index in 1..12){
-            val positionIndex = if (weatherData.size == 1) 0 else index
+            val positionIndex = if (forecastData?.data?.size == 1) 0 else index
 
-            if (weatherData.getOrNull(positionIndex) == null) break
-            if (index >= (weatherData.getOrNull(positionIndex)?.data?.forecastData?.weatherCode?.size ?: 0)) {
+            if (forecastData?.data?.getOrNull(positionIndex) == null) break
+            if (index >= (forecastData?.data?.getOrNull(positionIndex)?.forecasts?.size ?: 0)) {
                 break
             }
 
-            val data = weatherData.getOrNull(positionIndex)?.data
-            val distanceAlongRoute = weatherData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
-            val position = weatherData.getOrNull(positionIndex)?.requestedPosition?.let { "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}" }
+            val data = forecastData?.data?.getOrNull(positionIndex)
+            val distanceAlongRoute = forecastData?.data?.getOrNull(positionIndex)?.coords?.distanceAlongRoute
+            val position = forecastData?.data?.getOrNull(positionIndex)?.coords?.let { "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}" }
 
-            Log.d(KarooHeadwindExtension.TAG, "Distance along route index ${positionIndex}: $position")
+            // Log.d(KarooHeadwindExtension.TAG, "Distance along route index ${positionIndex}: $position")
 
             if (index > 1) {
                 Spacer(
@@ -205,29 +215,32 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 )
             }
 
-            val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
-                distanceAlongRoute?.minus(currentDistanceAlongRoute)
-            }
+            val distanceFromCurrent = 0.0
+            //val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
+            //    distanceAlongRoute?.minus(currentDistanceAlongRoute)
+            //
+            // }
 
-            val interpretation = WeatherInterpretation.fromWeatherCode(data?.forecastData?.weatherCode?.get(index) ?: 0)
-            val unixTime = data?.forecastData?.time?.get(index) ?: 0
+            val weatherData = data?.forecasts?.getOrNull(index)
+            val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
+            val unixTime = weatherData?.time ?: 0
             val formattedForecastTime = ForecastDataType.timeFormatter.format(Instant.ofEpochSecond(unixTime))
             val formattedForecastDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
 
             WeatherWidget(
                 baseBitmap,
                 current = interpretation,
-                windBearing = data?.forecastData?.windDirection?.get(index)?.roundToInt() ?: 0,
-                windSpeed = data?.forecastData?.windSpeed?.get(index)?.roundToInt() ?: 0,
-                windGusts = data?.forecastData?.windGusts?.get(index)?.roundToInt() ?: 0,
-                precipitation = data?.forecastData?.precipitation?.get(index) ?: 0.0,
-                temperature = data?.forecastData?.temperature?.get(index)?.roundToInt() ?: 0,
+                windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
+                windSpeed = weatherData?.windSpeed?.roundToInt() ?: 0,
+                windGusts = weatherData?.windGusts?.roundToInt() ?: 0,
+                precipitation = weatherData?.precipitation ?: 0.0,
+                temperature = weatherData?.temperature?.toInt() ?: 0,
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
                 dateLabel = formattedForecastDate,
                 distance = distanceFromCurrent,
                 includeDistanceLabel = true,
-                precipitationProbability = data?.forecastData?.precipitationProbability?.get(index) ?: 0,
+                precipitationProbability = weatherData?.precipitationProbability?.toInt() ?: 0,
                 isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
             )
         }

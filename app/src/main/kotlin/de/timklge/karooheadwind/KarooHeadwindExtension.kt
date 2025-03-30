@@ -1,7 +1,6 @@
 package de.timklge.karooheadwind
 
 import android.util.Log
-import androidx.compose.ui.util.fastZip
 import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
@@ -26,6 +25,7 @@ import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
+import de.timklge.karooheadwind.weatherprovider.WeatherProviderFactory
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.models.UserProfile
@@ -45,11 +45,9 @@ import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.debounce
-import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.zip.GZIPInputStream
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
@@ -73,15 +71,15 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             WeatherDataType(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
-            RelativeHumidityDataType(applicationContext),
-            CloudCoverDataType(applicationContext),
-            WindGustsDataType(applicationContext),
-            WindSpeedDataType(applicationContext),
-            TemperatureDataType(applicationContext),
+            RelativeHumidityDataType(karooSystem, applicationContext),
+            CloudCoverDataType(karooSystem, applicationContext),
+            WindGustsDataType(karooSystem, applicationContext),
+            WindSpeedDataType(karooSystem, applicationContext),
+            TemperatureDataType(karooSystem, applicationContext),
             WindDirectionDataType(karooSystem, applicationContext),
-            PrecipitationDataType(applicationContext),
-            SurfacePressureDataType(applicationContext),
-            SealevelPressureDataType(applicationContext),
+            PrecipitationDataType(karooSystem, applicationContext),
+            SurfacePressureDataType(karooSystem, applicationContext),
+            SealevelPressureDataType(karooSystem, applicationContext),
             UserWindSpeedDataType(karooSystem, applicationContext),
             TemperatureForecastDataType(karooSystem),
             PrecipitationForecastDataType(karooSystem),
@@ -121,10 +119,9 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 }
                 .debounce(Duration.ofSeconds(5))
 
-            var requestedGpsCoordinates: List<GpsCoordinates> = mutableListOf()
+            var requestedGpsCoordinates: List<GpsCoordinates> = emptyList()
 
-            val settingsStream = streamSettings(karooSystem)
-                .filter { it.welcomeDialogAccepted }
+            val settingsStream = streamSettings(karooSystem).filter { it.welcomeDialogAccepted }
 
             data class StreamData(val settings: HeadwindSettings, val gps: GpsCoordinates?, val profile: UserProfile?, val upcomingRoute: UpcomingRoute?)
             data class StreamDataIdentity(val settings: HeadwindSettings, val gpsLat: Double?, val gpsLon: Double?, val profile: UserProfile?, val routePolyline: LineString?)
@@ -168,7 +165,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
 
                     Log.d(TAG, "Minutes to next full hour: ${msToNextFullHour / 1000 / 60}, Distance to next full hour: ${(calculatedDistanceToNextFullHour / 1000).roundToInt()}km")
 
-                    requestedGpsCoordinates = buildList {
+                        requestedGpsCoordinates = buildList {
                         add(gps)
 
                         var currentPosition = positionOnRoute + calculatedDistanceToNextFullHour
@@ -211,50 +208,26 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     requestedGpsCoordinates = mutableListOf(gps)
                 }
 
-                val response = karooSystem.makeOpenMeteoHttpRequest(requestedGpsCoordinates, settings, profile)
-                if (response.error != null){
-                    try {
+                val response = WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
 
-                        val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
-                        launch { saveStats(this@KarooHeadwindExtension, stats) }
+                val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
+                launch {
+                    try {
+                        saveStats(this@KarooHeadwindExtension, stats)
                     } catch(e: Exception){
                         Log.e(TAG, "Failed to write stats", e)
                     }
-                    error("HTTP request failed: ${response.error}")
-                } else {
-                    try {
-                        val responseBody = response.body?.let { String(it) }
-                        var weatherDataProvider: WeatherDataProvider? = null
+                }
 
-                        try {
-                            if (responseBody != null) {
-                                if (responseBody.trim().startsWith("[")) {
-                                    val responseArray =
-                                        jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(
-                                            responseBody
-                                        )
-                                    weatherDataProvider = responseArray.firstOrNull()?.provider
-                                } else {
-                                    val responseObject =
-                                        jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(
-                                            responseBody
-                                        )
-                                    weatherDataProvider = responseObject.provider
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error decoding provider", e)
-                        }
-
-                        val stats = lastKnownStats.copy(
-                            lastSuccessfulWeatherRequest = System.currentTimeMillis(),
-                            lastSuccessfulWeatherPosition = gps,
-                            lastSuccessfulWeatherProvider = weatherDataProvider
-                        )
-                        launch { saveStats(this@KarooHeadwindExtension, stats) }
-                    } catch(e: Exception){
-                        Log.e(TAG, "Failed to write stats", e)
-                    }
+                try {
+                    val stats = lastKnownStats.copy(
+                        lastSuccessfulWeatherRequest = System.currentTimeMillis(),
+                        lastSuccessfulWeatherPosition = gps,
+                        lastSuccessfulWeatherProvider = response?.provider
+                    )
+                    launch { saveStats(this@KarooHeadwindExtension, stats) }
+                } catch(e: Exception){
+                    Log.e(TAG, "Failed to write stats", e)
                 }
 
                 response
@@ -263,30 +236,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 delay(1.minutes); true
             }.collect { response ->
                 try {
-                    val inputStream = java.io.ByteArrayInputStream(response.body ?: ByteArray(0))
-                    val lowercaseHeaders = response.headers.map { (k: String, v: String) -> k.lowercase() to v.lowercase() }.toMap()
-                    val isGzippedResponse = lowercaseHeaders["content-encoding"]?.contains("gzip") == true
-                    val responseString = if(isGzippedResponse){
-                        val gzipStream = withContext(Dispatchers.IO) { GZIPInputStream(inputStream) }
-                        gzipStream.use { stream -> String(stream.readBytes()) }
-                    } else {
-                        inputStream.use { stream -> String(stream.readBytes()) }
-                    }
-                    if (requestedGpsCoordinates.size == 1){
-                        val weatherData = jsonWithUnknownKeys.decodeFromString<OpenMeteoCurrentWeatherResponse>(responseString)
-                        val data = WeatherDataResponse(weatherData, requestedGpsCoordinates.single())
-
-                        saveCurrentData(applicationContext, listOf(data))
-
-                        Log.d(TAG, "Got updated weather info: $data")
-                    } else {
-                        val weatherData = jsonWithUnknownKeys.decodeFromString<List<OpenMeteoCurrentWeatherResponse>>(responseString)
-                        val data = weatherData.fastZip(requestedGpsCoordinates) { weather, gps -> WeatherDataResponse(weather, gps) }
-
-                        saveCurrentData(applicationContext, data)
-
-                        Log.d(TAG, "Got updated weather info: $data")
-                    }
+                    saveCurrentData(applicationContext, response)
+                    Log.d(TAG, "Got updated weather info: $response")
 
                     saveWidgetSettings(applicationContext, HeadwindWidgetSettings(currentForecastHourOffset = 0))
                 } catch(e: Exception){

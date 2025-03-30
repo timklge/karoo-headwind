@@ -7,7 +7,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.saveWidgetSettings
-import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamWidgetSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -21,13 +21,13 @@ class CycleHoursAction : ActionCallback {
         Log.d(KarooHeadwindExtension.TAG, "Cycling hours")
 
         val currentSettings = context.streamWidgetSettings().first()
-        val data = context.streamCurrentWeatherData().firstOrNull()
+        val forecastData = context.streamCurrentForecastWeatherData().firstOrNull()
 
         var hourOffset = currentSettings.currentForecastHourOffset + 3
-        val requestedPositions = data?.size
-        val requestedHours = data?.firstOrNull()?.data?.forecastData?.weatherCode?.size
+        val requestedPositions = forecastData?.data?.size
+        val requestedHours = forecastData?.data?.firstOrNull()?.forecasts?.size
 
-        if (data == null || requestedHours == null || requestedPositions == null || hourOffset >= requestedHours || (requestedPositions > 1 && hourOffset >= requestedPositions)) {
+        if (forecastData == null || requestedHours == null || requestedPositions == null || hourOffset >= requestedHours || (requestedPositions in 2..hourOffset)) {
             hourOffset = 0
         }
 

@@ -31,7 +31,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale

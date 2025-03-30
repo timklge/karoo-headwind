@@ -21,7 +21,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt

@@ -1,10 +1,11 @@
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import io.hammerhead.karooext.KarooSystemService
 
-class SealevelPressureDataType(context: Context) : BaseDataType(context, "sealevelPressure"){
-    override fun getValue(data: OpenMeteoCurrentWeatherResponse): Double {
-        return data.current.sealevelPressure ?: 0.0
+class SealevelPressureDataType(karooSystemService: KarooSystemService, context: Context) : BaseDataType(karooSystemService, context, "sealevelPressure"){
+    override fun getValue(data: WeatherData): Double? {
+        return data.sealevelPressure
     }
 }

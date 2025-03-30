@@ -119,11 +119,11 @@ class TailwindAndRideSpeedDataType(
         val flow = if (config.preview) {
             previewFlow(karooSystem.streamUserProfile())
         } else {
-            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
+            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
                 val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                val absoluteWindDirection = weatherData.firstOrNull()?.data?.current?.windDirection
-                val windSpeed = weatherData.firstOrNull()?.data?.current?.windSpeed
-                val gustSpeed = weatherData.firstOrNull()?.data?.current?.windGusts
+                val absoluteWindDirection = weatherData?.windDirection
+                val windSpeed = weatherData?.windSpeed
+                val gustSpeed = weatherData?.windGusts
                 val rideSpeed = if (isImperial){
                     rideSpeedInMs * 2.23694
                 } else {
@@ -141,7 +141,7 @@ class TailwindAndRideSpeedDataType(
                 Log.d(KarooHeadwindExtension.TAG, "Updating headwind direction view")
 
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
-                if (value == null || streamData.absoluteWindDirection == null || streamData.settings == null || streamData.windSpeed == null){
+                if (value == null || streamData.absoluteWindDirection == null || streamData.windSpeed == null){
                     var headingResponse = streamData.headingResponse
 
                     if (headingResponse is HeadingResponse.Value && (streamData.absoluteWindDirection == null || streamData.windSpeed == null)){

@@ -42,8 +42,8 @@ class HeadwindDirectionDataType(
 
     private fun streamValues(): Flow<Double> = flow {
         karooSystem.getRelativeHeadingFlow(applicationContext)
-            .combine(applicationContext.streamCurrentWeatherData()) { headingResponse, data ->
-                    StreamData(headingResponse, data.firstOrNull()?.data?.current?.windDirection, data.firstOrNull()?.data?.current?.windSpeed)
+            .combine(applicationContext.streamCurrentWeatherData(karooSystem)) { headingResponse, data ->
+                    StreamData(headingResponse, data?.windDirection, data?.windSpeed)
                 }
             .combine(applicationContext.streamSettings(karooSystem)) { data, settings -> data.copy(settings = settings) }
             .collect { streamData ->

@@ -5,33 +5,41 @@ import android.util.Log
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mapbox.geojson.LineString
+import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
+import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UserProfile
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.math.absoluteValue
+import kotlin.time.Duration.Companion.minutes
 
 
 val jsonWithUnknownKeys = Json { ignoreUnknownKeys = true }
 
 val settingsKey = stringPreferencesKey("settings")
 val widgetSettingsKey = stringPreferencesKey("widgetSettings")
-val currentDataKey = stringPreferencesKey("currentForecasts")
+val currentDataKey = stringPreferencesKey("currentForecastsUnified")
 val statsKey = stringPreferencesKey("stats")
 val lastKnownPositionKey = stringPreferencesKey("lastKnownPosition")
 
@@ -53,12 +61,9 @@ suspend fun saveStats(context: Context, stats: HeadwindStats) {
     }
 }
 
-@Serializable
-data class WeatherDataResponse(val data: OpenMeteoCurrentWeatherResponse, val requestedPosition: GpsCoordinates)
-
-suspend fun saveCurrentData(context: Context, forecast: List<WeatherDataResponse>) {
+suspend fun saveCurrentData(context: Context, response: WeatherDataResponse) {
     context.dataStore.edit { t ->
-        t[currentDataKey] = Json.encodeToString(forecast)
+        t[currentDataKey] = Json.encodeToString(response)
     }
 }
 
@@ -114,13 +119,9 @@ fun Context.streamSettings(karooSystemService: KarooSystemService): Flow<Headwin
 data class UpcomingRoute(val distanceAlongRoute: Double, val routePolyline: LineString, val routeLength: Double)
 
 fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
-    val distanceToDestinationStream = flow {
-        emit(null)
-
-        streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION) }
-            .collect { emit(it) }
-    }
+    val distanceToDestinationStream = streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION)
+        .map { (it as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION) }
+        .distinctUntilChanged()
 
     var lastKnownDistanceAlongRoute = 0.0
     var lastKnownRoutePolyline: LineString? = null
@@ -130,6 +131,7 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
         .map { navigationState ->
             navigationState?.let { LineString.fromPolyline(it.routePolyline, 5) }
         }
+        .distinctUntilChanged()
         .combine(distanceToDestinationStream) { routePolyline, distanceToDestination ->
             Log.d(KarooHeadwindExtension.TAG, "Route polyline size: ${routePolyline?.coordinates()?.size}, distance to destination: $distanceToDestination")
             if (routePolyline != null){
@@ -190,18 +192,134 @@ fun KarooSystemService.streamUserProfile(): Flow<UserProfile> {
     }
 }
 
-fun Context.streamCurrentWeatherData(): Flow<List<WeatherDataResponse>> {
+fun Context.streamCurrentForecastWeatherData(): Flow<WeatherDataResponse?> {
     return dataStore.data.map { settingsJson ->
         try {
             val data = settingsJson[currentDataKey]
-            data?.let { d -> jsonWithUnknownKeys.decodeFromString<List<WeatherDataResponse>>(d) } ?: emptyList()
+
+            data?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
         } catch (e: Throwable) {
             Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
-            emptyList()
+            null
         }
-    }.distinctUntilChanged().map { response ->
-        response.filter { forecast ->
-            forecast.data.current.time * 1000 >= System.currentTimeMillis() - (1000 * 60 * 60 * 12)
+    }.distinctUntilChanged()
+}
+
+fun lerpNullable(
+    start: Double?,
+    end: Double?,
+    factor: Double
+): Double? {
+    if (start == null && end == null) return null
+    if (start == null) return end
+    if (end == null) return start
+
+    return start + (end - start) * factor
+}
+
+fun lerpWeather(
+    start: WeatherData,
+    end: WeatherData,
+    factor: Double
+): WeatherData {
+    val closestWeatherData = if (factor < 0.5) start else end
+
+    return WeatherData(
+        time = start.time,
+        temperature = start.temperature + (end.temperature - start.temperature) * factor,
+        relativeHumidity = lerpNullable(start.relativeHumidity, end.relativeHumidity, factor),
+        precipitation = start.precipitation + (end.precipitation - start.precipitation) * factor,
+        cloudCover = lerpNullable(start.cloudCover, end.cloudCover, factor),
+        surfacePressure = lerpNullable(start.surfacePressure, end.surfacePressure, factor),
+        sealevelPressure = lerpNullable(start.sealevelPressure, end.sealevelPressure, factor),
+        windSpeed = start.windSpeed + (end.windSpeed - start.windSpeed) * factor,
+        windDirection = start.windDirection + (end.windDirection - start.windDirection) * factor,
+        windGusts = start.windGusts + (end.windGusts - start.windGusts) * factor,
+        weatherCode = closestWeatherData.weatherCode,
+        isForecast = closestWeatherData.isForecast
+    )
+}
+
+fun lerpWeatherTime(
+    weatherData: List<WeatherDataForLocation>,
+    currentWeatherData: WeatherData
+): WeatherData {
+    val now = System.currentTimeMillis()
+    val nextWeatherForecastData = weatherData.firstOrNull()?.forecasts?.find { forecast -> forecast.time * 1000 >= now }
+    val previousWeatherForecastData = weatherData.firstOrNull()?.forecasts?.findLast { forecast -> forecast.time * 1000 < now }
+
+    val interpolateStartWeatherData = previousWeatherForecastData ?: currentWeatherData
+    val interpolateEndWeatherData = nextWeatherForecastData ?: interpolateStartWeatherData
+
+    val lerpFactor = ((now - (interpolateStartWeatherData.time * 1000)).toDouble() / (interpolateEndWeatherData.time * 1000 - (interpolateStartWeatherData.time * 1000)).absoluteValue).coerceIn(0.0, 1.0)
+
+    return lerpWeather(
+        start = interpolateStartWeatherData,
+        end = interpolateEndWeatherData,
+        factor = lerpFactor
+    )
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+fun Context.streamCurrentWeatherData(karooSystemService: KarooSystemService): Flow<WeatherData?> {
+    val locationFlow = flow {
+        emit(null)
+        emitAll(karooSystemService.getGpsCoordinateFlow(this@streamCurrentWeatherData))
+    }
+
+    return dataStore.data.map { settingsJson ->
+        try {
+            val data = settingsJson[currentDataKey]
+            data?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
+        } catch (e: Throwable) {
+            Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
+            null
+        }
+    }.combine(locationFlow) {
+        weatherData, location -> weatherData to location
+    }.distinctUntilChanged()
+    .flatMapLatest { (weatherData, location) ->
+        flow {
+            if (!weatherData?.data.isNullOrEmpty()) {
+                while(true){
+                    // Get weather for closest position
+                    val weatherDataForCurrentPosition = if (location == null || weatherData?.data?.size == 1) weatherData?.data?.first()?.current else {
+                        val weatherDatas = weatherData?.data?.sortedBy { data ->
+                            TurfMeasurement.distance(
+                                Point.fromLngLat(location.lon, location.lat),
+                                Point.fromLngLat(data.coords.lon, data.coords.lat),
+                                TurfConstants.UNIT_METERS
+                            )
+                        }!!.take(2)
+
+                        val location1 = weatherDatas[0]
+                        val location2 = weatherDatas[1]
+                        val distanceToLocation1 = TurfMeasurement.distance(
+                            Point.fromLngLat(location.lon, location.lat),
+                            Point.fromLngLat(location1.coords.lon, location1.coords.lat),
+                            TurfConstants.UNIT_METERS
+                        )
+                        val distanceToLocation2 = TurfMeasurement.distance(
+                            Point.fromLngLat(location.lon, location.lat),
+                            Point.fromLngLat(location2.coords.lon, location2.coords.lat),
+                            TurfConstants.UNIT_METERS
+                        )
+                        val lerpFactor = (distanceToLocation1 / (distanceToLocation1 + distanceToLocation2)).coerceIn(0.0, 1.0)
+
+                        lerpWeather(
+                            start = location1.current,
+                            end = location2.current,
+                            factor = lerpFactor
+                        )
+                    }
+
+                    emit(lerpWeatherTime(weatherData!!.data, weatherDataForCurrentPosition!!))
+
+                    delay(1.minutes)
+                }
+            } else {
+                emit(null)
+            }
         }
     }
 }

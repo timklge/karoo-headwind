@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.DpSize
 import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
@@ -34,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -99,11 +97,11 @@ class TailwindDataType(
         val flow = if (config.preview) {
             previewFlow(karooSystem.streamUserProfile())
         } else {
-            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
+            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
                 val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                val absoluteWindDirection = weatherData.firstOrNull()?.data?.current?.windDirection
-                val windSpeed = weatherData.firstOrNull()?.data?.current?.windSpeed
-                val gustSpeed = weatherData.firstOrNull()?.data?.current?.windGusts
+                val absoluteWindDirection = weatherData?.windDirection
+                val windSpeed = weatherData?.windSpeed
+                val gustSpeed = weatherData?.windGusts
                 val rideSpeed = if (isImperial){
                     rideSpeedInMs * 2.23694
                 } else {
