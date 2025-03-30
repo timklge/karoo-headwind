@@ -241,12 +241,12 @@ fun lerpWeather(
 }
 
 fun lerpWeatherTime(
-    weatherData: List<WeatherDataForLocation>,
+    weatherData: List<WeatherData>?,
     currentWeatherData: WeatherData
 ): WeatherData {
     val now = System.currentTimeMillis()
-    val nextWeatherForecastData = weatherData.firstOrNull()?.forecasts?.find { forecast -> forecast.time * 1000 >= now }
-    val previousWeatherForecastData = weatherData.firstOrNull()?.forecasts?.findLast { forecast -> forecast.time * 1000 < now }
+    val nextWeatherForecastData = weatherData?.find { forecast -> forecast.time * 1000 >= now }
+    val previousWeatherForecastData = weatherData?.findLast { forecast -> forecast.time * 1000 < now }
 
     val interpolateStartWeatherData = previousWeatherForecastData ?: currentWeatherData
     val interpolateEndWeatherData = nextWeatherForecastData ?: interpolateStartWeatherData
@@ -283,7 +283,7 @@ fun Context.streamCurrentWeatherData(karooSystemService: KarooSystemService): Fl
             if (!weatherData?.data.isNullOrEmpty()) {
                 while(true){
                     // Get weather for closest position
-                    val weatherDataForCurrentPosition = if (location == null || weatherData?.data?.size == 1) weatherData?.data?.first()?.current else {
+                    val weatherDataForCurrentPosition = if (location == null || weatherData?.data?.size == 1) weatherData?.data?.first() else {
                         val weatherDatas = weatherData?.data?.sortedBy { data ->
                             TurfMeasurement.distance(
                                 Point.fromLngLat(location.lon, location.lat),
@@ -306,14 +306,37 @@ fun Context.streamCurrentWeatherData(karooSystemService: KarooSystemService): Fl
                         )
                         val lerpFactor = (distanceToLocation1 / (distanceToLocation1 + distanceToLocation2)).coerceIn(0.0, 1.0)
 
-                        lerpWeather(
+                        val interpolatedWeatherData = lerpWeather(
                             start = location1.current,
                             end = location2.current,
                             factor = lerpFactor
                         )
+
+                        val interpolatedForecasts = location1.forecasts?.mapIndexed { index, forecast ->
+                            val forecast2 = location2.forecasts?.get(index) ?: error("Mismatched forecast lengths")
+                            val interpolatedForecast = lerpWeather(
+                                start = forecast,
+                                end = forecast2,
+                                factor = lerpFactor
+                            )
+                            interpolatedForecast
+                        }
+
+                        WeatherDataForLocation(
+                            coords = location,
+                            current = interpolatedWeatherData,
+                            forecasts = interpolatedForecasts
+                        )
                     }
 
-                    emit(lerpWeatherTime(weatherData!!.data, weatherDataForCurrentPosition!!))
+                    if (weatherDataForCurrentPosition != null) {
+                        emit(lerpWeatherTime(
+                            weatherDataForCurrentPosition.forecasts,
+                            weatherDataForCurrentPosition.current
+                        ))
+                    } else {
+                        emit(null)
+                    }
 
                     delay(1.minutes)
                 }
