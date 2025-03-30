@@ -208,15 +208,18 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     requestedGpsCoordinates = mutableListOf(gps)
                 }
 
-                val response = WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
-
-                val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
-                launch {
-                    try {
-                        saveStats(this@KarooHeadwindExtension, stats)
-                    } catch(e: Exception){
-                        Log.e(TAG, "Failed to write stats", e)
+                val response = try {
+                    WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
+                } catch(e: Throwable){
+                    val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
+                    launch {
+                        try {
+                            saveStats(this@KarooHeadwindExtension, stats)
+                        } catch(e: Exception){
+                            Log.e(TAG, "Failed to write stats", e)
+                        }
                     }
+                    throw e
                 }
 
                 try {
