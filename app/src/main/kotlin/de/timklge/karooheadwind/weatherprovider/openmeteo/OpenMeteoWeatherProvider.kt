@@ -70,8 +70,8 @@ class OpenMeteoWeatherProvider : WeatherProvider {
         }.single()
 
         if (response.statusCode !in 200..299) {
-            Log.e(KarooHeadwindExtension.TAG, "OpenWeatherMap API request failed with status code ${response.statusCode}")
-            throw WeatherProviderException(response.statusCode, "OpenWeatherMap API request failed with status code ${response.statusCode}")
+            Log.e(KarooHeadwindExtension.TAG, "OpenMeteo API request failed with status code ${response.statusCode}")
+            throw WeatherProviderException(response.statusCode, "OpenMeteo API request failed with status code ${response.statusCode}")
         }
 
         return ungzip(response)
