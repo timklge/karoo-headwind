@@ -75,7 +75,7 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         val responses = mutableListOf<WeatherDataForLocation>()
 
         val openWeatherMapWeatherDataForLocation = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapWeatherDataForLocation>(responseBody)
-        responses.add(openWeatherMapWeatherDataForLocation.toWeatherDataForLocation())
+        responses.add(openWeatherMapWeatherDataForLocation.toWeatherDataForLocation(null))
 
         // FIXME Route forecast
 

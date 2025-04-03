@@ -14,9 +14,9 @@ data class OpenWeatherMapWeatherDataForLocation(
     val current: OpenWeatherMapWeatherData,
     val hourly: List<OpenWeatherMapForecastData>
 ){
-    fun toWeatherDataForLocation(): WeatherDataForLocation = WeatherDataForLocation(
+    fun toWeatherDataForLocation(distanceAlongRoute: Double?): WeatherDataForLocation = WeatherDataForLocation(
         current = current.toWeatherData(),
-        coords = GpsCoordinates(lat, lon),
+        coords = GpsCoordinates(lat, lon, bearing = null, distanceAlongRoute = distanceAlongRoute),
         timezone = timezone,
         forecasts = hourly.map { it.toWeatherData() }
     )

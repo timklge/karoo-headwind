@@ -165,7 +165,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
 
                     Log.d(TAG, "Minutes to next full hour: ${msToNextFullHour / 1000 / 60}, Distance to next full hour: ${(calculatedDistanceToNextFullHour / 1000).roundToInt()}km")
 
-                        requestedGpsCoordinates = buildList {
+                    requestedGpsCoordinates = buildList {
                         add(gps)
 
                         var currentPosition = positionOnRoute + calculatedDistanceToNextFullHour
@@ -226,7 +226,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     val stats = lastKnownStats.copy(
                         lastSuccessfulWeatherRequest = System.currentTimeMillis(),
                         lastSuccessfulWeatherPosition = gps,
-                        lastSuccessfulWeatherProvider = response?.provider
+                        lastSuccessfulWeatherProvider = response.provider
                     )
                     launch { saveStats(this@KarooHeadwindExtension, stats) }
                 } catch(e: Exception){

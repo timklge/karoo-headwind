@@ -15,11 +15,11 @@ data class OpenMeteoWeatherDataForLocation(
     @SerialName("utc_offset_seconds") val utfOffsetSeconds: Int,
     @SerialName("hourly") val forecastData: OpenMeteoWeatherForecastData?,
 ) {
-    fun toWeatherDataForLocation(): WeatherDataForLocation {
+    fun toWeatherDataForLocation(distanceAlongRoute: Double?): WeatherDataForLocation {
         val forecasts = forecastData?.toWeatherData()
         return WeatherDataForLocation(
             current = current.toWeatherData(),
-            coords = GpsCoordinates(latitude, longitude),
+            coords = GpsCoordinates(latitude, longitude, bearing = null, distanceAlongRoute = distanceAlongRoute),
             timezone = timezone,
             elevation = elevation,
             forecasts = forecasts

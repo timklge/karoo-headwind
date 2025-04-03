@@ -215,11 +215,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 )
             }
 
-            val distanceFromCurrent = 0.0
-            //val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
-            //    distanceAlongRoute?.minus(currentDistanceAlongRoute)
-            //
-            // }
+            val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
+                distanceAlongRoute?.minus(currentDistanceAlongRoute)
+            }
 
             val weatherData = data?.forecasts?.getOrNull(index)
             val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)

@@ -93,7 +93,9 @@ class OpenMeteoWeatherProvider : WeatherProvider {
 
         val response = WeatherDataResponse(
             provider = WeatherDataProvider.OPEN_METEO,
-            data = weatherData.map { it.toWeatherDataForLocation() }
+            data = weatherData.zip(coordinates) { openMeteoWeatherDataForLocation, location ->
+                openMeteoWeatherDataForLocation.toWeatherDataForLocation(location.distanceAlongRoute)
+            }
         )
 
         return response
