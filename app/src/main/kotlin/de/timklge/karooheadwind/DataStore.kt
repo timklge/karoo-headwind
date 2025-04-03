@@ -225,7 +225,7 @@ fun lerpWeather(
     val closestWeatherData = if (factor < 0.5) start else end
 
     return WeatherData(
-        time = start.time,
+        time = (start.time + (end.time - start.time) * factor).toLong(),
         temperature = start.temperature + (end.temperature - start.temperature) * factor,
         relativeHumidity = lerpNullable(start.relativeHumidity, end.relativeHumidity, factor),
         precipitation = start.precipitation + (end.precipitation - start.precipitation) * factor,
