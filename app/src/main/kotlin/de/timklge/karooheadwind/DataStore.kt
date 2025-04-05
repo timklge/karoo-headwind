@@ -217,6 +217,40 @@ fun lerpNullable(
     return start + (end - start) * factor
 }
 
+/**
+ * Linearly interpolates between two angles in degrees
+ * 
+ * @param start Starting angle in degrees [0-360]
+ * @param end Ending angle in degrees [0-360]
+ * @param factor Interpolation factor [0-1]
+ * @return Interpolated angle in degrees [0-360]
+ */
+fun lerpAngle(
+    start: Double,
+    end: Double,
+    factor: Double
+): Double {
+    val normalizedStart = start % 360.0
+    val normalizedEnd = end % 360.0
+    
+    var diff = normalizedEnd - normalizedStart
+    if (diff > 180.0) {
+        diff -= 360.0
+    } else if (diff < -180.0) {
+        diff += 360.0
+    }
+    
+    var result = normalizedStart + diff * factor
+    
+    if (result < 0) {
+        result += 360.0
+    } else if (result >= 360.0) {
+        result -= 360.0
+    }
+    
+    return result
+}
+
 fun lerpWeather(
     start: WeatherData,
     end: WeatherData,
@@ -233,7 +267,7 @@ fun lerpWeather(
         surfacePressure = lerpNullable(start.surfacePressure, end.surfacePressure, factor),
         sealevelPressure = lerpNullable(start.sealevelPressure, end.sealevelPressure, factor),
         windSpeed = start.windSpeed + (end.windSpeed - start.windSpeed) * factor,
-        windDirection = start.windDirection + (end.windDirection - start.windDirection) * factor,
+        windDirection = lerpAngle(start.windDirection, end.windDirection, factor),
         windGusts = start.windGusts + (end.windGusts - start.windGusts) * factor,
         weatherCode = closestWeatherData.weatherCode,
         isForecast = closestWeatherData.isForecast
