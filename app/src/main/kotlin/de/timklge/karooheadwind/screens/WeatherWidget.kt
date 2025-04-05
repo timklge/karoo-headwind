@@ -154,7 +154,7 @@ fun WeatherWidget(
                 modifier = Modifier.padding(top = 4.dp)
             ) {
                 Image(
-                    bitmap = getArrowBitmapByBearing(baseBitmap, windBearing).asImageBitmap(),
+                    bitmap = getArrowBitmapByBearing(baseBitmap, windBearing + 180).asImageBitmap(),
                     colorFilter = ColorFilter.tint(Color.Black),
                     contentDescription = "Wind direction",
                     modifier = Modifier.size(20.dp)
