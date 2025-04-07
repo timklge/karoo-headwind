@@ -1,10 +1,11 @@
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import io.hammerhead.karooext.KarooSystemService
 
-class TemperatureDataType(context: Context) : BaseDataType(context, "temperature"){
-    override fun getValue(data: OpenMeteoCurrentWeatherResponse): Double {
-        return data.current.temperature
+class TemperatureDataType(karooSystemService: KarooSystemService, context: Context) : BaseDataType(karooSystemService, context, "temperature"){
+    override fun getValue(data: WeatherData): Double {
+        return data.temperature
     }
 }

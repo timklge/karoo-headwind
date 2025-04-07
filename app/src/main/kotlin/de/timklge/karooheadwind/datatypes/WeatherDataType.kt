@@ -16,10 +16,9 @@ import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.MainActivity
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
-import de.timklge.karooheadwind.OpenMeteoData
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
@@ -61,12 +60,12 @@ class WeatherDataType(
 
     override fun startStream(emitter: Emitter<StreamState>) {
         val job = CoroutineScope(Dispatchers.IO).launch {
-            val currentWeatherData = applicationContext.streamCurrentWeatherData()
+            val currentWeatherData = applicationContext.streamCurrentWeatherData(karooSystem)
 
             currentWeatherData
                 .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data.firstOrNull()?.data?.current?.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data.firstOrNull()?.data?.current?.weatherCode?.toDouble() ?: 0.0)))))
+                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data?.weatherCode}")
+                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data?.weatherCode?.toDouble() ?: 0.0)))))
                 }
         }
         emitter.setCancellable {
@@ -74,19 +73,15 @@ class WeatherDataType(
         }
     }
 
-    data class StreamData(val data: OpenMeteoCurrentWeatherResponse?, val settings: HeadwindSettings,
+    data class StreamData(val data: WeatherData?, val settings: HeadwindSettings,
                           val profile: UserProfile? = null, val headingResponse: HeadingResponse? = null)
 
     private fun previewFlow(): Flow<StreamData> = flow {
         while (true){
             emit(StreamData(
-                OpenMeteoCurrentWeatherResponse(
-                    OpenMeteoData(Instant.now().epochSecond, 0, 20.0, 50, 3.0, 0, 1013.25, 980.0, 15.0, 30.0, 30.0, WeatherInterpretation.getKnownWeatherCodes().random()),
-                    0.0, 0.0, "Europe/Berlin", 30.0, 0,
-
-                    null
-            ), HeadwindSettings()
-            ))
+                WeatherData(Instant.now().epochSecond, 0.0,
+                20.0, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
+                WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false), HeadwindSettings()))
 
             delay(5_000)
         }
@@ -107,8 +102,8 @@ class WeatherDataType(
         val dataFlow = if (config.preview){
             previewFlow()
         } else {
-            combine(context.streamCurrentWeatherData(), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), karooSystem.getHeadingFlow(context)) { data, settings, profile, heading ->
-                StreamData(data.firstOrNull()?.data, settings, profile, heading)
+            combine(context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), karooSystem.getHeadingFlow(context)) { data, settings, profile, heading ->
+                StreamData(data, settings, profile, heading)
             }
         }
 
@@ -124,9 +119,9 @@ class WeatherDataType(
                         return@collect
                     }
 
-                    val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
-                    val formattedTime = timeFormatter.format(Instant.ofEpochSecond(data.current.time))
-                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(data.current.time))
+                    val interpretation = WeatherInterpretation.fromWeatherCode(data.weatherCode)
+                    val formattedTime = timeFormatter.format(Instant.ofEpochSecond(data.time))
+                    val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(data.time))
 
                     val result = glance.compose(context, DpSize.Unspecified) {
                         var modifier = GlanceModifier.fillMaxSize()
@@ -136,12 +131,12 @@ class WeatherDataType(
                             Weather(
                                 baseBitmap,
                                 current = interpretation,
-                                windBearing = data.current.windDirection.roundToInt(),
-                                windSpeed = data.current.windSpeed.roundToInt(),
-                                windGusts = data.current.windGusts.roundToInt(),
-                                precipitation = data.current.precipitation,
+                                windBearing = data.windDirection.roundToInt(),
+                                windSpeed = data.windSpeed.roundToInt(),
+                                windGusts = data.windGusts.roundToInt(),
+                                precipitation = data.precipitation,
                                 precipitationProbability = null,
-                                temperature = data.current.temperature.roundToInt(),
+                                temperature = data.temperature.roundToInt(),
                                 temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                                 timeLabel = formattedTime,
                                 rowAlignment = when (config.alignment){

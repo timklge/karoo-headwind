@@ -8,9 +8,9 @@
 
     <color name="green">#00ff00</color>
     <color name="orange">#ff9930</color>
-    <color name="red">#FF2424</color>
+    <color name="red">#FF5454</color>
 
     <color name="hGreen">#008000</color>
     <color name="hOrange">#BB4300</color>
-    <color name="hRed">#B30000</color>
+    <color name="hRed">#A30000</color>
 </resources>

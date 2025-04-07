@@ -17,7 +17,6 @@ import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontFamily
@@ -26,10 +25,9 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
 
 @Composable
 fun WindForecast(

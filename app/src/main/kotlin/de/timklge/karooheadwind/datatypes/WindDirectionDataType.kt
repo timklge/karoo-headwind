@@ -17,7 +17,7 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-class WindDirectionDataType(val karooSystem: KarooSystemService, context: Context) : BaseDataType(context, "windDirection"){
+class WindDirectionDataType(val karooSystem: KarooSystemService, context: Context) : BaseDataType(karooSystem, context, "windDirection"){
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
 
@@ -48,8 +48,8 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
         )
     }
 
-    override fun getValue(data: OpenMeteoCurrentWeatherResponse): Double {
-        return data.current.windDirection
+    override fun getValue(data: WeatherData): Double {
+        return data.windDirection
     }
 
     private fun previewFlow(): Flow<Double> {

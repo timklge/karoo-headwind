@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.getArrowBitmapByBearing
 import de.timklge.karooheadwind.datatypes.getWeatherIcon
 import kotlin.math.absoluteValue
@@ -65,7 +65,7 @@ fun WeatherWidget(
                 )
             }
 
-            if (distance != null) {
+            if (distance != null && distance > 200) {
                 val distanceInUserUnit = (distance / (if(!isImperial) 1000.0 else 1609.34)).toInt()
                 val label = "${distanceInUserUnit.absoluteValue}${if(!isImperial) "km" else "mi"}"
                 val text = if (includeDistanceLabel){
@@ -154,7 +154,7 @@ fun WeatherWidget(
                 modifier = Modifier.padding(top = 4.dp)
             ) {
                 Image(
-                    bitmap = getArrowBitmapByBearing(baseBitmap, windBearing).asImageBitmap(),
+                    bitmap = getArrowBitmapByBearing(baseBitmap, windBearing + 180).asImageBitmap(),
                     colorFilter = ColorFilter.tint(Color.Black),
                     contentDescription = "Wind direction",
                     modifier = Modifier.size(20.dp)

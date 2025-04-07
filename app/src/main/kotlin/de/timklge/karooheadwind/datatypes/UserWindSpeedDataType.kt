@@ -3,7 +3,7 @@ package de.timklge.karooheadwind.datatypes
 import android.content.Context
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
@@ -28,18 +28,18 @@ class UserWindSpeedDataType(
     private val context: Context
 ) : DataTypeImpl("karoo-headwind", "userwindSpeed"){
 
-    data class StreamData(val headingResponse: HeadingResponse, val weatherResponse: OpenMeteoCurrentWeatherResponse?, val settings: HeadwindSettings)
+    data class StreamData(val headingResponse: HeadingResponse, val weatherResponse: WeatherData?, val settings: HeadwindSettings)
 
     companion object {
         fun streamValues(context: Context, karooSystem: KarooSystemService): Flow<Double> = flow {
             karooSystem.getRelativeHeadingFlow(context)
-                .combine(context.streamCurrentWeatherData()) { value, data -> value to data }
+                .combine(context.streamCurrentWeatherData(karooSystem)) { value, data -> value to data }
                 .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
-                    StreamData(value, data.firstOrNull()?.data, settings)
+                    StreamData(value, data, settings)
                 }
                 .filter { it.weatherResponse != null }
                 .collect { streamData ->
-                    val windSpeed = streamData.weatherResponse?.current?.windSpeed ?: 0.0
+                    val windSpeed = streamData.weatherResponse?.windSpeed ?: 0.0
                     val windDirection = (streamData.headingResponse as? HeadingResponse.Value)?.diff ?: 0.0
 
                     if (streamData.settings.windDirectionIndicatorTextSetting == WindDirectionIndicatorTextSetting.HEADWIND_SPEED){

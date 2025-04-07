@@ -3,7 +3,7 @@ package de.timklge.karooheadwind.datatypes
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 
 class WeatherForecastDataType(karooSystem: KarooSystemService) : ForecastDataType(karooSystem, "weatherForecast") {

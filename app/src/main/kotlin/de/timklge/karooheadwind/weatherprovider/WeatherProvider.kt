@@ -1,8 +1,8 @@
-package de.timklge.karooheadwind
+package de.timklge.karooheadwind.weatherprovider
 
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HttpResponseState
 import io.hammerhead.karooext.models.UserProfile
 
 interface WeatherProvider {
@@ -11,5 +11,5 @@ interface WeatherProvider {
         coordinates: List<GpsCoordinates>,
         settings: HeadwindSettings,
         profile: UserProfile?
-    ): HttpResponseState.Complete
+    ): WeatherDataResponse
 }

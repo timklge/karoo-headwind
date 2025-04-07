@@ -25,16 +25,16 @@ import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.HeadwindWidgetSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.OpenMeteoCurrentWeatherResponse
-import de.timklge.karooheadwind.OpenMeteoData
-import de.timklge.karooheadwind.OpenMeteoForecastData
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.UpcomingRoute
-import de.timklge.karooheadwind.WeatherDataResponse
-import de.timklge.karooheadwind.WeatherInterpretation
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
+import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
-import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
@@ -84,7 +84,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
     }
 
-    data class StreamData(val data: List<WeatherDataResponse>?, val settings: SettingsAndProfile,
+    data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
                           val widgetSettings: HeadwindWidgetSettings? = null,
                           val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null)
 
@@ -97,57 +97,63 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
             while (true) {
                 val data = (0..<10).map { index ->
                     val timeAtFullHour = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
-                    val forecastTimes = (0..<12).map { timeAtFullHour + it * 60 * 60 }
-                    val forecastTemperatures = (0..<12).map { 20.0 + (-20..20).random() }
-                    val forecastPrecipitationPropability = (0..<12).map { (0..100).random() }
-                    val forecastPrecipitation = (0..<12).map { 0.0 + (0..10).random() }
-                    val forecastWeatherCodes =
-                        (0..<12).map { WeatherInterpretation.getKnownWeatherCodes().random() }
-                    val forecastWindSpeed = (0..<12).map { 0.0 + (0..10).random() }
-                    val forecastWindDirection = (0..<12).map { 0.0 + (0..360).random() }
-                    val forecastWindGusts = (0..<12).map { 0.0 + (0..10).random() }
-                    val weatherData = OpenMeteoCurrentWeatherResponse(
-                        OpenMeteoData(
-                            Instant.now().epochSecond,
-                            0,
-                            20.0,
-                            50,
-                            3.0,
-                            0,
-                            1013.25,
-                            980.0,
-                            15.0,
-                            30.0,
-                            30.0,
-                            WeatherInterpretation.getKnownWeatherCodes().random()
-                        ),
-                        0.0, 0.0, "Europe/Berlin", 30.0, 0,
 
-                        OpenMeteoForecastData(
-                            forecastTimes,
-                            forecastTemperatures,
-                            forecastPrecipitationPropability,
-                            forecastPrecipitation,
-                            forecastWeatherCodes,
-                            forecastWindSpeed,
-                            forecastWindDirection,
-                            forecastWindGusts
+                    val weatherData = (0..<12).map {
+                        val forecastTime = timeAtFullHour + it * 60 * 60
+                        val forecastTemperature = 20.0 + (-20..20).random()
+                        val forecastPrecipitation = 0.0 + (0..10).random()
+                        val forecastPrecipitationProbability = (0..100).random()
+                        val forecastWeatherCode = WeatherInterpretation.getKnownWeatherCodes().random()
+                        val forecastWindSpeed = 0.0 + (0..10).random()
+                        val forecastWindDirection = 0.0 + (0..360).random()
+                        val forecastWindGusts = 0.0 + (0..10).random()
+                        WeatherData(
+                            time = forecastTime,
+                            temperature = forecastTemperature,
+                            relativeHumidity = 20.0,
+                            precipitation = forecastPrecipitation,
+                            cloudCover = 3.0,
+                            sealevelPressure = 1013.25,
+                            surfacePressure = 1013.25,
+                            precipitationProbability = forecastPrecipitationProbability.toDouble(),
+                            windSpeed = forecastWindSpeed,
+                            windDirection = forecastWindDirection,
+                            windGusts = forecastWindGusts,
+                            weatherCode = forecastWeatherCode,
+                            isForecast = true
                         )
-                    )
+                    }
 
                     val distancePerHour =
                         settingsAndProfile?.settings?.getForecastMetersPerHour(settingsAndProfile.isImperial)
                             ?.toDouble() ?: 0.0
-                    val gpsCoords =
-                        GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour)
 
-                    WeatherDataResponse(weatherData, gpsCoords)
+                    WeatherDataForLocation(
+                        current = WeatherData(
+                            time = timeAtFullHour,
+                            temperature = 20.0,
+                            relativeHumidity = 20.0,
+                            precipitation = 0.0,
+                            cloudCover = 3.0,
+                            sealevelPressure = 1013.25,
+                            surfacePressure = 1013.25,
+                            windSpeed = 5.0,
+                            windDirection = 180.0,
+                            windGusts = 10.0,
+                            weatherCode = WeatherInterpretation.getKnownWeatherCodes().random(),
+                            isForecast = false
+                        ),
+                        coords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour),
+                        timezone = "UTC",
+                        elevation = null,
+                        forecasts = weatherData
+                    )
                 }
 
 
                 emit(
                     StreamData(
-                        data,
+                        WeatherDataResponse(provider = WeatherDataProvider.OPEN_METEO, data = data),
                         SettingsAndProfile(
                             HeadwindSettings(),
                             settingsAndProfile?.isImperial == true,
@@ -182,7 +188,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
             previewFlow(settingsAndProfileStream)
         } else {
             combine(
-                context.streamCurrentWeatherData(),
+                context.streamCurrentForecastWeatherData(),
                 settingsAndProfileStream,
                 context.streamWidgetSettings(),
                 karooSystem.getHeadingFlow(context),
@@ -204,7 +210,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
             dataFlow.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
-                if (allData.isNullOrEmpty()){
+                if (allData?.data.isNullOrEmpty()){
                     emitter.updateView(
                         getErrorWidget(
                             glance,
@@ -223,41 +229,28 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
                     Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.Start) {
                         val hourOffset = widgetSettings?.currentForecastHourOffset ?: 0
-                        val positionOffset = if (allData.size == 1) 0 else hourOffset
+                        val positionOffset = if (allData?.data?.size == 1) 0 else hourOffset
 
                         var previousDate: String? = let {
-                            val unixTime =
-                                allData.getOrNull(positionOffset)?.data?.forecastData?.time?.getOrNull(
-                                    hourOffset
-                                )
+                            val unixTime = allData?.data?.getOrNull(positionOffset)?.forecasts?.getOrNull(hourOffset)?.time
                             val formattedDate = unixTime?.let {
-                                getShortDateFormatter().format(
-                                    Instant.ofEpochSecond(unixTime)
-                                )
+                                getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                             }
 
                             formattedDate
                         }
 
                         for (baseIndex in hourOffset..hourOffset + 2) {
-                            val positionIndex = if (allData.size == 1) 0 else baseIndex
+                            val positionIndex = if (allData?.data?.size == 1) 0 else baseIndex
 
-                            if (allData.getOrNull(positionIndex) == null) break
-                            if (baseIndex >= (allData.getOrNull(positionOffset)?.data?.forecastData?.weatherCode?.size
-                                    ?: 0)
-                            ) {
-                                break
+                            if (allData?.data?.getOrNull(positionIndex) == null) break
+                            if (baseIndex >= (allData.data.getOrNull(positionOffset)?.forecasts?.size ?: 0)) break
+
+                            val data = allData.data.getOrNull(positionIndex)
+                            val distanceAlongRoute = allData.data.getOrNull(positionIndex)?.coords?.distanceAlongRoute
+                            val position = allData.data.getOrNull(positionIndex)?.coords?.let {
+                                "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}"
                             }
-
-                            val data = allData.getOrNull(positionIndex)?.data
-                            val distanceAlongRoute =
-                                allData.getOrNull(positionIndex)?.requestedPosition?.distanceAlongRoute
-                            val position =
-                                allData.getOrNull(positionIndex)?.requestedPosition?.let {
-                                    "${
-                                        (it.distanceAlongRoute?.div(1000.0))?.toInt()
-                                    } at ${it.lat}, ${it.lon}"
-                                }
 
                             if (baseIndex > hourOffset) {
                                 Spacer(
@@ -280,8 +273,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             val isCurrent = baseIndex == 0 && positionIndex == 0
 
                             if (isCurrent && data?.current != null) {
-                                val interpretation =
-                                    WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
+                                val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                 val unixTime = data.current.time
                                 val formattedTime =
                                     timeFormatter.format(Instant.ofEpochSecond(unixTime))
@@ -307,32 +299,22 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
                                 previousDate = formattedDate
                             } else {
-                                val interpretation = WeatherInterpretation.fromWeatherCode(
-                                    data?.forecastData?.weatherCode?.get(baseIndex) ?: 0
-                                )
-                                val unixTime = data?.forecastData?.time?.get(baseIndex) ?: 0
-                                val formattedTime =
-                                    timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                val formattedDate =
-                                    getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
+                                val weatherData = data?.forecasts?.getOrNull(baseIndex)
+                                val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
+                                val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
+                                val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                 val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                 RenderWidget(
                                     arrowBitmap = baseBitmap,
                                     current = interpretation,
-                                    windBearing = data?.forecastData?.windDirection?.get(baseIndex)
-                                        ?.roundToInt() ?: 0,
-                                    windSpeed = data?.forecastData?.windSpeed?.get(baseIndex)
-                                        ?.roundToInt() ?: 0,
-                                    windGusts = data?.forecastData?.windGusts?.get(baseIndex)
-                                        ?.roundToInt() ?: 0,
-                                    precipitation = data?.forecastData?.precipitation?.get(baseIndex)
-                                        ?: 0.0,
-                                    precipitationProbability = data?.forecastData?.precipitationProbability?.get(
-                                        baseIndex
-                                    ) ?: 0,
-                                    temperature = data?.forecastData?.temperature?.get(baseIndex)
-                                        ?.roundToInt() ?: 0,
+                                    windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
+                                    windSpeed = weatherData?.windSpeed?.roundToInt() ?: 0,
+                                    windGusts = weatherData?.windGusts?.roundToInt() ?: 0,
+                                    precipitation = weatherData?.precipitation ?: 0.0,
+                                    precipitationProbability = weatherData?.precipitationProbability?.toInt(),
+                                    temperature = weatherData?.temperature?.roundToInt() ?: 0,
                                     temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
