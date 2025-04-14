@@ -88,9 +88,9 @@ tasks.register("generateManifest") {
             "latestApkUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
-            "developer" to "timklge",
-            "description" to "Provides headwind direction, wind speed and other weather data fields.",
-            "releaseNotes" to "* Interpolate between forecasted and current weather data\n" + 
+            "developer" to "github.com/timklge",
+            "description" to "Open-source extension that provides headwind direction, wind speed and other weather data fields.",
+            "releaseNotes" to "* Interpolate between forecasted and current weather data\n" +
                     "* Colorize field background instead of text\n" +
                     "* Add OpenWeatherMap support contributed by lockevod\n" +
                     "* Add tailwind field\n" +
