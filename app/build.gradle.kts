@@ -90,7 +90,8 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "timklge",
             "description" to "Provides headwind direction, wind speed and other weather data fields.",
-            "releaseNotes" to "* Colorize field background instead of text\n" +
+            "releaseNotes" to "* Interpolate between forecasted and current weather data\n" + 
+                    "* Colorize field background instead of text\n" +
                     "* Add OpenWeatherMap support contributed by lockevod\n" +
                     "* Add tailwind field\n" +
                     "* Add full-width variants of tailwind fields\n" +
