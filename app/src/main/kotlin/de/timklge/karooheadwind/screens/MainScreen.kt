@@ -139,7 +139,7 @@ fun MainScreen(close: () -> Unit) {
 
                         Spacer(Modifier.padding(10.dp))
 
-                        Text("Please note that this app periodically fetches data from the OpenMeteo API to know the current weather at your approximate location.")
+                        Text("Please note that this app periodically fetches data from the OpenMeteo API to know the current weather at your approximate location. Google Crashlytics is used for crash reporting to help improve stability and performance.")
                     }
                 }
             )
