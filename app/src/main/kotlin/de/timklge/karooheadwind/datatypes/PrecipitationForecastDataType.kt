@@ -24,6 +24,7 @@ import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 @Composable
@@ -97,7 +98,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : ForecastD
         isImperial: Boolean
     ) {
         PrecipitationForecast(
-            precipitation = precipitation.roundToInt().coerceAtLeast(0),
+            precipitation = ceil(precipitation).toInt(),
             precipitationProbability = precipitationProbability,
             distance = distance,
             timeLabel = timeLabel,
