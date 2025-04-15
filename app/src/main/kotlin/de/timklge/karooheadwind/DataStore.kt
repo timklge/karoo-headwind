@@ -263,6 +263,7 @@ fun lerpWeather(
         temperature = start.temperature + (end.temperature - start.temperature) * factor,
         relativeHumidity = lerpNullable(start.relativeHumidity, end.relativeHumidity, factor),
         precipitation = start.precipitation + (end.precipitation - start.precipitation) * factor,
+        precipitationProbability = lerpNullable(start.precipitationProbability, end.precipitationProbability, factor),
         cloudCover = lerpNullable(start.cloudCover, end.cloudCover, factor),
         surfacePressure = lerpNullable(start.surfacePressure, end.surfacePressure, factor),
         sealevelPressure = lerpNullable(start.sealevelPressure, end.sealevelPressure, factor),
