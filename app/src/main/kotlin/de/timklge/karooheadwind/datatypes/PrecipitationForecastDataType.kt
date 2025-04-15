@@ -38,7 +38,7 @@ fun PrecipitationForecast(
     Column(modifier = GlanceModifier.fillMaxHeight().padding(1.dp).width(86.dp), horizontalAlignment = rowAlignment) {
         Row(modifier = GlanceModifier.defaultWeight().fillMaxWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
             val precipitationProbabilityText = if (precipitationProbability != null) "${precipitationProbability}% " else ""
-            val precipitationText = if (precipitation > 0) precipitation.toString() else ""
+            val precipitationText = if (precipitation > 0) precipitation.toString() else "0"
             Text(
                 text = "${precipitationProbabilityText}${precipitationText}",
                 style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(24f, TextUnitType.Sp), textAlign = TextAlign.Center)
