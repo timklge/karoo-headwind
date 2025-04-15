@@ -20,6 +20,7 @@ data class OpenMeteoWeatherForecastData(
             WeatherData(
                 temperature = temperature[index],
                 precipitation = precipitation[index],
+                precipitationProbability = precipitationProbability[index].toDouble(),
                 windSpeed = windSpeed[index],
                 windDirection = windDirection[index],
                 windGusts = windGusts[index],

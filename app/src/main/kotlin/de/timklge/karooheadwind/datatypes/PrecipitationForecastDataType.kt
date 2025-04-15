@@ -24,6 +24,7 @@ import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.absoluteValue
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 @Composable
@@ -38,7 +39,7 @@ fun PrecipitationForecast(
     Column(modifier = GlanceModifier.fillMaxHeight().padding(1.dp).width(86.dp), horizontalAlignment = rowAlignment) {
         Row(modifier = GlanceModifier.defaultWeight().fillMaxWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
             val precipitationProbabilityText = if (precipitationProbability != null) "${precipitationProbability}% " else ""
-            val precipitationText = if (precipitation > 0) precipitation.toString() else ""
+            val precipitationText = precipitation.toString()
             Text(
                 text = "${precipitationProbabilityText}${precipitationText}",
                 style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(24f, TextUnitType.Sp), textAlign = TextAlign.Center)
@@ -97,7 +98,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : ForecastD
         isImperial: Boolean
     ) {
         PrecipitationForecast(
-            precipitation = precipitation.roundToInt().coerceAtLeast(0),
+            precipitation = ceil(precipitation).toInt(),
             precipitationProbability = precipitationProbability,
             distance = distance,
             timeLabel = timeLabel,
