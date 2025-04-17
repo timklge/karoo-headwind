@@ -37,6 +37,9 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            firebaseCrashlytics {
+                mappingFileUploadEnabled = false
+            }
         }
         release {
             signingConfig = signingConfigs.getByName("release")
