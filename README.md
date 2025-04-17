@@ -44,7 +44,7 @@ After installing this app on your Karoo and opening it once from the main menu, 
 The app can use OpenMeteo or OpenWeatherMap as providers for live weather data.
 
 - OpenMeteo is the default provider and does not require any configuration. 
-- OpenWeatherMap can provide more accurate data for some locations. Forecasts along the loaded route are not available using OpenWeatherMap. OpenWeatherMap is free for personal use, but you need to register at https://openweathermap.org/home/sign_in and obtain a one call API key. If you use OpenWeatherMap without a correct key, the app will fall back to OpenMeteo.
+- OpenWeatherMap can provide more accurate data for some locations. Forecasts along the loaded route are not available using OpenWeatherMap. OpenWeatherMap is free for personal use, but you need to register at https://openweathermap.org/home/sign_in and obtain a one call API key.
 
 The app will automatically attempt to download weather data from the selected data provider once your device has acquired a GPS fix. Your location is rounded to approximately three kilometers to maintain privacy.
 New weather data is downloaded when you ride more than three kilometers from the location where the weather data was downloaded for or after one hour at the latest.
