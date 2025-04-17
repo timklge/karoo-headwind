@@ -7,12 +7,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,23 +35,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.RoundLocationSetting
+import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.WindUnit
+import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.weatherprovider.openweathermap.OpenWeatherMapWeatherProvider
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import androidx.compose.material3.MaterialTheme
-import de.timklge.karooheadwind.WeatherDataProvider
 
 
 @Composable
@@ -237,9 +244,10 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
         WeatherProviderSection(
             selectedProvider = selectedWeatherProvider,
-            apiKey = openWeatherMapApiKey,
+            karooSystemService = karooSystem,
             onProviderChanged = { selectedWeatherProvider = it },
-            onApiKeyChanged = { openWeatherMapApiKey = it }
+            onApiKeyChanged = { openWeatherMapApiKey = it },
+            apiKey = openWeatherMapApiKey
         )
 
         Spacer(modifier = Modifier.padding(30.dp))
@@ -247,23 +255,31 @@ fun SettingsScreen(onFinish: () -> Unit) {
     }
 }
 
-//added
 @Composable
 fun WeatherProviderSection(
     selectedProvider: WeatherDataProvider,
-    apiKey: String,
+    karooSystemService: KarooSystemService,
     onProviderChanged: (WeatherDataProvider) -> Unit,
-    onApiKeyChanged: (String) -> Unit
+    apiKey: String,
+    onApiKeyChanged: (String) -> Unit,
 ) {
+    val profile by karooSystemService.streamUserProfile().collectAsStateWithLifecycle(null)
+    val settings by LocalContext.current.streamSettings(karooSystemService).collectAsStateWithLifecycle(HeadwindSettings())
 
+    var apiTestErrorMessage by remember { mutableStateOf("") }
+    var apiTestDialogVisible by remember { mutableStateOf(false) }
+    var apiTestDialogPending by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
     val weatherProviderOptions = WeatherDataProvider.entries.toList()
         .map { provider -> DropdownOption(provider.id, provider.label) }
     val weatherProviderSelection by remember(selectedProvider) {
         mutableStateOf(weatherProviderOptions.find { option -> option.id == selectedProvider.id }!!)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val currentApiKey by rememberUpdatedState(apiKey)
 
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Dropdown(
             label = "Weather Provider",
             options = weatherProviderOptions,
@@ -272,21 +288,80 @@ fun WeatherProviderSection(
             onProviderChanged(WeatherDataProvider.entries.find { provider -> provider.id == selectedOption.id }!!)
         }
 
-
         if (selectedProvider == WeatherDataProvider.OPEN_WEATHER_MAP) {
             OutlinedTextField(
                 value = apiKey,
-                onValueChange = { onApiKeyChanged(it) },
+                onValueChange = {
+                    onApiKeyChanged(it)
+                },
                 label = { Text("OpenWeatherMap API Key") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 4.dp),
+                    singleLine = true
             )
 
             Text(
                 text = "If you want to use OpenWeatherMap, you need to provide an API key. If you don't provide a correct key, OpenMeteo is used as a fallback.",
                 style = MaterialTheme.typography.bodySmall
             )
+
+            if (apiTestDialogVisible) {
+                Dialog(onDismissRequest = { apiTestDialogVisible = false }) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.padding(10.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(text = apiTestErrorMessage)
+                            if (apiTestDialogPending) {
+                                LinearProgressIndicator()
+                            }
+                            Button(
+                                onClick = { apiTestDialogVisible = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("OK")
+                            }
+                        }
+                    }
+                }
+            }
+
+            FilledTonalButton(modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+                onClick = {
+                    apiTestDialogVisible = true
+                    apiTestDialogPending = true
+                    apiTestErrorMessage = "Testing API key..."
+
+                    coroutineScope.launch {
+                        try {
+                            // Use currentApiKey instead of apiKey to capture the latest value
+                            val provider = OpenWeatherMapWeatherProvider(currentApiKey)
+                            val response = provider.getWeatherData(karooSystemService, listOf(GpsCoordinates(52.5186, 13.399)), settings, profile)
+                            apiTestDialogPending = false
+                            if (response.error.isNullOrEmpty()) {
+                                apiTestErrorMessage = "API key is valid"
+                                Log.d(KarooHeadwindExtension.TAG, "API key is valid")
+                            } else {
+                                apiTestErrorMessage = "Error testing API key: ${response.error}"
+                                Log.e(KarooHeadwindExtension.TAG, "API key is invalid")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(KarooHeadwindExtension.TAG, "Error testing API key: ${e.message}")
+                            apiTestDialogPending = false
+                            apiTestErrorMessage = "Error testing API key: ${e.message}"
+                        }
+                    }
+                }) {
+                Text("Test API Key")
+            }
         }
     }
 }
