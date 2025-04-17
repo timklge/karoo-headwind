@@ -2,8 +2,13 @@ package de.timklge.karooheadwind
 
 import android.content.Context
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
@@ -34,6 +39,10 @@ import kotlinx.serialization.json.Json
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.minutes
 
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings", corruptionHandler = ReplaceFileCorruptionHandler {
+    Log.w(KarooHeadwindExtension.TAG, "Error reading settings, using default values")
+    emptyPreferences()
+})
 
 val jsonWithUnknownKeys = Json { ignoreUnknownKeys = true }
 
