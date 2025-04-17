@@ -57,3 +57,7 @@ jobs:
         artifacts: app/build/outputs/apk/release/app-release.apk, app/manifest.json, app/karoo-headwind.png
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Comment on related issues and pull requests
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: remix-run/release-comment-action@0.4.1
