@@ -23,6 +23,7 @@ import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.delay
@@ -128,6 +129,11 @@ fun Context.streamSettings(karooSystemService: KarooSystemService): Flow<Headwin
 data class UpcomingRoute(val distanceAlongRoute: Double, val routePolyline: LineString, val routeLength: Double)
 
 fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
+    return flow {
+        emit(null)
+        awaitCancellation()
+    }
+
     val distanceToDestinationStream = streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION)
         .map { (it as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION) }
         .distinctUntilChanged()
