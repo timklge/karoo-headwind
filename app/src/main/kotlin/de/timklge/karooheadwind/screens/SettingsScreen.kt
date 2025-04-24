@@ -48,6 +48,7 @@ import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.weatherprovider.WeatherProviderException
 import de.timklge.karooheadwind.weatherprovider.openweathermap.OpenWeatherMapWeatherProvider
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
@@ -352,6 +353,16 @@ fun WeatherProviderSection(
                             } else {
                                 apiTestErrorMessage = "Error testing API key: ${response.error}"
                                 Log.e(KarooHeadwindExtension.TAG, "API key is invalid")
+                            }
+                        } catch (e: WeatherProviderException) {
+                            if (e.statusCode == 0) {
+                                Log.e(KarooHeadwindExtension.TAG, "Error testing API key: No connection")
+                                apiTestDialogPending = false
+                                apiTestErrorMessage = "Error testing API key: No internet connection"
+                            } else {
+                                Log.e(KarooHeadwindExtension.TAG, "Error testing API key: ${e.message}")
+                                apiTestDialogPending = false
+                                apiTestErrorMessage = "Error testing API key: ${e.message}"
                             }
                         } catch (e: Exception) {
                             Log.e(KarooHeadwindExtension.TAG, "Error testing API key: ${e.message}")
