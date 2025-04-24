@@ -39,6 +39,7 @@ import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
+import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -52,6 +53,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -59,6 +61,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 abstract class ForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
@@ -191,8 +194,16 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                 context.streamCurrentForecastWeatherData(),
                 settingsAndProfileStream,
                 context.streamWidgetSettings(),
-                karooSystem.getHeadingFlow(context),
-                karooSystem.streamUpcomingRoute()
+                karooSystem.getHeadingFlow(context).throttle(60_000L),
+                karooSystem.streamUpcomingRoute().distinctUntilChanged { old, new ->
+                    val oldDistance = old?.distanceAlongRoute
+                    val newDistance = new?.distanceAlongRoute
+
+                    if (oldDistance == null && newDistance == null) return@distinctUntilChanged true
+                    if (oldDistance == null || newDistance == null) return@distinctUntilChanged false
+
+                    abs(oldDistance - newDistance) < 100
+                }
             ) { weatherData, settings, widgetSettings, heading, upcomingRoute ->
                 StreamData(
                     data = weatherData,
