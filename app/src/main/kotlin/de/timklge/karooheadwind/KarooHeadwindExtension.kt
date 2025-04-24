@@ -67,7 +67,6 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         listOf(
             HeadwindDirectionDataType(karooSystem, applicationContext),
             TailwindAndRideSpeedDataType(karooSystem, applicationContext),
-            HeadwindSpeedDataType(karooSystem, applicationContext),
             WeatherDataType(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
