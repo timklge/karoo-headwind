@@ -202,7 +202,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                     if (oldDistance == null && newDistance == null) return@distinctUntilChanged true
                     if (oldDistance == null || newDistance == null) return@distinctUntilChanged false
 
-                    abs(oldDistance - newDistance) < 100
+                    abs(oldDistance - newDistance) < 500
                 }
             ) { weatherData, settings, widgetSettings, heading, upcomingRoute ->
                 StreamData(
