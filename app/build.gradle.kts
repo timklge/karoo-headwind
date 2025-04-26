@@ -126,4 +126,5 @@ dependencies {
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
     implementation(libs.firebase.crashlytics)
+    testImplementation(kotlin("test"))
 }
