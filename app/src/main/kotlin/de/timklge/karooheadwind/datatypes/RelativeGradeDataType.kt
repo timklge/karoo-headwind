@@ -117,7 +117,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
         fun streamRelativeGrade(karooSystemService: KarooSystemService, context: Context): Flow<RelativeGradeResponse> {
             val relativeWindDirectionFlow = karooSystemService.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff }
             val speedFlow = karooSystemService.streamDataFlow(DataType.Type.SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
-            val actualGradeFlow = karooSystemService.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull()
+            val actualGradeFlow = karooSystemService.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull().map { it / 100.0 } // Convert to decimal grade
             val totalMassFlow = karooSystemService.streamUserProfile().map { it.weight + DEFAULT_BIKE_WEIGHT }
 
             val windSpeedFlow = combine(context.streamSettings(karooSystemService), karooSystemService.streamUserProfile(), context.streamCurrentWeatherData(karooSystemService).filterNotNull()) { settings, profile, weatherData ->
@@ -155,7 +155,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
 
             return combine(relativeWindDirectionFlow, speedFlow, windSpeedFlow, actualGradeFlow, totalMassFlow) { windDirection, speed, windSpeed, actualGrade, totalMass ->
                 StreamValues(windDirection, speed, windSpeed, actualGrade, totalMass)
-            }.throttle(1_000L).map { (windDirection, speed, windSpeed, actualGrade, totalMass) ->
+            }.distinctUntilChanged().map { (windDirection, speed, windSpeed, actualGrade, totalMass) ->
                 val relativeGrade = estimateRelativeGrade(actualGrade, speed, windSpeed, windDirection, totalMass)
 
                 Log.d(KarooHeadwindExtension.TAG, "Relative grade: $relativeGrade - Wind Direction: $windDirection - Speed: $speed - Wind Speed: $windSpeed - Actual Grade: $actualGrade - Total Mass: $totalMass")
@@ -170,7 +170,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
             val relativeGradeFlow = streamRelativeGrade(karooSystemService, context)
 
             relativeGradeFlow.collect { response ->
-                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to response.relativeGrade))))
+                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to response.relativeGrade * 100))))
             }
         }
         emitter.setCancellable {
