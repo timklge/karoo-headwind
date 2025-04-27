@@ -115,7 +115,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
         }
 
         fun streamRelativeGrade(karooSystemService: KarooSystemService, context: Context): Flow<RelativeGradeResponse> {
-            val relativeWindDirectionFlow = karooSystemService.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff }
+            val relativeWindDirectionFlow = karooSystemService.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff + 180 }
             val speedFlow = karooSystemService.streamDataFlow(DataType.Type.SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
             val actualGradeFlow = karooSystemService.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull().map { it / 100.0 } // Convert to decimal grade
             val totalMassFlow = karooSystemService.streamUserProfile().map { it.weight + DEFAULT_BIKE_WEIGHT }
