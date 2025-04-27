@@ -4,9 +4,11 @@ import android.content.Context
 import android.util.Log
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
@@ -17,10 +19,13 @@ import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
+import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -29,6 +34,8 @@ import kotlin.math.abs
 import kotlin.math.cos
 
 class RelativeGradeDataType(private val karooSystemService: KarooSystemService, private val context: Context): DataTypeImpl("karoo-headwind", "relativeGrade") {
+    data class RelativeGradeResponse(val relativeGrade: Double, val actualGrade: Double, val riderSpeed: Double)
+
     companion object {
         // Default physical constants - adjust as needed
         const val DEFAULT_GRAVITY = 9.80665 // Acceleration due to gravity (m/s^2)
@@ -106,15 +113,37 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
 
             return relativeGrade
         }
-    }
 
-    override fun startStream(emitter: Emitter<StreamState>) {
-        val job = CoroutineScope(Dispatchers.IO).launch {
+        fun streamRelativeGrade(karooSystemService: KarooSystemService, context: Context): Flow<RelativeGradeResponse> {
             val relativeWindDirectionFlow = karooSystemService.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff }
             val speedFlow = karooSystemService.streamDataFlow(DataType.Type.SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
-            val windSpeedFlow = context.streamCurrentWeatherData(karooSystemService).filterNotNull().map { it.windSpeed }
             val actualGradeFlow = karooSystemService.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull()
             val totalMassFlow = karooSystemService.streamUserProfile().map { it.weight + DEFAULT_BIKE_WEIGHT }
+
+            val windSpeedFlow = combine(context.streamSettings(karooSystemService), karooSystemService.streamUserProfile(), context.streamCurrentWeatherData(karooSystemService).filterNotNull()) { settings, profile, weatherData ->
+                val isOpenMeteo = settings.weatherProvider == WeatherDataProvider.OPEN_METEO
+                val profileIsImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+
+                if (isOpenMeteo) {
+                    if (profileIsImperial) { // OpenMeteo returns wind speed in mph
+                        val windSpeedInMilesPerHour = weatherData.windSpeed
+
+                        windSpeedInMilesPerHour * 0.44704
+                    } else { // Wind speed reported by openmeteo is in km/h
+                        val windSpeedInKmh = weatherData.windSpeed
+
+                        windSpeedInKmh * 0.277778
+                    }
+                } else {
+                    if (profileIsImperial) { // OpenWeatherMap returns wind speed in mph
+                        val windSpeedInMilesPerHour = weatherData.windSpeed
+
+                        windSpeedInMilesPerHour * 0.44704
+                    } else { // Wind speed reported by openweathermap is in m/s
+                        weatherData.windSpeed
+                    }
+                }
+            }
 
             data class StreamValues(
                 val relativeWindDirection: Double,
@@ -124,12 +153,24 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
                 val totalMass: Double
             )
 
-            combine(relativeWindDirectionFlow, speedFlow, windSpeedFlow, actualGradeFlow, totalMassFlow) { windDirection, speed, windSpeed, actualGrade, totalMass ->
+            return combine(relativeWindDirectionFlow, speedFlow, windSpeedFlow, actualGradeFlow, totalMassFlow) { windDirection, speed, windSpeed, actualGrade, totalMass ->
                 StreamValues(windDirection, speed, windSpeed, actualGrade, totalMass)
-            }.throttle(1_000).collect { (windDirection, speed, windSpeed, actualGrade, totalMass) ->
+            }.throttle(1_000L).map { (windDirection, speed, windSpeed, actualGrade, totalMass) ->
                 val relativeGrade = estimateRelativeGrade(actualGrade, speed, windSpeed, windDirection, totalMass)
+
                 Log.d(KarooHeadwindExtension.TAG, "Relative grade: $relativeGrade - Wind Direction: $windDirection - Speed: $speed - Wind Speed: $windSpeed - Actual Grade: $actualGrade - Total Mass: $totalMass")
-                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to relativeGrade))))
+
+                RelativeGradeResponse(relativeGrade, actualGrade, speed)
+            }
+        }
+    }
+
+    override fun startStream(emitter: Emitter<StreamState>) {
+        val job = CoroutineScope(Dispatchers.IO).launch {
+            val relativeGradeFlow = streamRelativeGrade(karooSystemService, context)
+
+            relativeGradeFlow.collect { response ->
+                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to response.relativeGrade))))
             }
         }
         emitter.setCancellable {
