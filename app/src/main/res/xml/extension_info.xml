@@ -144,4 +144,18 @@
         graphical="false"
         icon="@drawable/thermometer"
         typeId="temperature" />
+
+    <DataType
+        description="@string/relativeGrade_description"
+        displayName="@string/relativeGrade"
+        graphical="false"
+        icon="@drawable/wind"
+        typeId="relativeGrade" />
+
+    <DataType
+        description="@string/relativeElevationGain_description"
+        displayName="@string/relativeElevationGain"
+        graphical="false"
+        icon="@drawable/wind"
+        typeId="relativeElevationGain" />
 </ExtensionInfo>

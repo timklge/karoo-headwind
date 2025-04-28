@@ -11,6 +11,8 @@ import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationForecastDataType
+import de.timklge.karooheadwind.datatypes.RelativeElevationGainDataType
+import de.timklge.karooheadwind.datatypes.RelativeGradeDataType
 import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
 import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
@@ -84,7 +86,9 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             PrecipitationForecastDataType(karooSystem),
             WindForecastDataType(karooSystem),
             GraphicalForecastDataType(karooSystem),
-            TailwindDataType(karooSystem, applicationContext)
+            TailwindDataType(karooSystem, applicationContext),
+            RelativeGradeDataType(karooSystem, applicationContext),
+            RelativeElevationGainDataType(karooSystem, applicationContext),
         )
     }
 

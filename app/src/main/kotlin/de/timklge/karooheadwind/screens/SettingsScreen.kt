@@ -147,7 +147,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     Column(
         modifier = Modifier
             .padding(5.dp)
-            .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState())
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 

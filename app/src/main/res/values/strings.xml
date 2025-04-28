@@ -41,4 +41,8 @@
     <string name="graphical_forecast_description">Current graphical weather forecast</string>
     <string name="tailwind">Tailwind</string>
     <string name="tailwind_description">Current tailwind, wind speed and gust speed</string>
+    <string name="relativeGrade">Relative Grade</string>
+    <string name="relativeGrade_description">Perceived grade in percent</string>
+    <string name="relativeElevationGain">Relative Elevation Gain</string>
+    <string name="relativeElevationGain_description">Perceived elevation gain in meters</string>
 </resources>
