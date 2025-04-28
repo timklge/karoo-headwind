@@ -10,7 +10,6 @@ import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
-import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -78,7 +77,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
         ): Double {
             // --- Input Validation ---
             if (totalMass <= 0.0 || riderSpeed < 0.0 || windSpeed < 0.0 || g <= 0.0 || airDensity < 0.0 || cda < 0.0) {
-                println("Warning: Invalid input parameters. Mass/g must be positive; speeds, airDensity, Cda must be non-negative.")
+                Log.w(KarooHeadwindExtension.TAG, "Warning: Invalid input parameters. Mass/g must be positive; speeds, airDensity, Cda must be non-negative.")
                 return Double.NaN
             }
             if (riderSpeed == 0.0 && windSpeed == 0.0) {
@@ -118,7 +117,14 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
             val relativeWindDirectionFlow = karooSystemService.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff + 180 }
             val speedFlow = karooSystemService.streamDataFlow(DataType.Type.SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
             val actualGradeFlow = karooSystemService.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull().map { it / 100.0 } // Convert to decimal grade
-            val totalMassFlow = karooSystemService.streamUserProfile().map { it.weight + DEFAULT_BIKE_WEIGHT }
+            val totalMassFlow = karooSystemService.streamUserProfile().map {
+                if (it.weight in 30.0f..300.0f){
+                    it.weight
+                } else {
+                    Log.w(KarooHeadwindExtension.TAG, "Invalid rider weight ${it.weight} kg, defaulting to 70 kg")
+                    70.0f // Default to 70 kg if weight is invalid
+                } + DEFAULT_BIKE_WEIGHT
+            }
 
             val windSpeedFlow = combine(context.streamSettings(karooSystemService), karooSystemService.streamUserProfile(), context.streamCurrentWeatherData(karooSystemService).filterNotNull()) { settings, profile, weatherData ->
                 val isOpenMeteo = settings.weatherProvider == WeatherDataProvider.OPEN_METEO
