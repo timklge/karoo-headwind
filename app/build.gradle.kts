@@ -93,13 +93,12 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed and other weather data fields.",
-            "releaseNotes" to "* Fix precipitation forecast field\n" +
+            "releaseNotes" to "* Add relative grade, relative elevation gain data fields\n" +
+                    "* Fix precipitation forecast field\n" +
                     "* Interpolate between forecasted and current weather data\n" +
                     "* Colorize field background instead of text\n" +
                     "* Add OpenWeatherMap support contributed by lockevod\n" +
-                    "* Add tailwind field\n" +
-                    "* Add full-width variants of tailwind fields\n" +
-                    "* Open weather menu on click of fields\n"
+                    "* Add tailwind field\n"
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
