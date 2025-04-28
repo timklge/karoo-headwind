@@ -26,7 +26,7 @@ class RelativeGradeTest {
             totalMass = 80.0    // kg
         )
 
-        assertEquals(0.086, grade1, 0.01) // Expected relative grade is approximately 8.6%
+        assertEquals(0.101, grade1, 0.01) // Expected relative grade is approximately 10.1%
     }
 
     @Test
@@ -52,6 +52,19 @@ class RelativeGradeTest {
             totalMass = 80.0    // kg
         )
 
-        assertEquals(0.014, grade2, 0.01) // Expected relative grade is approximately 1.4%
+        assertEquals(0.003, grade2, 0.01) // Expected relative grade is approximately 0.3%
+    }
+
+    @Test
+    fun testStrongTailwind() {
+        val grade2 = RelativeGradeDataType.estimateRelativeGrade(
+            actualGrade = 0.00, // 2%
+            riderSpeed = 8.0,   // m/s
+            windSpeed = 10.0,   // m/s
+            windDirectionDegrees = 180.0, // Direct tailwind
+            totalMass = 80.0    // kg
+        )
+
+        assertEquals(-0.021, grade2, 0.01) // Expected relative grade is approximately -2.1%
     }
 }

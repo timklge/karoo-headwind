@@ -39,7 +39,7 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
         // Default physical constants - adjust as needed
         const val DEFAULT_GRAVITY = 9.80665 // Acceleration due to gravity (m/s^2)
         const val DEFAULT_AIR_DENSITY = 1.225 // Air density at sea level, 15°C (kg/m^3)
-        const val DEFAULT_CDA = 0.32 // Default coefficient of drag * frontal area (m^2). Varies significantly with rider position and equipment.
+        const val DEFAULT_CDA = 0.4 // Default coefficient of drag * frontal area (m^2). Varies significantly with rider position and equipment.
         const val DEFAULT_BIKE_WEIGHT = 10.0 // Default bike weight (kg).
 
         /**
