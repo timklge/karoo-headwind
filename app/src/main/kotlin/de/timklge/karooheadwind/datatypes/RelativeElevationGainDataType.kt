@@ -38,8 +38,6 @@ class RelativeElevationGainDataType(private val karooSystemService: KarooSystemS
         return previousAccumulatedWindElevation + intervalWindElevation
     }
 
-    data class StreamValues(val relativeGrade: Double?, val actualGrade: Double?, val riderSpeed: Double?)
-
     private var currentWindElevationGain = 0.0
     private val currentWindElevationGainLock = Mutex()
 
