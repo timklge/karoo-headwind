@@ -85,20 +85,25 @@ tasks.register("generateManifest") {
     doLast {
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
-            "label" to "karoo-headwind",
+            "label" to "Headwind",
             "packageName" to "de.timklge.karooheadwind",
             "iconUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/karoo-headwind.png",
             "latestApkUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
-            "description" to "Open-source extension that provides headwind direction, wind speed and other weather data fields.",
+            "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
             "releaseNotes" to "* Add relative grade, relative elevation gain data fields\n" +
                     "* Fix precipitation forecast field\n" +
                     "* Interpolate between forecasted and current weather data\n" +
                     "* Colorize field background instead of text\n" +
-                    "* Add OpenWeatherMap support contributed by lockevod\n" +
-                    "* Add tailwind field\n"
+                    "* Add OpenWeatherMap support contributed by lockevod\n",
+            "screenshotUrls" to listOf(
+                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview1.png",
+                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview3.png",
+                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview2.png",
+                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview0.png",
+            )
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
