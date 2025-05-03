@@ -93,10 +93,10 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Add relative grade, relative elevation gain data fields\n" +
+            "releaseNotes" to "* Fix weather data download from Open-Meteo via iOS companion app (thx @keefar!)\n" +
+                    "* Add relative grade, relative elevation gain data fields\n" +
                     "* Fix precipitation forecast field\n" +
                     "* Interpolate between forecasted and current weather data\n" +
-                    "* Colorize field background instead of text\n" +
                     "* Add OpenWeatherMap support contributed by lockevod\n",
             "screenshotUrls" to listOf(
                 "https://github.com/timklge/karoo-headwind/releases/latest/download/preview1.png",
