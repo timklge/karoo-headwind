@@ -19,6 +19,7 @@ import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -115,7 +116,8 @@ class TailwindDataType(
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            flow.collect { streamData ->
+            val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
+            flow.throttle(refreshRate).collect { streamData ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating tailwind direction view")
 
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff

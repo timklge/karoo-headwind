@@ -13,12 +13,14 @@ import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.ViewConfig
@@ -29,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -139,7 +142,9 @@ class HeadwindDirectionDataType(
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
-            flow.collect { streamData ->
+            val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
+
+            flow.throttle(refreshRate).collect { streamData ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating headwind direction view")
 
                 val errorCode = streamData.bearing.let { if(it < 0) it.toInt() else null }
@@ -176,5 +181,16 @@ class HeadwindDirectionDataType(
         const val ERROR_NO_GPS = -1
         const val ERROR_NO_WEATHER_DATA = -2
         const val ERROR_APP_NOT_SET_UP = -3
+    }
+}
+
+suspend fun KarooSystemService.getRefreshRateInMilliseconds(context: Context): Long {
+    val refreshRate = context.streamSettings(this).first().refreshRate
+    val isK2 = hardwareType == HardwareType.K2
+
+    return if (isK2){
+        refreshRate.k2Ms
+    } else {
+        refreshRate.k3Ms
     }
 }
