@@ -9,7 +9,6 @@ import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.jsonWithUnknownKeys
-import de.timklge.karooheadwind.util.ungzip
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
 import de.timklge.karooheadwind.weatherprovider.WeatherProvider
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderException
@@ -29,7 +28,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class OpenMeteoWeatherProvider : WeatherProvider {
     @OptIn(FlowPreview::class)
-    private suspend fun makeOpenMeteoWeatherRequest(karooSystemService: KarooSystemService, gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): String {
+    private suspend fun makeOpenMeteoWeatherRequest(karooSystemService: KarooSystemService, gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
         val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
         val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
         val windUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) WindUnit.KILOMETERS_PER_HOUR else WindUnit.MILES_PER_HOUR
@@ -47,7 +46,7 @@ class OpenMeteoWeatherProvider : WeatherProvider {
                     "GET",
                     url,
                     waitForConnection = false,
-                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG, "Accept-Encoding" to "gzip"),
+                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG),
                 ),
                 onEvent = { event: OnHttpResponse ->
                     if (event.state is HttpResponseState.Complete){
@@ -76,7 +75,7 @@ class OpenMeteoWeatherProvider : WeatherProvider {
             throw WeatherProviderException(response.statusCode, "OpenMeteo API request failed with status code ${response.statusCode}")
         }
 
-        return ungzip(response)
+        return response
     }
 
     override suspend fun getWeatherData(
@@ -86,11 +85,12 @@ class OpenMeteoWeatherProvider : WeatherProvider {
         profile: UserProfile?
     ): WeatherDataResponse {
         val openMeteoResponse = makeOpenMeteoWeatherRequest(karooSystem, coordinates, settings, profile)
+        val responseBody = openMeteoResponse.body?.let { String(it) } ?: throw WeatherProviderException(500, "Null response from OpenMeteo")
 
         val weatherData = if (coordinates.size == 1) {
-            listOf(jsonWithUnknownKeys.decodeFromString<OpenMeteoWeatherDataForLocation>(openMeteoResponse))
+            listOf(jsonWithUnknownKeys.decodeFromString<OpenMeteoWeatherDataForLocation>(responseBody))
         } else {
-            jsonWithUnknownKeys.decodeFromString<List<OpenMeteoWeatherDataForLocation>>(openMeteoResponse)
+            jsonWithUnknownKeys.decodeFromString<List<OpenMeteoWeatherDataForLocation>>(responseBody)
         }
 
         val response = WeatherDataResponse(
