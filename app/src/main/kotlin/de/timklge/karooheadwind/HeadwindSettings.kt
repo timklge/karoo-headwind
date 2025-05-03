@@ -66,7 +66,7 @@ data class HeadwindStats(
 
 enum class RefreshRate(val id: String, val k2Ms: Long, val k3Ms: Long) {
     FAST("fast", 1_000L, 500L),
-    STANDARD("medium", 3_000L, 1_000L),
+    STANDARD("medium", 2_000L, 1_000L),
     SLOW("slow", 5_000L, 3_000L),
     MINIMUM("minimum", 10_000L, 10_000L);
 
@@ -74,7 +74,7 @@ enum class RefreshRate(val id: String, val k2Ms: Long, val k3Ms: Long) {
         return if (karooSystemService.hardwareType == HardwareType.K2) {
             when (this) {
                 FAST -> "Fast (1s)"
-                STANDARD -> "Standard (3s)"
+                STANDARD -> "Standard (2s)"
                 SLOW -> "Slow (5s)"
                 MINIMUM -> "Minimum (10s)"
             }
