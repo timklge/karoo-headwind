@@ -94,6 +94,7 @@ tasks.register("generateManifest") {
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
             "releaseNotes" to "* Fix weather data download from Open-Meteo via iOS companion app (thx @keefar!)\n" +
+                    "* Remove custom wind speed unit setting and always use imperial / metric as set in profile\n" +
                     "* Add relative grade, relative elevation gain data fields\n" +
                     "* Fix precipitation forecast field\n" +
                     "* Interpolate between forecasted and current weather data\n" +
