@@ -63,7 +63,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
 
-    var selectedWindUnit by remember { mutableStateOf(WindUnit.KILOMETERS_PER_HOUR) }
     var selectedWindDirectionIndicatorTextSetting by remember {
         mutableStateOf(
             WindDirectionIndicatorTextSetting.HEADWIND_SPEED
@@ -86,7 +85,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
-            selectedWindUnit = settings.windUnit
             selectedWindDirectionIndicatorTextSetting = settings.windDirectionIndicatorTextSetting
             selectedWindDirectionIndicatorSetting = settings.windDirectionIndicatorSetting
             selectedRoundLocationSetting = settings.roundLocationTo
@@ -114,7 +112,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
         Log.d(KarooHeadwindExtension.TAG, "Saving settings")
 
         val newSettings = HeadwindSettings(
-            windUnit = selectedWindUnit,
             welcomeDialogAccepted = true,
             windDirectionIndicatorSetting = selectedWindDirectionIndicatorSetting,
             windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
@@ -181,19 +178,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
         ) { selectedOption ->
             selectedWindDirectionIndicatorTextSetting =
                 WindDirectionIndicatorTextSetting.entries.find { unit -> unit.id == selectedOption.id }!!
-        }
-
-        val windSpeedUnitDropdownOptions =
-            WindUnit.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-        val windSpeedUnitInitialSelection by remember(selectedWindUnit) {
-            mutableStateOf(windSpeedUnitDropdownOptions.find { option -> option.id == selectedWindUnit.id }!!)
-        }
-        Dropdown(
-            label = "Wind Speed Unit",
-            options = windSpeedUnitDropdownOptions,
-            selected = windSpeedUnitInitialSelection
-        ) { selectedOption ->
-            selectedWindUnit = WindUnit.entries.find { unit -> unit.id == selectedOption.id }!!
         }
 
         val roundLocationDropdownOptions = RoundLocationSetting.entries.toList()

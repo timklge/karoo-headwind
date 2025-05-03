@@ -112,11 +112,7 @@ fun Context.streamSettings(karooSystemService: KarooSystemService): Flow<Headwin
                 val defaultSettings = jsonWithUnknownKeys.decodeFromString<HeadwindSettings>(
                     HeadwindSettings.defaultSettings)
 
-                val preferredUnits = karooSystemService.streamUserProfile().first().preferredUnit
-
-                defaultSettings.copy(
-                    windUnit = if (preferredUnits.distance == UserProfile.PreferredUnit.UnitType.METRIC) WindUnit.KILOMETERS_PER_HOUR else WindUnit.MILES_PER_HOUR,
-                )
+                defaultSettings.copy()
             }
         } catch(e: Throwable){
             Log.e(KarooHeadwindExtension.TAG, "Failed to read preferences", e)

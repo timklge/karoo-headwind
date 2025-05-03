@@ -65,7 +65,6 @@ data class HeadwindStats(
 
 @Serializable
 data class HeadwindSettings(
-    val windUnit: WindUnit = WindUnit.KILOMETERS_PER_HOUR,
     val welcomeDialogAccepted: Boolean = false,
     val windDirectionIndicatorTextSetting: WindDirectionIndicatorTextSetting = WindDirectionIndicatorTextSetting.HEADWIND_SPEED,
     val windDirectionIndicatorSetting: WindDirectionIndicatorSetting = WindDirectionIndicatorSetting.HEADWIND_DIRECTION,
