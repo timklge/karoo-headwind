@@ -83,7 +83,7 @@ class OpenMeteoWeatherProvider : WeatherProvider {
         profile: UserProfile?
     ): WeatherDataResponse {
         val openMeteoResponse = makeOpenMeteoWeatherRequest(karooSystem, coordinates, settings, profile)
-        val responseBody = openMeteoResponse.body?.let { String(it) } ?: error("Null response from OpenMeteo")
+        val responseBody = openMeteoResponse.body?.let { String(it) } ?: throw WeatherProviderException(500, "Null response from OpenMeteo")
 
         val weatherData = if (coordinates.size == 1) {
             listOf(jsonWithUnknownKeys.decodeFromString<OpenMeteoWeatherDataForLocation>(responseBody))
