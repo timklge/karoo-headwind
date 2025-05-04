@@ -39,11 +39,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.RefreshRate
 import de.timklge.karooheadwind.RoundLocationSetting
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
-import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
@@ -63,6 +63,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
 
+    var refreshRateSetting by remember { mutableStateOf(RefreshRate.STANDARD) }
     var selectedWindDirectionIndicatorTextSetting by remember {
         mutableStateOf(
             WindDirectionIndicatorTextSetting.HEADWIND_SPEED
@@ -73,6 +74,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             WindDirectionIndicatorSetting.HEADWIND_DIRECTION
         )
     }
+
     var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_3) }
     var forecastKmPerHour by remember { mutableStateOf("20") }
     var forecastMilesPerHour by remember { mutableStateOf("12") }
@@ -93,6 +95,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             showDistanceInForecast = settings.showDistanceInForecast
             selectedWeatherProvider = settings.weatherProvider
             openWeatherMapApiKey = settings.openWeatherMapApiKey
+            refreshRateSetting = settings.refreshRate
         }
     }
 
@@ -120,7 +123,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
             forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20,
             showDistanceInForecast = showDistanceInForecast,
             weatherProvider = selectedWeatherProvider,
-            openWeatherMapApiKey = openWeatherMapApiKey
+            openWeatherMapApiKey = openWeatherMapApiKey,
+            refreshRate = refreshRateSetting,
         )
 
         saveSettings(ctx, newSettings)
@@ -147,15 +151,26 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 .verticalScroll(rememberScrollState())
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        val refreshRateDropdownOptions = RefreshRate.entries.toList().map { unit -> DropdownOption(unit.id, unit.getDescription(karooSystem)) }
+        val refreshRateSelection by remember(refreshRateSetting) {
+            mutableStateOf(refreshRateDropdownOptions.find { option -> option.id == refreshRateSetting.id }!!)
+        }
+        Dropdown(
+            label = "Refresh Rate",
+            options = refreshRateDropdownOptions,
+            selected = refreshRateSelection
+        ) { selectedOption ->
+            refreshRateSetting =
+                RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
+        }
 
         val windDirectionIndicatorSettingDropdownOptions =
-            WindDirectionIndicatorSetting.entries.toList()
-                .map { unit -> DropdownOption(unit.id, unit.label) }
+            WindDirectionIndicatorSetting.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
         val windDirectionIndicatorSettingSelection by remember(selectedWindDirectionIndicatorSetting) {
             mutableStateOf(windDirectionIndicatorSettingDropdownOptions.find { option -> option.id == selectedWindDirectionIndicatorSetting.id }!!)
         }
         Dropdown(
-            label = "Wind direction indicator",
+            label = "Wind Direction Indicator",
             options = windDirectionIndicatorSettingDropdownOptions,
             selected = windDirectionIndicatorSettingSelection
         ) { selectedOption ->
@@ -172,7 +187,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             mutableStateOf(windDirectionIndicatorTextSettingDropdownOptions.find { option -> option.id == selectedWindDirectionIndicatorTextSetting.id }!!)
         }
         Dropdown(
-            label = "Text on headwind indicator",
+            label = "Text on Headwind Indicator",
             options = windDirectionIndicatorTextSettingDropdownOptions,
             selected = windDirectionIndicatorTextSettingSelection
         ) { selectedOption ->

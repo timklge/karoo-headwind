@@ -194,7 +194,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                 context.streamCurrentForecastWeatherData(),
                 settingsAndProfileStream,
                 context.streamWidgetSettings(),
-                karooSystem.getHeadingFlow(context).throttle(60_000L),
+                karooSystem.getHeadingFlow(context).throttle(3 * 60_000L),
                 karooSystem.streamUpcomingRoute().distinctUntilChanged { old, new ->
                     val oldDistance = old?.distanceAlongRoute
                     val newDistance = new?.distanceAlongRoute
@@ -202,7 +202,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                     if (oldDistance == null && newDistance == null) return@distinctUntilChanged true
                     if (oldDistance == null || newDistance == null) return@distinctUntilChanged false
 
-                    abs(oldDistance - newDistance) < 500
+                    abs(oldDistance - newDistance) < 1_000
                 }
             ) { weatherData, settings, widgetSettings, heading, upcomingRoute ->
                 StreamData(

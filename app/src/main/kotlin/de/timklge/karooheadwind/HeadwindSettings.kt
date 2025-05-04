@@ -1,6 +1,8 @@
 package de.timklge.karooheadwind
 
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.HardwareType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -62,6 +64,30 @@ data class HeadwindStats(
 }
 
 
+enum class RefreshRate(val id: String, val k2Ms: Long, val k3Ms: Long) {
+    FAST("fast", 1_000L, 500L),
+    STANDARD("medium", 2_000L, 1_000L),
+    SLOW("slow", 5_000L, 3_000L),
+    MINIMUM("minimum", 10_000L, 10_000L);
+
+    fun getDescription(karooSystemService: KarooSystemService): String {
+        return if (karooSystemService.hardwareType == HardwareType.K2) {
+            when (this) {
+                FAST -> "Fast (1s)"
+                STANDARD -> "Standard (2s)"
+                SLOW -> "Slow (5s)"
+                MINIMUM -> "Minimum (10s)"
+            }
+        } else {
+            when (this) {
+                FAST -> "Fastest"
+                STANDARD -> "Standard (1s)"
+                SLOW -> "Slow (3s)"
+                MINIMUM -> "Minimum (10s)"
+            }
+        }
+    }
+}
 
 @Serializable
 data class HeadwindSettings(
@@ -74,7 +100,8 @@ data class HeadwindSettings(
     val lastUpdateRequested: Long? = null,
     val showDistanceInForecast: Boolean = true,
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
-    val openWeatherMapApiKey: String = ""
+    val openWeatherMapApiKey: String = "",
+    val refreshRate: RefreshRate = RefreshRate.STANDARD,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(HeadwindSettings())
@@ -84,8 +111,6 @@ data class HeadwindSettings(
         return if (isImperial) forecastedMilesPerHour * 1609 else forecastedKmPerHour * 1000
     }
 }
-
-//added openweathermap.org
 
 @Serializable
 enum class WeatherDataProvider(val id: String, val label: String) {
