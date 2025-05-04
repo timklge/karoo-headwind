@@ -3,8 +3,9 @@ package de.timklge.karooheadwind.datatypes
 import android.content.Context
 import android.util.Log
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -28,8 +29,11 @@ abstract class BaseDataType(
         val job = CoroutineScope(Dispatchers.IO).launch {
             val currentWeatherData = applicationContext.streamCurrentWeatherData(karooSystemService)
 
+            val refreshRate = karooSystemService.getRefreshRateInMilliseconds(applicationContext)
+
             currentWeatherData
                 .filterNotNull()
+                .throttle(refreshRate)
                 .collect { data ->
                     val value = getValue(data)
                     Log.d(KarooHeadwindExtension.TAG, "$dataTypeId: $value")

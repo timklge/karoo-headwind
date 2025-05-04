@@ -17,12 +17,13 @@ import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.MainActivity
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.weatherprovider.WeatherData
-import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -62,11 +63,10 @@ class WeatherDataType(
         val job = CoroutineScope(Dispatchers.IO).launch {
             val currentWeatherData = applicationContext.streamCurrentWeatherData(karooSystem)
 
-            currentWeatherData
-                .collect { data ->
-                    Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data?.weatherCode}")
-                    emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data?.weatherCode?.toDouble() ?: 0.0)))))
-                }
+            currentWeatherData.collect { data ->
+                Log.d(KarooHeadwindExtension.TAG, "Wind code: ${data?.weatherCode}")
+                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to (data?.weatherCode?.toDouble() ?: 0.0)))))
+            }
         }
         emitter.setCancellable {
             job.cancel()
@@ -110,7 +110,9 @@ class WeatherDataType(
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            dataFlow.collect { (data, settings, userProfile, headingResponse) ->
+            val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
+
+            dataFlow.throttle(refreshRate).collect { (data, settings, userProfile, headingResponse) ->
                     Log.d(KarooHeadwindExtension.TAG, "Updating weather view")
 
                     if (data == null){
