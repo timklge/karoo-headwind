@@ -7,6 +7,7 @@ import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -27,11 +28,14 @@ class HeadwindSpeedDataType(
 
     override fun startStream(emitter: Emitter<StreamState>) {
         val job = CoroutineScope(Dispatchers.IO).launch {
+            val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
+
             karooSystem.getRelativeHeadingFlow(context)
                 .combine(context.streamCurrentWeatherData(karooSystem)) { value, data -> value to data }
                 .combine(context.streamSettings(karooSystem)) { (value, data), settings ->
                     StreamData(value, data, settings)
                 }
+                .throttle(refreshRate)
                 .collect { streamData ->
                     val windSpeed = streamData.weatherData?.windSpeed ?: 0.0
                     val windDirection = (streamData.headingResponse as? HeadingResponse.Value)?.diff ?: 0.0

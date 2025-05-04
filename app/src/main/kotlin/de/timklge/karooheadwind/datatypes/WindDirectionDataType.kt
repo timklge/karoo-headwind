@@ -19,6 +19,7 @@ import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.streamDataFlow
+import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.ShowCustomStreamState
@@ -78,27 +79,28 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
                     .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0 }
             }
 
-            flow
-                .collect { windBearing ->
-                    val windCardinalDirectionIndex = ((windBearing % 360) / 22.5).roundToInt() % 16
+            val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
 
-                    val text = windDirections[windCardinalDirectionIndex]
-                    Log.d( KarooHeadwindExtension.TAG,"Updating wind direction view")
-                    val result = glance.compose(context, DpSize.Unspecified) {
-                        Box(modifier = GlanceModifier.fillMaxSize(),
-                            contentAlignment = Alignment(
-                                vertical = Alignment.Vertical.Top,
-                                horizontal = when(config.alignment){
-                                    ViewConfig.Alignment.LEFT -> Alignment.Horizontal.Start
-                                    ViewConfig.Alignment.CENTER -> Alignment.Horizontal.CenterHorizontally
-                                    ViewConfig.Alignment.RIGHT -> Alignment.Horizontal.End
-                                },
-                            )) {
-                            Text(text, style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(
-                                config.textSize.toFloat(), TextUnitType.Sp)))
-                        }
+            flow.throttle(refreshRate).collect { windBearing ->
+                val windCardinalDirectionIndex = ((windBearing % 360) / 22.5).roundToInt() % 16
+
+                val text = windDirections[windCardinalDirectionIndex]
+                Log.d( KarooHeadwindExtension.TAG,"Updating wind direction view")
+                val result = glance.compose(context, DpSize.Unspecified) {
+                    Box(modifier = GlanceModifier.fillMaxSize(),
+                        contentAlignment = Alignment(
+                            vertical = Alignment.Vertical.Top,
+                            horizontal = when(config.alignment){
+                                ViewConfig.Alignment.LEFT -> Alignment.Horizontal.Start
+                                ViewConfig.Alignment.CENTER -> Alignment.Horizontal.CenterHorizontally
+                                ViewConfig.Alignment.RIGHT -> Alignment.Horizontal.End
+                            },
+                        )) {
+                        Text(text, style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(
+                            config.textSize.toFloat(), TextUnitType.Sp)))
                     }
-                    emitter.updateView(result.remoteViews)
+                }
+                emitter.updateView(result.remoteViews)
             }
         }
 
