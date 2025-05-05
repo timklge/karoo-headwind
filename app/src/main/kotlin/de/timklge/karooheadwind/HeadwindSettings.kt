@@ -70,8 +70,8 @@ enum class RefreshRate(val id: String, val k2Ms: Long, val k3Ms: Long) {
     SLOW("slow", 5_000L, 3_000L),
     MINIMUM("minimum", 10_000L, 10_000L);
 
-    fun getDescription(karooSystemService: KarooSystemService): String {
-        return if (karooSystemService.hardwareType == HardwareType.K2) {
+    fun getDescription(isOnK2: Boolean): String {
+        return if (isOnK2) {
             when (this) {
                 FAST -> "Fast (1s)"
                 STANDARD -> "Standard (2s)"
