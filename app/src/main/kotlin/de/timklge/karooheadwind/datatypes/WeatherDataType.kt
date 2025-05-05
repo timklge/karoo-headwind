@@ -16,6 +16,7 @@ import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.MainActivity
+import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
@@ -79,9 +80,12 @@ class WeatherDataType(
     private fun previewFlow(): Flow<StreamData> = flow {
         while (true){
             emit(StreamData(
-                WeatherData(Instant.now().epochSecond, 0.0,
-                20.0, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
-                WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false), HeadwindSettings()))
+                WeatherData(
+                    Instant.now().epochSecond, 0.0,
+                    20.0, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
+                    WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false,
+                    isNight = listOf(true, false).random()
+                ), HeadwindSettings()))
 
             delay(5_000)
         }
@@ -96,7 +100,7 @@ class WeatherDataType(
 
         val baseBitmap = BitmapFactory.decodeResource(
             context.resources,
-            de.timklge.karooheadwind.R.drawable.arrow_0
+            R.drawable.arrow_0
         )
 
         val dataFlow = if (config.preview){
@@ -148,7 +152,8 @@ class WeatherDataType(
                                 },
                                 dateLabel = formattedDate,
                                 singleDisplay = true,
-                                isImperial = userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                                isImperial = userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                                isNight = data.isNight,
                             )
                         }
                     }

@@ -46,7 +46,8 @@ fun WeatherWidget(
     distance: Double? = null,
     includeDistanceLabel: Boolean = false,
     precipitationProbability: Int? = null,
-    isImperial: Boolean
+    isImperial: Boolean,
+    isNight: Boolean
 ) {
     val fontSize = 20.sp
 
@@ -99,7 +100,7 @@ fun WeatherWidget(
 
         // Weather icon (larger)
         Icon(
-            painter = painterResource(id = getWeatherIcon(current)),
+            painter = painterResource(id = getWeatherIcon(current, isNight)),
             contentDescription = "Current weather",
             modifier = Modifier.size(72.dp)
         )

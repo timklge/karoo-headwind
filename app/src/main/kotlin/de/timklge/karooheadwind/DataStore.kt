@@ -276,7 +276,8 @@ fun lerpWeather(
         windDirection = lerpAngle(start.windDirection, end.windDirection, factor),
         windGusts = start.windGusts + (end.windGusts - start.windGusts) * factor,
         weatherCode = closestWeatherData.weatherCode,
-        isForecast = closestWeatherData.isForecast
+        isForecast = closestWeatherData.isForecast,
+        isNight = closestWeatherData.isNight,
     )
 }
 

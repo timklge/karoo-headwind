@@ -34,13 +34,14 @@ fun GraphicalForecast(
     distance: Double? = null,
     timeLabel: String? = null,
     rowAlignment: Alignment.Horizontal = Alignment.Horizontal.CenterHorizontally,
-    isImperial: Boolean?
+    isImperial: Boolean?,
+    isNight: Boolean,
 ) {
     Column(modifier = GlanceModifier.fillMaxHeight().padding(1.dp).width(86.dp), horizontalAlignment = rowAlignment) {
         Row(modifier = GlanceModifier.defaultWeight().wrapContentWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
             Image(
                 modifier = GlanceModifier.defaultWeight().wrapContentWidth().padding(1.dp),
-                provider = ImageProvider(getWeatherIcon(current)),
+                provider = ImageProvider(getWeatherIcon(current, isNight)),
                 contentDescription = "Current weather information",
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
@@ -96,13 +97,15 @@ class GraphicalForecastDataType(karooSystem: KarooSystemService) : ForecastDataT
         timeLabel: String,
         dateLabel: String?,
         distance: Double?,
-        isImperial: Boolean
+        isImperial: Boolean,
+        isNight: Boolean,
     ) {
         GraphicalForecast(
             current = current,
             distance = distance,
             timeLabel = timeLabel,
-            isImperial = isImperial
+            isImperial = isImperial,
+            isNight = isNight
         )
     }
 }

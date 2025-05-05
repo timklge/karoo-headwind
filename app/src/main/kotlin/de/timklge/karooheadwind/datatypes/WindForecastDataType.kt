@@ -103,7 +103,8 @@ class WindForecastDataType(karooSystem: KarooSystemService) : ForecastDataType(k
         timeLabel: String,
         dateLabel: String?,
         distance: Double?,
-        isImperial: Boolean
+        isImperial: Boolean,
+        isNight: Boolean
     ) {
         WindForecast(
             arrowBitmap = arrowBitmap,
@@ -112,7 +113,7 @@ class WindForecastDataType(karooSystem: KarooSystemService) : ForecastDataType(k
             gustSpeed = windGusts,
             distance = distance,
             timeLabel = timeLabel,
-            isImperial = isImperial
+            isImperial = isImperial,
         )
     }
 }

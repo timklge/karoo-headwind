@@ -91,14 +91,15 @@ class TemperatureForecastDataType(karooSystem: KarooSystemService) : ForecastDat
         timeLabel: String,
         dateLabel: String?,
         distance: Double?,
-        isImperial: Boolean
+        isImperial: Boolean,
+        isNight: Boolean
     ) {
         TemperatureForecast(
             temperature = temperature,
             temperatureUnit = temperatureUnit,
             distance = distance,
             timeLabel = timeLabel,
-            isImperial = isImperial
+            isImperial = isImperial,
         )
     }
 }

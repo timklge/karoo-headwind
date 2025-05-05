@@ -45,9 +45,9 @@ fun getShortDateFormatter(): DateTimeFormatter = DateTimeFormatter.ofPattern(
     }
 ).withZone(ZoneId.systemDefault())
 
-fun getWeatherIcon(interpretation: WeatherInterpretation): Int {
+fun getWeatherIcon(interpretation: WeatherInterpretation, isNight: Boolean): Int {
     return when (interpretation){
-        WeatherInterpretation.CLEAR -> R.drawable.bx_clear
+        WeatherInterpretation.CLEAR -> if (isNight) R.drawable.moon else R.drawable.bx_clear
         WeatherInterpretation.CLOUDY -> R.drawable.bx_cloud
         WeatherInterpretation.RAINY -> R.drawable.bx_cloud_rain
         WeatherInterpretation.SNOWY -> R.drawable.bx_cloud_snow
@@ -74,7 +74,8 @@ fun Weather(
     rowAlignment: Alignment.Horizontal = Alignment.Horizontal.CenterHorizontally,
     dateLabel: String? = null,
     singleDisplay: Boolean = false,
-    isImperial: Boolean?
+    isImperial: Boolean?,
+    isNight: Boolean
 ) {
 
     val fontSize = if (singleDisplay) 19f else 14f
@@ -83,7 +84,7 @@ fun Weather(
         Row(modifier = GlanceModifier.defaultWeight().wrapContentWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
             Image(
                 modifier = GlanceModifier.defaultWeight().wrapContentWidth().padding(1.dp),
-                provider = ImageProvider(getWeatherIcon(current)),
+                provider = ImageProvider(getWeatherIcon(current, isNight)),
                 contentDescription = "Current weather information",
                 contentScale = ContentScale.Fit,
                 colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))

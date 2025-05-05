@@ -50,7 +50,6 @@ data class HeadwindWidgetSettings(
     }
 }
 
-//Moded with openweahtermap.org
 @Serializable
 data class HeadwindStats(
     val lastSuccessfulWeatherRequest: Long? = null,

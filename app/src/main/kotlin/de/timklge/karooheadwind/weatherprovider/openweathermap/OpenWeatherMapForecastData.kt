@@ -2,6 +2,8 @@ package de.timklge.karooheadwind.weatherprovider.openweathermap
 
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.ZoneOffset
 
 @Serializable
 data class OpenWeatherMapForecastData(
@@ -20,20 +22,31 @@ data class OpenWeatherMapForecastData(
     val snow: Snow? = null,
     val weather: List<Weather>
 ) {
-    fun toWeatherData(): WeatherData = WeatherData(
-        temperature = temp,
-        relativeHumidity = humidity.toDouble(),
-        precipitation = rain?.h1 ?: 0.0,
-        cloudCover = clouds.toDouble(),
-        surfacePressure = pressure.toDouble(),
-        sealevelPressure = pressure.toDouble(), // FIXME
-        windSpeed = wind_speed,
-        windDirection = wind_deg.toDouble(),
-        windGusts = wind_gust ?: wind_speed,
-        weatherCode = OpenWeatherMapWeatherProvider.convertWeatherCodeToOpenMeteo(
-            weather.firstOrNull()?.id ?: 800
-        ),
-        time = dt,
-        isForecast = true
-    )
+    fun toWeatherData(currentWeatherData: OpenWeatherMapWeatherData): WeatherData {
+        val dtInstant = Instant.ofEpochSecond(dt)
+        val sunriseInstant = Instant.ofEpochSecond(currentWeatherData.sunrise)
+        val sunsetInstant = Instant.ofEpochSecond(currentWeatherData.sunset)
+
+        val dtTime = dtInstant.atZone(ZoneOffset.UTC).toLocalTime()
+        val sunriseTime = sunriseInstant.atZone(ZoneOffset.UTC).toLocalTime()
+        val sunsetTime = sunsetInstant.atZone(ZoneOffset.UTC).toLocalTime()
+
+        return WeatherData(
+            temperature = temp,
+            relativeHumidity = humidity.toDouble(),
+            precipitation = rain?.h1 ?: 0.0,
+            cloudCover = clouds.toDouble(),
+            surfacePressure = pressure.toDouble(),
+            sealevelPressure = pressure.toDouble(), // FIXME
+            windSpeed = wind_speed,
+            windDirection = wind_deg.toDouble(),
+            windGusts = wind_gust ?: wind_speed,
+            weatherCode = OpenWeatherMapWeatherProvider.convertWeatherCodeToOpenMeteo(
+                weather.firstOrNull()?.id ?: 800
+            ),
+            time = dt,
+            isForecast = true,
+            isNight = dtTime.isBefore(sunriseTime) || dtTime.isAfter(sunsetTime)
+        )
+    }
 }
