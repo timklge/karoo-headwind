@@ -35,6 +35,9 @@ data class OpenWeatherMapWeatherData(
             weather.firstOrNull()?.id ?: 800
         ),
         time = dt,
+        isNight = let {
+            dt !in sunrise..<sunset
+        },
         isForecast = false
     )
 }

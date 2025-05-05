@@ -14,10 +14,17 @@ data class OpenWeatherMapWeatherDataForLocation(
     val current: OpenWeatherMapWeatherData,
     val hourly: List<OpenWeatherMapForecastData>
 ){
-    fun toWeatherDataForLocation(distanceAlongRoute: Double?): WeatherDataForLocation = WeatherDataForLocation(
-        current = current.toWeatherData(),
-        coords = GpsCoordinates(lat, lon, bearing = null, distanceAlongRoute = distanceAlongRoute),
-        timezone = timezone,
-        forecasts = hourly.map { it.toWeatherData() }
-    )
+    fun toWeatherDataForLocation(distanceAlongRoute: Double?): WeatherDataForLocation {
+        return WeatherDataForLocation(
+            current = current.toWeatherData(),
+            coords = GpsCoordinates(
+                lat,
+                lon,
+                bearing = null,
+                distanceAlongRoute = distanceAlongRoute
+            ),
+            timezone = timezone,
+            forecasts = hourly.map { it.toWeatherData(current) }
+        )
+    }
 }

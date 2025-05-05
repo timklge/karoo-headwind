@@ -120,6 +120,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
                 includeDistanceLabel = false,
                 isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                isNight = currentWeatherData?.isNight == true
             )
         }
 
@@ -239,7 +240,8 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 distance = distanceFromCurrent,
                 includeDistanceLabel = true,
                 precipitationProbability = weatherData?.precipitationProbability?.toInt() ?: 0,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                isNight = weatherData?.isNight == true,
             )
         }
 

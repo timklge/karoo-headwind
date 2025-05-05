@@ -21,7 +21,8 @@ class WeatherForecastDataType(karooSystem: KarooSystemService) : ForecastDataTyp
         timeLabel: String,
         dateLabel: String?,
         distance: Double?,
-        isImperial: Boolean
+        isImperial: Boolean,
+        isNight: Boolean,
     ) {
         Weather(
             arrowBitmap = arrowBitmap,
@@ -36,7 +37,8 @@ class WeatherForecastDataType(karooSystem: KarooSystemService) : ForecastDataTyp
             timeLabel = timeLabel,
             dateLabel = dateLabel,
             distance = distance,
-            isImperial = isImperial
+            isImperial = isImperial,
+            isNight = isNight,
         )
     }
 

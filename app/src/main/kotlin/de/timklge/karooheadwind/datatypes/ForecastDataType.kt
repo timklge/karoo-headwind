@@ -28,11 +28,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.UpcomingRoute
-import de.timklge.karooheadwind.weatherprovider.WeatherData
-import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.WeatherDataProvider
-import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
-import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamSettings
@@ -40,6 +36,10 @@ import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
+import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -78,7 +78,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                               timeLabel: String,
                               dateLabel: String?,
                               distance: Double?,
-                              isImperial: Boolean)
+                              isImperial: Boolean,
+                              isNight: Boolean)
 
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
@@ -123,7 +124,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             windDirection = forecastWindDirection,
                             windGusts = forecastWindGusts,
                             weatherCode = forecastWeatherCode,
-                            isForecast = true
+                            isForecast = true,
+                            isNight = it < 2
                         )
                     }
 
@@ -144,7 +146,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             windDirection = 180.0,
                             windGusts = 10.0,
                             weatherCode = WeatherInterpretation.getKnownWeatherCodes().random(),
-                            isForecast = false
+                            isForecast = false,
+                            isNight = false
                         ),
                         coords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour),
                         timezone = "UTC",
@@ -305,7 +308,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = null,
-                                    isImperial = settingsAndProfile.isImperial
+                                    isImperial = settingsAndProfile.isImperial,
+                                    isNight = data.current.isNight
                                 )
 
                                 previousDate = formattedDate
@@ -330,7 +334,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
-                                    isImperial = settingsAndProfile.isImperial
+                                    isImperial = settingsAndProfile.isImperial,
+                                    isNight = weatherData?.isNight == true
                                 )
 
                                 previousDate = formattedDate

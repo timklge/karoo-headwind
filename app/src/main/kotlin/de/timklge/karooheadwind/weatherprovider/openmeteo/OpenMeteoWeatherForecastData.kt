@@ -14,7 +14,8 @@ data class OpenMeteoWeatherForecastData(
     @SerialName("wind_speed_10m") val windSpeed: List<Double>,
     @SerialName("wind_direction_10m") val windDirection: List<Double>,
     @SerialName("wind_gusts_10m") val windGusts: List<Double>,
-) {
+    @SerialName("is_day") val isDay: List<Int>,
+    ) {
     fun toWeatherData(): List<WeatherData> {
         return time.mapIndexed { index, t ->
             WeatherData(
@@ -25,6 +26,7 @@ data class OpenMeteoWeatherForecastData(
                 windDirection = windDirection[index],
                 windGusts = windGusts[index],
                 weatherCode = weatherCode[index],
+                isNight = isDay[index] == 0,
                 time = t,
                 isForecast = true,
             )

@@ -25,7 +25,6 @@ import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
-import kotlin.math.roundToInt
 
 @Composable
 fun PrecipitationForecast(
@@ -34,7 +33,7 @@ fun PrecipitationForecast(
     distance: Double? = null,
     timeLabel: String? = null,
     rowAlignment: Alignment.Horizontal = Alignment.Horizontal.CenterHorizontally,
-    isImperial: Boolean?
+    isImperial: Boolean?,
 ) {
     Column(modifier = GlanceModifier.fillMaxHeight().padding(1.dp).width(86.dp), horizontalAlignment = rowAlignment) {
         Row(modifier = GlanceModifier.defaultWeight().fillMaxWidth(), horizontalAlignment = rowAlignment, verticalAlignment = Alignment.CenterVertically) {
@@ -95,14 +94,15 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : ForecastD
         timeLabel: String,
         dateLabel: String?,
         distance: Double?,
-        isImperial: Boolean
+        isImperial: Boolean,
+        isNight: Boolean,
     ) {
         PrecipitationForecast(
             precipitation = ceil(precipitation).toInt(),
             precipitationProbability = precipitationProbability,
             distance = distance,
             timeLabel = timeLabel,
-            isImperial = isImperial
+            isImperial = isImperial,
         )
     }
 }
