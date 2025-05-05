@@ -84,6 +84,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
     var selectedWeatherProvider by remember { mutableStateOf(WeatherDataProvider.OPEN_METEO) }
     var openWeatherMapApiKey by remember { mutableStateOf("") }
+    var isK2 by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -102,6 +103,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     LaunchedEffect(Unit) {
         karooSystem.connect { connected ->
             karooConnected = connected
+            isK2 = karooSystem.hardwareType == io.hammerhead.karooext.models.HardwareType.K2
         }
     }
 
@@ -151,8 +153,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 .verticalScroll(rememberScrollState())
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        val refreshRateDropdownOptions = RefreshRate.entries.toList().map { unit -> DropdownOption(unit.id, unit.getDescription(karooSystem)) }
-        val refreshRateSelection by remember(refreshRateSetting) {
+        val refreshRateDropdownOptions = remember(isK2) { RefreshRate.entries.toList().map { unit -> DropdownOption(unit.id, unit.getDescription(isK2)) } }
+        val refreshRateSelection by remember(refreshRateSetting, isK2) {
             mutableStateOf(refreshRateDropdownOptions.find { option -> option.id == refreshRateSetting.id }!!)
         }
         Dropdown(
@@ -160,8 +162,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             options = refreshRateDropdownOptions,
             selected = refreshRateSelection
         ) { selectedOption ->
-            refreshRateSetting =
-                RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
+            refreshRateSetting = RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
         }
 
         val windDirectionIndicatorSettingDropdownOptions =
