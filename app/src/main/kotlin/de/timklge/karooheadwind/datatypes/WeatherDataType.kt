@@ -140,7 +140,7 @@ class WeatherDataType(
 
                     val result = glance.compose(context, DpSize.Unspecified) {
                         var modifier = GlanceModifier.fillMaxSize()
-                        if (!config.preview) modifier = modifier.clickable(onClick = actionStartActivity<MainActivity>())
+                        // TODO reenable once swipes are no longer interpreted as clicks if (!config.preview) modifier = modifier.clickable(onClick = actionStartActivity<MainActivity>())
 
                         Box(modifier = modifier, contentAlignment = Alignment.CenterEnd) {
                             Weather(
