@@ -17,9 +17,11 @@ import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
+import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -35,6 +37,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -56,7 +59,8 @@ class TailwindDataType(
                           val settings: HeadwindSettings,
                           val rideSpeed: Double?,
                           val gustSpeed: Double?,
-                          val isImperial: Boolean)
+                          val isImperial: Boolean,
+                          val isVisible: Boolean)
 
     private fun previewFlow(profileFlow: Flow<UserProfile>): Flow<StreamData> {
         return flow {
@@ -69,7 +73,7 @@ class TailwindDataType(
                 val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
                 val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
-                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed, isImperial = isImperial))
+                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed, isImperial = isImperial, isVisible = true))
 
                 delay(2_000)
             }
@@ -98,7 +102,20 @@ class TailwindDataType(
         val flow = if (config.preview) {
             previewFlow(karooSystem.streamUserProfile())
         } else {
-            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), streamSpeedInMs()) { headingResponse, weatherData, settings, userProfile, rideSpeedInMs ->
+            combine(karooSystem.getRelativeHeadingFlow(context),
+                context.streamCurrentWeatherData(karooSystem),
+                context.streamSettings(karooSystem),
+                karooSystem.streamUserProfile(),
+                streamSpeedInMs(),
+                karooSystem.streamDatatypeIsVisible(dataTypeId)
+            ) { data ->
+                val headingResponse = data[0] as HeadingResponse
+                val weatherData = data[1] as? WeatherData
+                val settings = data[2] as HeadwindSettings
+                val userProfile = data[3] as UserProfile
+                val rideSpeedInMs = data[4] as Double
+                val isVisible = data[5] as Boolean
+
                 val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                 val absoluteWindDirection = weatherData?.windDirection
                 val windSpeed = weatherData?.windSpeed
@@ -109,7 +126,7 @@ class TailwindDataType(
                     rideSpeedInMs * 3.6
                 }
 
-                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed)
+                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
             }
         }
 
@@ -117,7 +134,7 @@ class TailwindDataType(
             emitter.onNext(ShowCustomStreamState("", null))
 
             val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
-            flow.throttle(refreshRate).collect { streamData ->
+            flow.filter { it.isVisible }.throttle(refreshRate).collect { streamData ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating tailwind direction view")
 
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff

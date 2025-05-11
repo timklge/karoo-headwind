@@ -12,6 +12,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
@@ -31,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -43,46 +45,54 @@ class HeadwindDirectionDataType(
 ) : DataTypeImpl("karoo-headwind", "headwind") {
     private val glance = GlanceRemoteViews()
 
+    data class StreamData(val headingResponse: HeadingResponse, val absoluteWindDirection: Double?, val windSpeed: Double?, val settings: HeadwindSettings)
+
     private fun streamValues(): Flow<Double> = flow {
-        karooSystem.getRelativeHeadingFlow(applicationContext)
-            .combine(applicationContext.streamCurrentWeatherData(karooSystem)) { headingResponse, data ->
-                    StreamData(headingResponse, data?.windDirection, data?.windSpeed)
+        combine(
+            karooSystem.getRelativeHeadingFlow(applicationContext),
+            applicationContext.streamCurrentWeatherData(karooSystem),
+            applicationContext.streamSettings(karooSystem),
+        ) { headingResponse, currentWeather, settings ->
+            StreamData(
+                headingResponse,
+                currentWeather?.windDirection,
+                currentWeather?.windSpeed,
+                settings,
+            )
+        }.collect { streamData ->
+            val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
+
+            var returnValue = 0.0
+            if (value == null || streamData.absoluteWindDirection == null || streamData.settings == null || streamData.windSpeed == null){
+                var errorCode = 1.0
+                var headingResponse = streamData.headingResponse
+
+                if (headingResponse is HeadingResponse.Value && (streamData.absoluteWindDirection == null || streamData.windSpeed == null)){
+                    headingResponse = HeadingResponse.NoWeatherData
                 }
-            .combine(applicationContext.streamSettings(karooSystem)) { data, settings -> data.copy(settings = settings) }
-            .collect { streamData ->
-                val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
 
-                var returnValue = 0.0
-                if (value == null || streamData.absoluteWindDirection == null || streamData.settings == null || streamData.windSpeed == null){
-                    var errorCode = 1.0
-                    var headingResponse = streamData.headingResponse
-
-                    if (headingResponse is HeadingResponse.Value && (streamData.absoluteWindDirection == null || streamData.windSpeed == null)){
-                        headingResponse = HeadingResponse.NoWeatherData
-                    }
-
-                    if (streamData.settings?.welcomeDialogAccepted == false){
-                        errorCode = ERROR_APP_NOT_SET_UP.toDouble()
-                    } else if (headingResponse is HeadingResponse.NoGps){
-                        errorCode = ERROR_NO_GPS.toDouble()
-                    } else {
-                        errorCode = ERROR_NO_WEATHER_DATA.toDouble()
-                    }
-
-                    returnValue = errorCode
+                if (streamData.settings?.welcomeDialogAccepted == false){
+                    errorCode = ERROR_APP_NOT_SET_UP.toDouble()
+                } else if (headingResponse is HeadingResponse.NoGps){
+                    errorCode = ERROR_NO_GPS.toDouble()
                 } else {
-                    var windDirection = when (streamData.settings.windDirectionIndicatorSetting){
-                        WindDirectionIndicatorSetting.HEADWIND_DIRECTION -> value
-                        WindDirectionIndicatorSetting.WIND_DIRECTION -> streamData.absoluteWindDirection + 180
-                    }
-
-                    if (windDirection < 0) windDirection += 360
-
-                    returnValue = windDirection
+                    errorCode = ERROR_NO_WEATHER_DATA.toDouble()
                 }
 
-                emit(returnValue)
+                returnValue = errorCode
+            } else {
+                var windDirection = when (streamData.settings.windDirectionIndicatorSetting){
+                    WindDirectionIndicatorSetting.HEADWIND_DIRECTION -> value
+                    WindDirectionIndicatorSetting.WIND_DIRECTION -> streamData.absoluteWindDirection + 180
+                }
+
+                if (windDirection < 0) windDirection += 360
+
+                returnValue = windDirection
             }
+
+            emit(returnValue)
+        }
     }
 
     override fun startStream(emitter: Emitter<StreamState>) {
@@ -96,9 +106,7 @@ class HeadwindDirectionDataType(
         }
     }
 
-    data class StreamData(val headingResponse: HeadingResponse?, val absoluteWindDirection: Double?, val windSpeed: Double?, val settings: HeadwindSettings? = null)
-
-    data class DirectionAndSpeed(val bearing: Double, val speed: Double?)
+    data class DirectionAndSpeed(val bearing: Double, val speed: Double?, val isVisible: Boolean)
 
     private fun previewFlow(): Flow<DirectionAndSpeed> {
         return flow {
@@ -106,7 +114,7 @@ class HeadwindDirectionDataType(
                 val bearing = (0..360).random().toDouble()
                 val windSpeed = (0..20).random()
 
-                emit(DirectionAndSpeed(bearing, windSpeed.toDouble()))
+                emit(DirectionAndSpeed(bearing, windSpeed.toDouble(), true))
 
                 delay(2_000)
             }
@@ -136,15 +144,15 @@ class HeadwindDirectionDataType(
                 emitAll(UserWindSpeedDataType.streamValues(context, karooSystem))
             }
 
-            combine(directionFlow, speedFlow) { direction, speed ->
-                DirectionAndSpeed(direction, speed)
+            combine(directionFlow, speedFlow, karooSystem.streamDatatypeIsVisible(dataTypeId)) { direction, speed, isVisible ->
+                DirectionAndSpeed(direction, speed, isVisible)
             }
         }
 
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
 
-            flow.throttle(refreshRate).collect { streamData ->
+            flow.filter { it.isVisible }.throttle(refreshRate).collect { streamData ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating headwind direction view")
 
                 val errorCode = streamData.bearing.let { if(it < 0) it.toInt() else null }

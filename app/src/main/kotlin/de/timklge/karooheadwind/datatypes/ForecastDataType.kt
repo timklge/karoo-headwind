@@ -31,6 +31,7 @@ import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
+import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
@@ -54,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -90,7 +92,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
     data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
                           val widgetSettings: HeadwindWidgetSettings? = null,
-                          val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null)
+                          val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null, val isVisible: Boolean)
 
     data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean, val isImperialTemperature: Boolean)
 
@@ -164,7 +166,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             HeadwindSettings(),
                             settingsAndProfile?.isImperial == true,
                             settingsAndProfile?.isImperialTemperature == true
-                        )
+                        ),
+                        isVisible = true
                     )
                 )
 
@@ -206,14 +209,23 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                     if (oldDistance == null || newDistance == null) return@distinctUntilChanged false
 
                     abs(oldDistance - newDistance) < 1_000
-                }
-            ) { weatherData, settings, widgetSettings, heading, upcomingRoute ->
+                },
+                karooSystem.streamDatatypeIsVisible(dataTypeId)
+            ) { data ->
+                val weatherData = data[0] as WeatherDataResponse?
+                val settings = data[1] as SettingsAndProfile
+                val widgetSettings = data[2] as HeadwindWidgetSettings?
+                val heading = data[3] as HeadingResponse?
+                val upcomingRoute = data[4] as UpcomingRoute?
+                val isVisible = data[5] as Boolean
+
                 StreamData(
                     data = weatherData,
                     settings = settings,
                     widgetSettings = widgetSettings,
                     headingResponse = heading,
-                    upcomingRoute = upcomingRoute
+                    upcomingRoute = upcomingRoute,
+                    isVisible = isVisible
                 )
             }
         }
@@ -221,7 +233,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            dataFlow.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
+            dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
                 if (allData?.data.isNullOrEmpty()){
