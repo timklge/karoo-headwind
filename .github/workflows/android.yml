@@ -25,7 +25,6 @@ jobs:
         echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
         echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
         echo "KEYSTORE_BASE64=${{ secrets.KEYSTORE_BASE64 }}" >> $GITHUB_ENV
-        echo "GOOGLE_SERVICES_JSON_BASE64=${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" >> $GITHUB_ENV
         echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
     - uses: actions/checkout@v4
     - name: set up JDK 17

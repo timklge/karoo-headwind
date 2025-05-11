@@ -5,8 +5,6 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
     kotlin("plugin.serialization") version "2.0.20"
-    alias(libs.plugins.google.gms.google.services)
-    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 android {
@@ -37,9 +35,6 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            firebaseCrashlytics {
-                mappingFileUploadEnabled = false
-            }
         }
         release {
             signingConfig = signingConfigs.getByName("release")
@@ -60,24 +55,6 @@ android {
     }
 }
 
-tasks.register("addGoogleServicesJson") {
-    description = "Adds google-services.json to the project"
-    group = "build"
-
-    doLast {
-        val googleServicesJson = System.getenv("GOOGLE_SERVICES_JSON_BASE64")
-            ?.let { Base64.getDecoder().decode(it) }
-            ?.let { String(it) }
-        if (googleServicesJson != null) {
-            val jsonFile = file("$projectDir/google-services.json")
-            jsonFile.writeText(googleServicesJson)
-            println("Added google-services.json to the project")
-        } else {
-            println("No GOOGLE_SERVICES_JSON_BASE64 environment variable found, skipping...")
-        }
-    }
-}
-
 tasks.register("generateManifest") {
     description = "Generates manifest.json with current version information"
     group = "build"
@@ -93,11 +70,8 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Reduce refresh rate on K2, add refresh rate setting\n" +
-                    "* Fix weather data download from Open-Meteo via iOS companion app (thx @keefar!)\n" +
-                    "* Remove custom wind speed unit setting and always use imperial / metric as set in profile\n" +
-                    "* Add relative grade, relative elevation gain data fields\n" +
-                    "* Add OpenWeatherMap support contributed by lockevod\n",
+            "releaseNotes" to "* Remove crashlytics\n" +
+                "* Reduce refresh rate on K2, add refresh rate setting\n" +
             "screenshotUrls" to listOf(
                 "https://github.com/timklge/karoo-headwind/releases/latest/download/preview1.png",
                 "https://github.com/timklge/karoo-headwind/releases/latest/download/preview3.png",
@@ -114,7 +88,6 @@ tasks.register("generateManifest") {
 
 tasks.named("assemble") {
     dependsOn("generateManifest")
-    dependsOn("addGoogleServicesJson")
 }
 
 dependencies {
@@ -129,6 +102,5 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
-    implementation(libs.firebase.crashlytics)
     testImplementation(kotlin("test"))
 }
