@@ -20,6 +20,7 @@ import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
@@ -42,6 +43,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -75,7 +77,8 @@ class WeatherDataType(
     }
 
     data class StreamData(val data: WeatherData?, val settings: HeadwindSettings,
-                          val profile: UserProfile? = null, val headingResponse: HeadingResponse? = null)
+                          val profile: UserProfile? = null, val headingResponse: HeadingResponse? = null,
+                          val isVisible: Boolean)
 
     private fun previewFlow(): Flow<StreamData> = flow {
         while (true){
@@ -85,7 +88,7 @@ class WeatherDataType(
                     20.0, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
                     WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false,
                     isNight = listOf(true, false).random()
-                ), HeadwindSettings()))
+                ), HeadwindSettings(), isVisible = true))
 
             delay(5_000)
         }
@@ -106,8 +109,14 @@ class WeatherDataType(
         val dataFlow = if (config.preview){
             previewFlow()
         } else {
-            combine(context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem), karooSystem.streamUserProfile(), karooSystem.getHeadingFlow(context)) { data, settings, profile, heading ->
-                StreamData(data, settings, profile, heading)
+            combine(
+                context.streamCurrentWeatherData(karooSystem),
+                context.streamSettings(karooSystem),
+                karooSystem.streamUserProfile(),
+                karooSystem.getHeadingFlow(context),
+                karooSystem.streamDatatypeIsVisible(dataTypeId)
+            ) { data, settings, profile, heading, isVisible ->
+                StreamData(data, settings, profile, heading, isVisible)
             }
         }
 
@@ -116,7 +125,7 @@ class WeatherDataType(
 
             val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
 
-            dataFlow.throttle(refreshRate).collect { (data, settings, userProfile, headingResponse) ->
+            dataFlow.filter { it.isVisible }.throttle(refreshRate).collect { (data, settings, userProfile, headingResponse) ->
                     Log.d(KarooHeadwindExtension.TAG, "Updating weather view")
 
                     if (data == null){

@@ -17,9 +17,10 @@ import androidx.glance.text.FontFamily
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.streamDataFlow
+import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.ShowCustomStreamState
@@ -31,8 +32,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -53,10 +55,18 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
         return data.windDirection
     }
 
-    private fun previewFlow(): Flow<Double> {
+    data class StreamData(
+        val windBearing: Double,
+        val isVisible: Boolean
+    )
+
+    private fun previewFlow(): Flow<StreamData> {
         return flow {
             while (true) {
-                emit((0..360).random().toDouble())
+                emit(StreamData(
+                    (0..360).random().toDouble(),
+                    true
+                ))
                 delay(1_000)
             }
         }
@@ -75,17 +85,24 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
             val flow = if (config.preview){
                 previewFlow()
             } else {
-                karooSystem.streamDataFlow(dataTypeId)
-                    .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0 }
+                combine(
+                    karooSystem.streamDataFlow(dataTypeId),
+                    karooSystem.streamDatatypeIsVisible(dataTypeId)
+                ) { windBearing, isVisible ->
+                    StreamData(
+                        windBearing = (windBearing as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0,
+                        isVisible = isVisible
+                    )
+                }
             }
 
             val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
 
-            flow.throttle(refreshRate).collect { windBearing ->
+            flow.filter { it.isVisible }.throttle(refreshRate).collect { (windBearing, isVisible) ->
                 val windCardinalDirectionIndex = ((windBearing % 360) / 22.5).roundToInt() % 16
 
                 val text = windDirections[windCardinalDirectionIndex]
-                Log.d( KarooHeadwindExtension.TAG,"Updating wind direction view")
+                Log.d(KarooHeadwindExtension.TAG,"Updating wind direction view")
                 val result = glance.compose(context, DpSize.Unspecified) {
                     Box(modifier = GlanceModifier.fillMaxSize(),
                         contentAlignment = Alignment(
