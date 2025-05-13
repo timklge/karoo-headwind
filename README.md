@@ -41,7 +41,7 @@ If the app cannot connect to the weather service, it will retry the download eve
 
 ## Credits
 
-- Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt))
+- Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt)) and the [Google Noto Color Emoji font](https://fonts.google.com/noto/specimen/Noto+Color+Emoji) (SIL Open Font License 1.1)
 - Made possible by the generous usage terms of [open-meteo.com](https://open-meteo.com)
 - Interfaces with [openweathermap.org](https://openweathermap.org)
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)

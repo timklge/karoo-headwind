@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -98,8 +99,7 @@ fun WeatherWidget(
             }
         }
 
-        // Weather icon (larger)
-        Icon(
+        Image(
             painter = painterResource(id = getWeatherIcon(current, isNight)),
             contentDescription = "Current weather",
             modifier = Modifier.size(72.dp)
@@ -110,10 +110,10 @@ fun WeatherWidget(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
+                Image(
                     painter = painterResource(id = R.drawable.thermometer),
                     contentDescription = "Temperature",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
 
                 Spacer(modifier = Modifier.width(4.dp))
@@ -135,8 +135,8 @@ fun WeatherWidget(
                 val precipitationProbabilityLabel =
                     if (precipitationProbability != null) "${precipitationProbability}% " else ""
 
-                Icon(
-                    painter = painterResource(id = R.drawable.droplet_regular),
+                Image(
+                    painter = painterResource(id = R.drawable.droplet),
                     contentDescription = "Precipitation",
                     modifier = Modifier.size(18.dp)
                 )
