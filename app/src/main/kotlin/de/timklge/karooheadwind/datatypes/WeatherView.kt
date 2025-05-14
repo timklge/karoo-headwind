@@ -47,12 +47,12 @@ fun getShortDateFormatter(): DateTimeFormatter = DateTimeFormatter.ofPattern(
 
 fun getWeatherIcon(interpretation: WeatherInterpretation, isNight: Boolean): Int {
     return when (interpretation){
-        WeatherInterpretation.CLEAR -> if (isNight) R.drawable.moon else R.drawable.bx_clear
-        WeatherInterpretation.CLOUDY -> R.drawable.bx_cloud
-        WeatherInterpretation.RAINY -> R.drawable.bx_cloud_rain
-        WeatherInterpretation.SNOWY -> R.drawable.bx_cloud_snow
-        WeatherInterpretation.DRIZZLE -> R.drawable.bx_cloud_drizzle
-        WeatherInterpretation.THUNDERSTORM -> R.drawable.bx_cloud_lightning
+        WeatherInterpretation.CLEAR -> if (isNight) R.drawable.crescent_moon else R.drawable.sun
+        WeatherInterpretation.CLOUDY -> R.drawable.cloud
+        WeatherInterpretation.RAINY -> R.drawable.cloud_with_rain
+        WeatherInterpretation.SNOWY -> R.drawable.cloud_with_snow
+        WeatherInterpretation.DRIZZLE -> R.drawable.cloud_with_light_rain
+        WeatherInterpretation.THUNDERSTORM -> R.drawable.cloud_with_lightning_and_rain
         WeatherInterpretation.UNKNOWN -> R.drawable.question_mark_regular_240
     }
 }
@@ -87,7 +87,6 @@ fun Weather(
                 provider = ImageProvider(getWeatherIcon(current, isNight)),
                 contentDescription = "Current weather information",
                 contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
             )
         }
 
@@ -143,7 +142,6 @@ fun Weather(
                 provider = ImageProvider(R.drawable.thermometer),
                 contentDescription = "Temperature",
                 contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
             )
 
             Text(
