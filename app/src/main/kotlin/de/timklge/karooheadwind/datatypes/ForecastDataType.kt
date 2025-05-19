@@ -37,6 +37,9 @@ import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.util.celciusInUserUnit
+import de.timklge.karooheadwind.util.millimetersInUserUnit
+import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
@@ -311,11 +314,11 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     arrowBitmap = baseBitmap,
                                     current = interpretation,
                                     windBearing = data.current.windDirection.roundToInt(),
-                                    windSpeed = data.current.windSpeed.roundToInt(),
-                                    windGusts = data.current.windGusts.roundToInt(),
-                                    precipitation = data.current.precipitation,
+                                    windSpeed = msInUserUnit(data.current.windSpeed, settingsAndProfile.isImperial).roundToInt(),
+                                    windGusts = msInUserUnit(data.current.windGusts, settingsAndProfile.isImperial).roundToInt(),
+                                    precipitation = millimetersInUserUnit(data.current.precipitation, settingsAndProfile.isImperial),
                                     precipitationProbability = null,
-                                    temperature = data.current.temperature.roundToInt(),
+                                    temperature = celciusInUserUnit(data.current.temperature, settingsAndProfile.isImperialTemperature).roundToInt(),
                                     temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,
@@ -337,11 +340,11 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     arrowBitmap = baseBitmap,
                                     current = interpretation,
                                     windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                                    windSpeed = weatherData?.windSpeed?.roundToInt() ?: 0,
-                                    windGusts = weatherData?.windGusts?.roundToInt() ?: 0,
-                                    precipitation = weatherData?.precipitation ?: 0.0,
+                                    windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
+                                    windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
+                                    precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, settingsAndProfile.isImperial),
                                     precipitationProbability = weatherData?.precipitationProbability?.toInt(),
-                                    temperature = weatherData?.temperature?.roundToInt() ?: 0,
+                                    temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, settingsAndProfile.isImperialTemperature).roundToInt(),
                                     temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
                                     timeLabel = formattedTime,
                                     dateLabel = if (hasNewDate) formattedDate else null,

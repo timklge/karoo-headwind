@@ -3,10 +3,7 @@ package de.timklge.karooheadwind.weatherprovider.openmeteo
 import android.util.Log
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.PrecipitationUnit
-import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.WeatherDataProvider
-import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.jsonWithUnknownKeys
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
@@ -28,16 +25,12 @@ import kotlin.time.Duration.Companion.seconds
 
 class OpenMeteoWeatherProvider : WeatherProvider {
     @OptIn(FlowPreview::class)
-    private suspend fun makeOpenMeteoWeatherRequest(karooSystemService: KarooSystemService, gpsCoordinates: List<GpsCoordinates>, settings: HeadwindSettings, profile: UserProfile?): HttpResponseState.Complete {
-        val precipitationUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) PrecipitationUnit.MILLIMETERS else PrecipitationUnit.INCH
-        val temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT
-        val windUnit = if (profile?.preferredUnit?.distance != UserProfile.PreferredUnit.UnitType.IMPERIAL) WindUnit.KILOMETERS_PER_HOUR else WindUnit.MILES_PER_HOUR
-
+    private suspend fun makeOpenMeteoWeatherRequest(karooSystemService: KarooSystemService, gpsCoordinates: List<GpsCoordinates>): HttpResponseState.Complete {
         val response = callbackFlow {
             // https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current=is_day,surface_pressure,pressure_msl,temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timeformat=unixtime&past_hours=1&forecast_days=1&forecast_hours=12
             val lats = gpsCoordinates.joinToString(",") { String.format(Locale.US, "%.6f", it.lat) }
             val lons = gpsCoordinates.joinToString(",") { String.format(Locale.US, "%.6f", it.lon) }
-            val url = "https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=is_day,surface_pressure,pressure_msl,temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&timeformat=unixtime&past_hours=0&forecast_days=1&forecast_hours=12&wind_speed_unit=${windUnit.id}&precipitation_unit=${precipitationUnit.id}&temperature_unit=${temperatureUnit.id}"
+            val url = "https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=is_day,surface_pressure,pressure_msl,temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&timeformat=unixtime&past_hours=0&forecast_days=1&forecast_hours=12&wind_speed_unit=ms"
 
             Log.d(KarooHeadwindExtension.TAG, "Http request to ${url}...")
 
@@ -84,7 +77,7 @@ class OpenMeteoWeatherProvider : WeatherProvider {
         settings: HeadwindSettings,
         profile: UserProfile?
     ): WeatherDataResponse {
-        val openMeteoResponse = makeOpenMeteoWeatherRequest(karooSystem, coordinates, settings, profile)
+        val openMeteoResponse = makeOpenMeteoWeatherRequest(karooSystem, coordinates)
         val responseBody = openMeteoResponse.body?.let { String(it) } ?: throw WeatherProviderException(500, "Null response from OpenMeteo")
 
         val weatherData = if (coordinates.size == 1) {

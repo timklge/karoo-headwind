@@ -21,6 +21,7 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -120,13 +121,8 @@ class TailwindDataType(
                 val absoluteWindDirection = weatherData?.windDirection
                 val windSpeed = weatherData?.windSpeed
                 val gustSpeed = weatherData?.windGusts
-                val rideSpeed = if (isImperial){
-                    rideSpeedInMs * 2.23694
-                } else {
-                    rideSpeedInMs * 3.6
-                }
 
-                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
+                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeedInMs, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
             }
         }
 
@@ -164,24 +160,26 @@ class TailwindDataType(
                         val sign = if (headwindSpeed < 0) "+" else {
                             if (headwindSpeed > 0) "-" else ""
                         }
-                        "$sign${headwindSpeed.roundToInt().absoluteValue}"
+
+                        val headwindSpeedUserUnit = msInUserUnit(headwindSpeed, streamData.isImperial)
+
+                        "$sign${headwindSpeedUserUnit.roundToInt().absoluteValue}"
                     }
-                    WindDirectionIndicatorTextSetting.WIND_SPEED -> windSpeed.roundToInt().toString()
+                    WindDirectionIndicatorTextSetting.WIND_SPEED -> msInUserUnit(windSpeed, streamData.isImperial).roundToInt().toString()
                     WindDirectionIndicatorTextSetting.NONE -> ""
                 }
 
-                val subtext = "${windSpeed.roundToInt()}-${streamData.gustSpeed?.roundToInt()}"
+                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
+                val gustSpeedUserUnit = msInUserUnit(streamData.gustSpeed ?: 0.0, streamData.isImperial)
+
+                val subtext = "${windSpeedUserUnit.roundToInt()}-${gustSpeedUserUnit.roundToInt()}"
 
                 var dayColor = Color(ContextCompat.getColor(context, R.color.black))
                 var nightColor = Color(ContextCompat.getColor(context, R.color.white))
 
                 if (streamData.settings.windDirectionIndicatorSetting == WindDirectionIndicatorSetting.HEADWIND_DIRECTION) {
                     val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
-                    val windSpeedInKmh = if (streamData.isImperial){
-                        headwindSpeed / 2.23694 * 3.6
-                    } else {
-                        headwindSpeed
-                    }
+                    val windSpeedInKmh = headwindSpeed * 3.6
                     dayColor = interpolateWindColor(windSpeedInKmh, false, context)
                     nightColor = interpolateWindColor(windSpeedInKmh, true, context)
                 }
