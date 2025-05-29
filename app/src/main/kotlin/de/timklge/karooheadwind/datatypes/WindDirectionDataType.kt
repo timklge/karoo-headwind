@@ -26,6 +26,7 @@ import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
+import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +52,7 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
         )
     }
 
-    override fun getValue(data: WeatherData): Double {
+    override fun getValue(data: WeatherData, userProfile: UserProfile): Double {
         return data.windDirection
     }
 

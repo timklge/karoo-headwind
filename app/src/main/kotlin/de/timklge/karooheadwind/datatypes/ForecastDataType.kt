@@ -119,7 +119,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                         WeatherData(
                             time = forecastTime,
                             temperature = forecastTemperature,
-                            relativeHumidity = 20.0,
+                            relativeHumidity = 20,
                             precipitation = forecastPrecipitation,
                             cloudCover = 3.0,
                             sealevelPressure = 1013.25,
@@ -142,7 +142,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                         current = WeatherData(
                             time = timeAtFullHour,
                             temperature = 20.0,
-                            relativeHumidity = 20.0,
+                            relativeHumidity = 20,
                             precipitation = 0.0,
                             cloudCover = 3.0,
                             sealevelPressure = 1013.25,

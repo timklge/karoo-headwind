@@ -15,10 +15,12 @@ import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
+import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
@@ -27,22 +29,25 @@ abstract class BaseDataType(
     private val applicationContext: Context,
     dataTypeId: String
 ) : DataTypeImpl("karoo-headwind", dataTypeId) {
-    abstract fun getValue(data: WeatherData): Double?
+    abstract fun getValue(data: WeatherData, userProfile: UserProfile): Double?
 
     open fun getFormatDataType(): String? = null
 
     override fun startStream(emitter: Emitter<StreamState>) {
         Log.d(KarooHeadwindExtension.TAG, "start $dataTypeId stream")
         val job = CoroutineScope(Dispatchers.IO).launch {
-            val currentWeatherData = applicationContext.streamCurrentWeatherData(karooSystemService)
-            val userProfile = karooSystemService.streamUserProfile()
+            data class StreamData(val weatherData: WeatherData, val userProfile: UserProfile)
+
+            val currentWeatherData = combine(applicationContext.streamCurrentWeatherData(karooSystemService).filterNotNull(), karooSystemService.streamUserProfile()) { weatherData, userProfile ->
+                StreamData(weatherData, userProfile)
+            }
 
             val refreshRate = karooSystemService.getRefreshRateInMilliseconds(applicationContext)
 
             currentWeatherData.filterNotNull()
                 .throttle(refreshRate)
-                .collect { data ->
-                    val value = getValue(data)
+                .collect { (data, userProfile) ->
+                    val value = getValue(data, userProfile)
                     Log.d(KarooHeadwindExtension.TAG, "$dataTypeId: $value")
 
                     if (value != null) {

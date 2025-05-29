@@ -44,7 +44,6 @@ fun GraphicalForecast(
                 provider = ImageProvider(getWeatherIcon(current, isNight)),
                 contentDescription = "Current weather information",
                 contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(ColorProvider(Color.Black, Color.White))
             )
         }
 

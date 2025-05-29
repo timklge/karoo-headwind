@@ -166,7 +166,8 @@ class TailwindAndRideSpeedDataType(
                     WindDirectionIndicatorSetting.WIND_DIRECTION -> streamData.absoluteWindDirection + 180
                 }
 
-                val text = streamData.rideSpeed?.let { String.format(Locale.current.platformLocale, "%.1f", it) } ?: ""
+                val rideSpeedInUserUnit = msInUserUnit(streamData.rideSpeed ?: 0.0, streamData.isImperial)
+                val text = String.format(Locale.current.platformLocale, "%.1f", rideSpeedInUserUnit)
 
                 val wideMode = config.gridSize.first == 60
 
