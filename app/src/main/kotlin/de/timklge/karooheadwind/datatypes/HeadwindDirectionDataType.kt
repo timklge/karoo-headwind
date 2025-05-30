@@ -9,7 +9,6 @@ import androidx.glance.appwidget.GlanceRemoteViews
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.WindDirectionIndicatorSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDatatypeIsVisible
@@ -17,6 +16,7 @@ import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
 import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlin.math.cos
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
@@ -84,10 +85,7 @@ class HeadwindDirectionDataType(
 
                 returnValue = errorCode
             } else {
-                var windDirection = when (streamData.settings.windDirectionIndicatorSetting){
-                    WindDirectionIndicatorSetting.HEADWIND_DIRECTION -> value
-                    WindDirectionIndicatorSetting.WIND_DIRECTION -> streamData.absoluteWindDirection + 180
-                }
+                var windDirection = value
 
                 if (windDirection < 0) windDirection += 360
 
@@ -154,7 +152,7 @@ class HeadwindDirectionDataType(
             val directionFlow = streamValues()
             val speedFlow = flow {
                 emit(0.0)
-                emitAll(UserWindSpeedDataType.streamValues(context, karooSystem))
+                emitAll(streamValues(context, karooSystem))
             }
 
             combine(directionFlow, speedFlow, karooSystem.streamDatatypeIsVisible(dataTypeId), karooSystem.streamUserProfile()) { direction, speed, isVisible, profile ->
@@ -203,6 +201,26 @@ class HeadwindDirectionDataType(
         const val ERROR_NO_GPS = -1
         const val ERROR_NO_WEATHER_DATA = -2
         const val ERROR_APP_NOT_SET_UP = -3
+
+        fun streamValues(context: Context, karooSystem: KarooSystemService): Flow<Double> = flow {
+            data class StreamData(
+                val headingResponse: HeadingResponse,
+                val weatherResponse: WeatherData?,
+                val settings: HeadwindSettings
+            )
+
+            combine(karooSystem.getRelativeHeadingFlow(context), context.streamCurrentWeatherData(karooSystem), context.streamSettings(karooSystem)) { headingResponse, weatherResponse, settings ->
+                StreamData(headingResponse, weatherResponse, settings)
+            }.filter { it.weatherResponse != null }
+            .collect { streamData ->
+                val windSpeed = streamData.weatherResponse?.windSpeed ?: 0.0
+                val windDirection = (streamData.headingResponse as? HeadingResponse.Value)?.diff ?: 0.0
+
+                val headwindSpeed = cos((windDirection + 180) * Math.PI / 180.0) * windSpeed
+
+                emit(headwindSpeed)
+            }
+        }
     }
 }
 
