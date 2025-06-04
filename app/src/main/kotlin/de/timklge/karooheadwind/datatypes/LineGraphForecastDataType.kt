@@ -209,7 +209,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
+            dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, actualUpcomingRoute) ->
+                val upcomingRoute = if (allData?.provider == WeatherDataProvider.OPEN_METEO) actualUpcomingRoute else null
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
                 if (allData?.data.isNullOrEmpty()){
