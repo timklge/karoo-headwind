@@ -139,7 +139,7 @@ fun MainScreen(close: () -> Unit) {
 
                         Spacer(Modifier.padding(10.dp))
 
-                        Text("Please note that this app periodically fetches weather data from OpenMeteo for your current location. Crashlytics is used for crash reporting to help improve stability.")
+                        Text("Please note that this app periodically fetches weather data from OpenMeteo for your current location.")
                     }
                 }
             )

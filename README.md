@@ -48,10 +48,6 @@ If the app cannot connect to the weather service, it will retry the download eve
 - Interfaces with [openweathermap.org](https://openweathermap.org)
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)
 
-## Crashlytics
-
-This app uses Google Crashlytics for crash reporting to help improve stability and performance.
-
 ## Extension Developers: Headwind Data Type
 
 If the user has installed the headwind extension on his karoo, you can stream the headwind data type from other extensions via `karoo-ext`.
