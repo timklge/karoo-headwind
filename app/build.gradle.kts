@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Refactor unit conversions\n* Remove crashlytics\n" +
+            "releaseNotes" to "* Add forecast line graphs\n* Add wind direction and speed field\n* Refactor unit conversions\n* Remove crashlytics\n" +
                 "* Reduce refresh rate on K2, add refresh rate setting\n" +
             "screenshotUrls" to listOf(
                 "$baseUrl/preview1.png",

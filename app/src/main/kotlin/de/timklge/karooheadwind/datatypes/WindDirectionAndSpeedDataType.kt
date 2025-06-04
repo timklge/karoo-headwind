@@ -59,8 +59,8 @@ class WindDirectionAndSpeedDataType(
 
             while (true) {
                 val bearing = (0..360).random().toDouble()
-                val windSpeed = (0..20).random()
-                val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
+                val windSpeed = (0..10).random()
+                val gustSpeed = windSpeed * ((10..20).random().toDouble() / 10)
                 val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
                 emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), gustSpeed = gustSpeed, isImperial = isImperial, isVisible = true))

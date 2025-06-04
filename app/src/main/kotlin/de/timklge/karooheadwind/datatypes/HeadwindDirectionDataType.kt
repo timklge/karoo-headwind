@@ -118,7 +118,7 @@ class HeadwindDirectionDataType(
         return flow {
             while (true) {
                 val bearing = (0..360).random().toDouble()
-                val windSpeed = (0..20).random()
+                val windSpeed = (0..10).random()
 
                 emit(DirectionAndSpeed(
                     bearing,

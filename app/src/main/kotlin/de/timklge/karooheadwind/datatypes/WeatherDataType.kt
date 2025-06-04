@@ -88,7 +88,7 @@ class WeatherDataType(
             emit(StreamData(
                 WeatherData(
                     Instant.now().epochSecond, 0.0,
-                    20, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
+                    20, 50.0, 3.0, 0.0, 1013.25, 980.0, 5.0, 30.0, 10.0,
                     WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false,
                     isNight = listOf(true, false).random()
                 ), HeadwindSettings(), isVisible = true))
