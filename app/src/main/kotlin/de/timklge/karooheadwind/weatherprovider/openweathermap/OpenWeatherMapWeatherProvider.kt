@@ -69,7 +69,7 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         profile: UserProfile?
     ): WeatherDataResponse {
 
-        val response = makeOpenWeatherMapRequest(karooSystem, coordinates, apiKey, profile)
+        val response = makeOpenWeatherMapRequest(karooSystem, coordinates, apiKey)
         val responseBody = response.body?.let { String(it) } ?: throw Exception("Null response from OpenWeatherMap")
 
         val responses = mutableListOf<WeatherDataForLocation>()
@@ -89,21 +89,15 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
     private suspend fun makeOpenWeatherMapRequest(
         service: KarooSystemService,
         coordinates: List<GpsCoordinates>,
-        apiKey: String,
-        profile: UserProfile?
+        apiKey: String
     ): HttpResponseState.Complete {
         val response = callbackFlow {
             // OpenWeatherMap only supports setting imperial or metric units for all measurements, not individually for distance / temperature
-            val unitsString = if (profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL || profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
-                "imperial"
-            } else {
-                "metric"
-            }
             val coordinate = coordinates.first()
 
             // URL API 3.0 with onecall endpoint
             val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
-                "&appid=$apiKey&exclude=minutely,daily,alerts&units=${unitsString}"
+                "&appid=$apiKey&exclude=minutely,daily,alerts&units=metric"
 
             Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap API 3.0: $url")
 

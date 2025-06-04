@@ -24,6 +24,9 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.util.celciusInUserUnit
+import de.timklge.karooheadwind.util.millimetersInUserUnit
+import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
@@ -85,7 +88,7 @@ class WeatherDataType(
             emit(StreamData(
                 WeatherData(
                     Instant.now().epochSecond, 0.0,
-                    20.0, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
+                    20, 50.0, 3.0, 0.0, 1013.25, 980.0, 15.0, 30.0, 30.0,
                     WeatherInterpretation.getKnownWeatherCodes().random(), isForecast = false,
                     isNight = listOf(true, false).random()
                 ), HeadwindSettings(), isVisible = true))
@@ -147,11 +150,11 @@ class WeatherDataType(
                                 baseBitmap,
                                 current = interpretation,
                                 windBearing = data.windDirection.roundToInt(),
-                                windSpeed = data.windSpeed.roundToInt(),
-                                windGusts = data.windGusts.roundToInt(),
-                                precipitation = data.precipitation,
+                                windSpeed = msInUserUnit(data.windSpeed, userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                                windGusts = msInUserUnit(data.windGusts, userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                                precipitation = millimetersInUserUnit(data.precipitation, userProfile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
                                 precipitationProbability = null,
-                                temperature = data.temperature.roundToInt(),
+                                temperature = celciusInUserUnit(data.temperature, userProfile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                                 temperatureUnit = if (userProfile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                                 timeLabel = formattedTime,
                                 rowAlignment = when (config.alignment){

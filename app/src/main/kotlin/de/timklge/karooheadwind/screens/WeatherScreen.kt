@@ -37,6 +37,9 @@ import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.util.celciusInUserUnit
+import de.timklge.karooheadwind.util.millimetersInUserUnit
+import de.timklge.karooheadwind.util.msInUserUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import java.time.Instant
@@ -110,10 +113,10 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 baseBitmap = baseBitmap,
                 current = WeatherInterpretation.fromWeatherCode(currentWeatherData?.weatherCode),
                 windBearing = currentWeatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = currentWeatherData?.windSpeed?.roundToInt() ?: 0,
-                windGusts = currentWeatherData?.windGusts?.roundToInt() ?: 0,
-                precipitation = currentWeatherData?.precipitation ?: 0.0,
-                temperature = currentWeatherData?.temperature?.toInt() ?: 0,
+                windSpeed = msInUserUnit(currentWeatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                windGusts = msInUserUnit(currentWeatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                precipitation = millimetersInUserUnit(currentWeatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                temperature = celciusInUserUnit(currentWeatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedTime,
                 dateLabel = formattedDate,
@@ -230,10 +233,10 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 baseBitmap,
                 current = interpretation,
                 windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = weatherData?.windSpeed?.roundToInt() ?: 0,
-                windGusts = weatherData?.windGusts?.roundToInt() ?: 0,
-                precipitation = weatherData?.precipitation ?: 0.0,
-                temperature = weatherData?.temperature?.toInt() ?: 0,
+                windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
+                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
                 dateLabel = formattedForecastDate,

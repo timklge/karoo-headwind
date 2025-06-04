@@ -76,11 +76,11 @@
         typeId="headwindSpeed" />
 
     <DataType
-        description="@string/userwind_speed_description"
-        displayName="@string/userwind_speed"
+        description="@string/windDirectionAndSpeed_description"
+        displayName="@string/windDirectionAndSpeed"
         graphical="false"
         icon="@drawable/wind"
-        typeId="userwindSpeed" />
+        typeId="windDirectionAndSpeed" />
 
     <DataType
         description="@string/relativeHumidity_description"

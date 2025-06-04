@@ -23,7 +23,7 @@ data class OpenWeatherMapWeatherData(
 
     fun toWeatherData(): WeatherData = WeatherData(
         temperature = temp,
-        relativeHumidity = humidity.toDouble(),
+        relativeHumidity = humidity,
         precipitation = rain?.h1 ?: 0.0,
         cloudCover = clouds.toDouble(),
         surfacePressure = pressure.toDouble(),

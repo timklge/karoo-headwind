@@ -17,10 +17,9 @@ import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
 import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
-import de.timklge.karooheadwind.datatypes.TailwindDataType
+import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
-import de.timklge.karooheadwind.datatypes.UserWindSpeedDataType
 import de.timklge.karooheadwind.datatypes.WeatherDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
@@ -78,15 +77,15 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             WindSpeedDataType(karooSystem, applicationContext),
             TemperatureDataType(karooSystem, applicationContext),
             WindDirectionDataType(karooSystem, applicationContext),
+            WindDirectionAndSpeedDataType(karooSystem, applicationContext),
             PrecipitationDataType(karooSystem, applicationContext),
             SurfacePressureDataType(karooSystem, applicationContext),
             SealevelPressureDataType(karooSystem, applicationContext),
-            UserWindSpeedDataType(karooSystem, applicationContext),
             TemperatureForecastDataType(karooSystem),
             PrecipitationForecastDataType(karooSystem),
             WindForecastDataType(karooSystem),
             GraphicalForecastDataType(karooSystem),
-            TailwindDataType(karooSystem, applicationContext),
+            WindDirectionAndSpeedDataType(karooSystem, applicationContext),
             RelativeGradeDataType(karooSystem, applicationContext),
             RelativeElevationGainDataType(karooSystem, applicationContext),
         )
@@ -169,7 +168,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     Log.d(TAG, "Minutes to next full hour: ${msToNextFullHour / 1000 / 60}, Distance to next full hour: ${(calculatedDistanceToNextFullHour / 1000).roundToInt()}km")
 
                     requestedGpsCoordinates = buildList {
-                        add(gps)
+                        add(GpsCoordinates(gps.lat, gps.lon, gps.bearing, distanceAlongRoute = positionOnRoute))
 
                         var currentPosition = positionOnRoute + calculatedDistanceToNextFullHour
                         var lastRequestedPosition = positionOnRoute

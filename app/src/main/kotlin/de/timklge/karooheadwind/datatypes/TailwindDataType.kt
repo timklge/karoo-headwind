@@ -3,17 +3,13 @@ package de.timklge.karooheadwind.datatypes
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Log
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
-import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
-import de.timklge.karooheadwind.WindDirectionIndicatorSetting
-import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
@@ -21,6 +17,7 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -120,13 +117,8 @@ class TailwindDataType(
                 val absoluteWindDirection = weatherData?.windDirection
                 val windSpeed = weatherData?.windSpeed
                 val gustSpeed = weatherData?.windGusts
-                val rideSpeed = if (isImperial){
-                    rideSpeedInMs * 2.23694
-                } else {
-                    rideSpeedInMs * 3.6
-                }
 
-                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
+                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeedInMs, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
             }
         }
 
@@ -151,40 +143,28 @@ class TailwindDataType(
                 }
 
                 val windSpeed = streamData.windSpeed
-                val windDirection = when (streamData.settings.windDirectionIndicatorSetting){
-                    WindDirectionIndicatorSetting.HEADWIND_DIRECTION -> streamData.headingResponse.diff
-                    WindDirectionIndicatorSetting.WIND_DIRECTION -> streamData.absoluteWindDirection + 180
-                }
+                val windDirection = streamData.headingResponse.diff
 
-                val mainText = when (streamData.settings.windDirectionIndicatorTextSetting) {
-                    WindDirectionIndicatorTextSetting.HEADWIND_SPEED -> {
-                        val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
-                        headwindSpeed.roundToInt().toString()
-
-                        val sign = if (headwindSpeed < 0) "+" else {
-                            if (headwindSpeed > 0) "-" else ""
-                        }
-                        "$sign${headwindSpeed.roundToInt().absoluteValue}"
-                    }
-                    WindDirectionIndicatorTextSetting.WIND_SPEED -> windSpeed.roundToInt().toString()
-                    WindDirectionIndicatorTextSetting.NONE -> ""
-                }
-
-                val subtext = "${windSpeed.roundToInt()}-${streamData.gustSpeed?.roundToInt()}"
-
-                var dayColor = Color(ContextCompat.getColor(context, R.color.black))
-                var nightColor = Color(ContextCompat.getColor(context, R.color.white))
-
-                if (streamData.settings.windDirectionIndicatorSetting == WindDirectionIndicatorSetting.HEADWIND_DIRECTION) {
+                val mainText = let {
                     val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
-                    val windSpeedInKmh = if (streamData.isImperial){
-                        headwindSpeed / 2.23694 * 3.6
-                    } else {
-                        headwindSpeed
+                    headwindSpeed.roundToInt().toString()
+
+                    val sign = if (headwindSpeed < 0) "+" else {
+                        if (headwindSpeed > 0) "-" else ""
                     }
-                    dayColor = interpolateWindColor(windSpeedInKmh, false, context)
-                    nightColor = interpolateWindColor(windSpeedInKmh, true, context)
+
+                    val headwindSpeedUserUnit = msInUserUnit(headwindSpeed, streamData.isImperial)
+
+                    "$sign${headwindSpeedUserUnit.roundToInt().absoluteValue}"
                 }
+
+                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
+                val gustSpeedUserUnit = msInUserUnit(streamData.gustSpeed ?: 0.0, streamData.isImperial)
+
+                val subtext = "${windSpeedUserUnit.roundToInt()}-${gustSpeedUserUnit.roundToInt()}"
+
+                val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
+                val windSpeedInKmh = headwindSpeed * 3.6
 
                 val result = glance.compose(context, DpSize.Unspecified) {
                     HeadwindDirection(
@@ -193,8 +173,8 @@ class TailwindDataType(
                         config.textSize,
                         mainText,
                         subtext,
-                        dayColor,
-                        nightColor,
+                        interpolateWindColor(windSpeedInKmh, false, context),
+                        interpolateWindColor(windSpeedInKmh, true, context),
                         wideMode = config.gridSize.first == 60,
                         preview = config.preview,
                     )

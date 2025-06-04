@@ -42,8 +42,6 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.RefreshRate
 import de.timklge.karooheadwind.RoundLocationSetting
 import de.timklge.karooheadwind.WeatherDataProvider
-import de.timklge.karooheadwind.WindDirectionIndicatorSetting
-import de.timklge.karooheadwind.WindDirectionIndicatorTextSetting
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
@@ -64,16 +62,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
     val karooSystem = remember { KarooSystemService(ctx) }
 
     var refreshRateSetting by remember { mutableStateOf(RefreshRate.STANDARD) }
-    var selectedWindDirectionIndicatorTextSetting by remember {
-        mutableStateOf(
-            WindDirectionIndicatorTextSetting.HEADWIND_SPEED
-        )
-    }
-    var selectedWindDirectionIndicatorSetting by remember {
-        mutableStateOf(
-            WindDirectionIndicatorSetting.HEADWIND_DIRECTION
-        )
-    }
 
     var selectedRoundLocationSetting by remember { mutableStateOf(RoundLocationSetting.KM_3) }
     var forecastKmPerHour by remember { mutableStateOf("20") }
@@ -88,8 +76,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
-            selectedWindDirectionIndicatorTextSetting = settings.windDirectionIndicatorTextSetting
-            selectedWindDirectionIndicatorSetting = settings.windDirectionIndicatorSetting
             selectedRoundLocationSetting = settings.roundLocationTo
             forecastKmPerHour = settings.forecastedKmPerHour.toString()
             forecastMilesPerHour = settings.forecastedMilesPerHour.toString()
@@ -118,8 +104,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
         val newSettings = HeadwindSettings(
             welcomeDialogAccepted = true,
-            windDirectionIndicatorSetting = selectedWindDirectionIndicatorSetting,
-            windDirectionIndicatorTextSetting = selectedWindDirectionIndicatorTextSetting,
             roundLocationTo = selectedRoundLocationSetting,
             forecastedMilesPerHour = forecastMilesPerHour.toIntOrNull()?.coerceIn(3, 30) ?: 12,
             forecastedKmPerHour = forecastKmPerHour.toIntOrNull()?.coerceIn(5, 50) ?: 20,
@@ -163,37 +147,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selected = refreshRateSelection
         ) { selectedOption ->
             refreshRateSetting = RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
-        }
-
-        val windDirectionIndicatorSettingDropdownOptions =
-            WindDirectionIndicatorSetting.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-        val windDirectionIndicatorSettingSelection by remember(selectedWindDirectionIndicatorSetting) {
-            mutableStateOf(windDirectionIndicatorSettingDropdownOptions.find { option -> option.id == selectedWindDirectionIndicatorSetting.id }!!)
-        }
-        Dropdown(
-            label = "Wind Direction Indicator",
-            options = windDirectionIndicatorSettingDropdownOptions,
-            selected = windDirectionIndicatorSettingSelection
-        ) { selectedOption ->
-            selectedWindDirectionIndicatorSetting =
-                WindDirectionIndicatorSetting.entries.find { unit -> unit.id == selectedOption.id }!!
-        }
-
-        val windDirectionIndicatorTextSettingDropdownOptions =
-            WindDirectionIndicatorTextSetting.entries.toList()
-                .map { unit -> DropdownOption(unit.id, unit.label) }
-        val windDirectionIndicatorTextSettingSelection by remember(
-            selectedWindDirectionIndicatorTextSetting
-        ) {
-            mutableStateOf(windDirectionIndicatorTextSettingDropdownOptions.find { option -> option.id == selectedWindDirectionIndicatorTextSetting.id }!!)
-        }
-        Dropdown(
-            label = "Text on Headwind Indicator",
-            options = windDirectionIndicatorTextSettingDropdownOptions,
-            selected = windDirectionIndicatorTextSettingSelection
-        ) { selectedOption ->
-            selectedWindDirectionIndicatorTextSetting =
-                WindDirectionIndicatorTextSetting.entries.find { unit -> unit.id == selectedOption.id }!!
         }
 
         val roundLocationDropdownOptions = RoundLocationSetting.entries.toList()

@@ -1,3 +1,4 @@
+import com.android.build.gradle.tasks.ProcessApplicationManifest
 import java.util.Base64
 
 plugins {
@@ -60,34 +61,49 @@ tasks.register("generateManifest") {
     group = "build"
 
     doLast {
+        val baseUrl = System.getenv("BASE_URL") ?: "https://github.com/timklge/karoo-headwind/releases/latest/download"
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
             "label" to "Headwind",
             "packageName" to "de.timklge.karooheadwind",
-            "iconUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/karoo-headwind.png",
-            "latestApkUrl" to "https://github.com/timklge/karoo-headwind/releases/latest/download/app-release.apk",
+            "iconUrl" to "$baseUrl/karoo-headwind.png",
+            "latestApkUrl" to "$baseUrl/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Remove crashlytics\n" +
+            "releaseNotes" to "* Refactor unit conversions\n* Remove crashlytics\n" +
                 "* Reduce refresh rate on K2, add refresh rate setting\n" +
             "screenshotUrls" to listOf(
-                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview1.png",
-                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview3.png",
-                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview2.png",
-                "https://github.com/timklge/karoo-headwind/releases/latest/download/preview0.png",
+                "$baseUrl/preview1.png",
+                "$baseUrl/preview3.png",
+                "$baseUrl/preview2.png",
+                "$baseUrl/preview0.png",
             )
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
         manifestFile.writeText(gson)
         println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
+
+        if (System.getenv()["BASE_URL"] != null){
+            val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
+            var androidManifestContent = androidManifestFile.readText()
+            androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
+            androidManifestFile.writeText(androidManifestContent)
+            println("Replaced \$BASE_URL$ in AndroidManifest.xml")
+        }
     }
 }
 
 tasks.named("assemble") {
     dependsOn("generateManifest")
+}
+
+tasks.withType<ProcessApplicationManifest>().configureEach {
+    if (name == "processDebugMainManifest" || name == "processReleaseMainManifest") {
+        dependsOn(tasks.named("generateManifest"))
+    }
 }
 
 dependencies {

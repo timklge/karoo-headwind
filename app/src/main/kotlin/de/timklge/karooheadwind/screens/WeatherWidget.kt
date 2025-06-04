@@ -50,7 +50,7 @@ fun WeatherWidget(
     isImperial: Boolean,
     isNight: Boolean
 ) {
-    val fontSize = 20.sp
+    val fontSize = 18.sp
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(5.dp),
@@ -106,7 +106,6 @@ fun WeatherWidget(
         )
 
         Column(horizontalAlignment = Alignment.End) {
-            // Temperature (larger)
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {

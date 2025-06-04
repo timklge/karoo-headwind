@@ -18,17 +18,6 @@ enum class PrecipitationUnit(val id: String, val label: String, val unitDisplay:
     INCH("inch", "Inch", "in")
 }
 
-enum class WindDirectionIndicatorTextSetting(val id: String, val label: String){
-    HEADWIND_SPEED("headwind-speed", "Headwind speed"),
-    WIND_SPEED("absolute-wind-speed", "Absolute wind speed"),
-    NONE("none", "None")
-}
-
-enum class WindDirectionIndicatorSetting(val id: String, val label: String){
-    HEADWIND_DIRECTION("headwind-direction", "Headwind"),
-    WIND_DIRECTION("wind-direction", "Absolute wind direction"),
-}
-
 enum class TemperatureUnit(val id: String, val label: String, val unitDisplay: String){
     CELSIUS("celsius", "Celsius (°C)", "°C"),
     FAHRENHEIT("fahrenheit", "Fahrenheit (°F)", "°F")
@@ -91,8 +80,6 @@ enum class RefreshRate(val id: String, val k2Ms: Long, val k3Ms: Long) {
 @Serializable
 data class HeadwindSettings(
     val welcomeDialogAccepted: Boolean = false,
-    val windDirectionIndicatorTextSetting: WindDirectionIndicatorTextSetting = WindDirectionIndicatorTextSetting.HEADWIND_SPEED,
-    val windDirectionIndicatorSetting: WindDirectionIndicatorSetting = WindDirectionIndicatorSetting.HEADWIND_DIRECTION,
     val roundLocationTo: RoundLocationSetting = RoundLocationSetting.KM_3,
     val forecastedKmPerHour: Int = 20,
     val forecastedMilesPerHour: Int = 12,

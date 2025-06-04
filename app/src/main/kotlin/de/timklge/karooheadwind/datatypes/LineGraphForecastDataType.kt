@@ -1,35 +1,23 @@
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
-import androidx.glance.action.clickable
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.background
-import androidx.glance.color.ColorProvider
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
+import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.width
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.HeadwindWidgetSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.R
-import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getHeadingFlow
+import de.timklge.karooheadwind.screens.LineGraphBuilder
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
@@ -37,9 +25,6 @@ import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.util.celciusInUserUnit
-import de.timklge.karooheadwind.util.millimetersInUserUnit
-import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
@@ -67,30 +52,15 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
-import kotlin.math.roundToInt
+import kotlin.math.ceil
+import kotlin.math.floor
 
-abstract class ForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
-    @Composable
-    abstract fun RenderWidget(arrowBitmap: Bitmap,
-                              current: WeatherInterpretation,
-                              windBearing: Int,
-                              windSpeed: Int,
-                              windGusts: Int,
-                              precipitation: Double,
-                              precipitationProbability: Int?,
-                              temperature: Int,
-                              temperatureUnit: TemperatureUnit,
-                              timeLabel: String,
-                              dateLabel: String?,
-                              distance: Double?,
-                              isImperial: Boolean,
-                              isNight: Boolean)
-
+abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
 
     companion object {
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("UTC"))
     }
 
     data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
@@ -98,6 +68,14 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                           val headingResponse: HeadingResponse? = null, val upcomingRoute: UpcomingRoute? = null, val isVisible: Boolean)
 
     data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean, val isImperialTemperature: Boolean)
+
+    data class LineData(val time: Instant? = null, val distance: Float? = null, val weatherData: WeatherData)
+
+    abstract fun getLineData(
+        lineData: List<LineData>,
+        isImperial: Boolean,
+        upcomingRoute: UpcomingRoute?
+    ): Set<LineGraphBuilder.Line>
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
         flow {
@@ -186,11 +164,6 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
             awaitCancellation()
         }
 
-        val baseBitmap = BitmapFactory.decodeResource(
-            context.resources,
-            R.drawable.arrow_0
-        )
-
         val settingsAndProfileStream = context.streamSettings(karooSystem).combine(karooSystem.streamUserProfile()) { settings, userProfile ->
             SettingsAndProfile(settings = settings, isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
                 isImperialTemperature = userProfile.preferredUnit.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL)
@@ -236,7 +209,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         val viewJob = CoroutineScope(Dispatchers.IO).launch {
             emitter.onNext(ShowCustomStreamState("", null))
 
-            dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, upcomingRoute) ->
+            dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, widgetSettings, headingResponse, actualUpcomingRoute) ->
+                val upcomingRoute = if (allData?.provider == WeatherDataProvider.OPEN_METEO) actualUpcomingRoute else null
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
                 if (allData?.data.isNullOrEmpty()){
@@ -252,110 +226,59 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                 }
 
                 val result = glance.compose(context, DpSize.Unspecified) {
-                    var modifier = GlanceModifier.fillMaxSize()
-
-                    if (!config.preview) modifier = modifier.clickable(onClick = actionRunCallback<CycleHoursAction>())
-
-                    Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.Start) {
-                        val hourOffset = widgetSettings?.currentForecastHourOffset ?: 0
-                        val positionOffset = if (allData?.data?.size == 1) 0 else hourOffset
-
-                        var previousDate: String? = let {
-                            val unixTime = allData?.data?.getOrNull(positionOffset)?.forecasts?.getOrNull(hourOffset)?.time
-                            val formattedDate = unixTime?.let {
-                                getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
-                            }
-
-                            formattedDate
-                        }
-
-                        for (baseIndex in hourOffset..hourOffset + 2) {
-                            val positionIndex = if (allData?.data?.size == 1) 0 else baseIndex
-
-                            if (allData?.data?.getOrNull(positionIndex) == null) break
-                            if (baseIndex >= (allData.data.getOrNull(positionOffset)?.forecasts?.size ?: 0)) break
-
-                            val data = allData.data.getOrNull(positionIndex)
-                            val distanceAlongRoute = allData.data.getOrNull(positionIndex)?.coords?.distanceAlongRoute
-                            val position = allData.data.getOrNull(positionIndex)?.coords?.let {
-                                "${(it.distanceAlongRoute?.div(1000.0))?.toInt()} at ${it.lat}, ${it.lon}"
-                            }
-
-                            if (baseIndex > hourOffset) {
-                                Spacer(
-                                    modifier = GlanceModifier.fillMaxHeight().background(
-                                        ColorProvider(Color.Black, Color.White)
-                                    ).width(1.dp)
-                                )
-                            }
-
-                            Log.d(
-                                KarooHeadwindExtension.TAG,
-                                "Distance along route ${positionIndex}: $position"
-                            )
-
-                            val distanceFromCurrent =
-                                upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
-                                    distanceAlongRoute?.minus(currentDistanceAlongRoute)
-                                }
-
-                            val isCurrent = baseIndex == 0 && positionIndex == 0
-
-                            if (isCurrent && data?.current != null) {
-                                val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
-                                val unixTime = data.current.time
-                                val formattedTime =
-                                    timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                val formattedDate =
-                                    getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
-                                val hasNewDate = formattedDate != previousDate || baseIndex == 0
-
-                                RenderWidget(
-                                    arrowBitmap = baseBitmap,
-                                    current = interpretation,
-                                    windBearing = data.current.windDirection.roundToInt(),
-                                    windSpeed = msInUserUnit(data.current.windSpeed, settingsAndProfile.isImperial).roundToInt(),
-                                    windGusts = msInUserUnit(data.current.windGusts, settingsAndProfile.isImperial).roundToInt(),
-                                    precipitation = millimetersInUserUnit(data.current.precipitation, settingsAndProfile.isImperial),
-                                    precipitationProbability = null,
-                                    temperature = celciusInUserUnit(data.current.temperature, settingsAndProfile.isImperialTemperature).roundToInt(),
-                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
-                                    timeLabel = formattedTime,
-                                    dateLabel = if (hasNewDate) formattedDate else null,
-                                    distance = null,
-                                    isImperial = settingsAndProfile.isImperial,
-                                    isNight = data.current.isNight
-                                )
-
-                                previousDate = formattedDate
+                    val data = buildList {
+                        for(i in 0..<12){
+                            val locationData = if (upcomingRoute != null){
+                                allData?.data?.getOrNull(i)
                             } else {
-                                val weatherData = data?.forecasts?.getOrNull(baseIndex)
-                                val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
-                                val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
-                                val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
-                                val hasNewDate = formattedDate != previousDate || baseIndex == 0
-
-                                RenderWidget(
-                                    arrowBitmap = baseBitmap,
-                                    current = interpretation,
-                                    windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                                    windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
-                                    windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
-                                    precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, settingsAndProfile.isImperial),
-                                    precipitationProbability = weatherData?.precipitationProbability?.toInt(),
-                                    temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, settingsAndProfile.isImperialTemperature).roundToInt(),
-                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
-                                    timeLabel = formattedTime,
-                                    dateLabel = if (hasNewDate) formattedDate else null,
-                                    distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
-                                    isImperial = settingsAndProfile.isImperial,
-                                    isNight = weatherData?.isNight == true
-                                )
-
-                                previousDate = formattedDate
+                                allData?.data?.firstOrNull()
                             }
+                            val data = if (i == 0){
+                                locationData?.current
+                            } else {
+                                locationData?.forecasts?.getOrNull(i)
+                            }
+
+                            if (data == null) {
+                                Log.w(KarooHeadwindExtension.TAG, "No weather data available for forecast index $i")
+                                continue
+                            }
+
+                            val time = Instant.ofEpochSecond(data.time)
+
+                            add(LineData(
+                                time = time,
+                                distance = locationData?.coords?.distanceAlongRoute?.toFloat(),
+                                weatherData = data,
+                            ))
                         }
+                    }
+
+                    val pointData = getLineData(data, settingsAndProfile.isImperialTemperature, upcomingRoute)
+                    val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
+                        val startTime = data.firstOrNull()?.time
+                        val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
+                        val timeLabel = timeFormatter.format(time)
+                        val beforeData = data.getOrNull(floor(x).toInt().coerceAtLeast(0))
+                        val afterData = data.getOrNull(ceil(x).toInt().coerceAtMost(data.size - 1))
+
+                        if (beforeData?.distance != null || afterData?.distance != null) {
+                            val start = beforeData?.distance ?: 0.0f
+                            val end = (afterData?.distance ?: upcomingRoute?.routeLength?.toFloat()) ?: 0.0f
+                            val distance = start + (end - start) * (x - floor(x))
+                            val distanceLabel = if (settingsAndProfile.isImperial) {
+                                "${(distance * 0.000621371).toInt()}mi"
+                            } else {
+                                "${(distance / 1000).toInt()}km"
+                            }
+                            return@drawLineGraph distanceLabel
+                        } else {
+                            timeLabel
+                        }
+                    }
+
+                    Box(modifier = GlanceModifier.fillMaxSize()){
+                        Image(ImageProvider(bitmap), "Forecast", modifier = GlanceModifier.fillMaxSize())
                     }
                 }
 

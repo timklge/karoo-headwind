@@ -14,7 +14,11 @@ data class OpenMeteoWeatherForecastData(
     @SerialName("wind_speed_10m") val windSpeed: List<Double>,
     @SerialName("wind_direction_10m") val windDirection: List<Double>,
     @SerialName("wind_gusts_10m") val windGusts: List<Double>,
+    @SerialName("cloud_cover") val cloudCover: List<Double>,
+    @SerialName("surface_pressure") val surfacePressure: List<Double>,
+    @SerialName("pressure_msl") val sealevelPressure: List<Double>,
     @SerialName("is_day") val isDay: List<Int>,
+    @SerialName("relative_humidity_2m") val relativeHumidity: List<Int>,
     ) {
     fun toWeatherData(): List<WeatherData> {
         return time.mapIndexed { index, t ->
@@ -29,6 +33,10 @@ data class OpenMeteoWeatherForecastData(
                 isNight = isDay[index] == 0,
                 time = t,
                 isForecast = true,
+                cloudCover = cloudCover[index],
+                surfacePressure = surfacePressure[index],
+                sealevelPressure = sealevelPressure[index],
+                relativeHumidity = relativeHumidity[index],
             )
         }
     }

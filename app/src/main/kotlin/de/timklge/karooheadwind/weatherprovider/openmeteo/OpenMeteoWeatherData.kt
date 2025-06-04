@@ -12,7 +12,7 @@ data class OpenMeteoWeatherData(
     @SerialName("precipitation") val precipitation: Double,
     @SerialName("cloud_cover") val cloudCover: Int,
     @SerialName("surface_pressure") val surfacePressure: Double,
-    @SerialName("pressure_msl") val sealevelPressure: Double? = null,
+    @SerialName("pressure_msl") val sealevelPressure: Double,
     @SerialName("wind_speed_10m") val windSpeed: Double,
     @SerialName("wind_direction_10m") val windDirection: Double,
     @SerialName("wind_gusts_10m") val windGusts: Double,
@@ -21,7 +21,7 @@ data class OpenMeteoWeatherData(
 ) {
     fun toWeatherData(): WeatherData = WeatherData(
         temperature = temperature,
-        relativeHumidity = relativeHumidity.toDouble(),
+        relativeHumidity = relativeHumidity,
         precipitation = precipitation,
         cloudCover = cloudCover.toDouble(),
         surfacePressure = surfacePressure,
@@ -32,7 +32,7 @@ data class OpenMeteoWeatherData(
         weatherCode = weatherCode,
         time = time,
         isForecast = false,
-        isNight = isDay == 0
+        isNight = isDay == 0,
     )
 }
 

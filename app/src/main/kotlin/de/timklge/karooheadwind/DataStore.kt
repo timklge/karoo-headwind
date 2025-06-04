@@ -210,6 +210,22 @@ fun Context.streamCurrentForecastWeatherData(): Flow<WeatherDataResponse?> {
     }.distinctUntilChanged()
 }
 
+fun lerp(
+    start: Double,
+    end: Double,
+    factor: Double
+): Double {
+    return start + (end - start) * factor
+}
+
+fun lerp(
+    start: Int,
+    end: Int,
+    factor: Double
+): Int {
+    return (start + (end - start) * factor).toInt()
+}
+
 fun lerpNullable(
     start: Double?,
     end: Double?,
@@ -266,12 +282,12 @@ fun lerpWeather(
     return WeatherData(
         time = (start.time + (end.time - start.time) * factor).toLong(),
         temperature = start.temperature + (end.temperature - start.temperature) * factor,
-        relativeHumidity = lerpNullable(start.relativeHumidity, end.relativeHumidity, factor),
+        relativeHumidity = lerp(start.relativeHumidity, end.relativeHumidity, factor),
         precipitation = start.precipitation + (end.precipitation - start.precipitation) * factor,
         precipitationProbability = lerpNullable(start.precipitationProbability, end.precipitationProbability, factor),
-        cloudCover = lerpNullable(start.cloudCover, end.cloudCover, factor),
-        surfacePressure = lerpNullable(start.surfacePressure, end.surfacePressure, factor),
-        sealevelPressure = lerpNullable(start.sealevelPressure, end.sealevelPressure, factor),
+        cloudCover = lerp(start.cloudCover, end.cloudCover, factor),
+        surfacePressure = lerp(start.surfacePressure, end.surfacePressure, factor),
+        sealevelPressure = lerp(start.sealevelPressure, end.sealevelPressure, factor),
         windSpeed = start.windSpeed + (end.windSpeed - start.windSpeed) * factor,
         windDirection = lerpAngle(start.windDirection, end.windDirection, factor),
         windGusts = start.windGusts + (end.windGusts - start.windGusts) * factor,

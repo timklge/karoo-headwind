@@ -129,29 +129,8 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
 
             val refreshRate = karooSystemService.getRefreshRateInMilliseconds(context)
 
-            val windSpeedFlow = combine(context.streamSettings(karooSystemService), karooSystemService.streamUserProfile(), context.streamCurrentWeatherData(karooSystemService).filterNotNull()) { settings, profile, weatherData ->
-                val isOpenMeteo = settings.weatherProvider == WeatherDataProvider.OPEN_METEO
-                val profileIsImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-
-                if (isOpenMeteo) {
-                    if (profileIsImperial) { // OpenMeteo returns wind speed in mph
-                        val windSpeedInMilesPerHour = weatherData.windSpeed
-
-                        windSpeedInMilesPerHour * 0.44704
-                    } else { // Wind speed reported by openmeteo is in km/h
-                        val windSpeedInKmh = weatherData.windSpeed
-
-                        windSpeedInKmh * 0.277778
-                    }
-                } else {
-                    if (profileIsImperial) { // OpenWeatherMap returns wind speed in mph
-                        val windSpeedInMilesPerHour = weatherData.windSpeed
-
-                        windSpeedInMilesPerHour * 0.44704
-                    } else { // Wind speed reported by openweathermap is in m/s
-                        weatherData.windSpeed
-                    }
-                }
+            val windSpeedFlow = context.streamCurrentWeatherData(karooSystemService).filterNotNull().map { weatherData ->
+                weatherData.windSpeed
             }
 
             data class StreamValues(
