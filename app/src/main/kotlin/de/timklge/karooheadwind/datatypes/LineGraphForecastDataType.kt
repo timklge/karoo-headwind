@@ -60,7 +60,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
     private val glance = GlanceRemoteViews()
 
     companion object {
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("UTC"))
     }
 
     data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
@@ -69,9 +69,13 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
 
     data class SettingsAndProfile(val settings: HeadwindSettings, val isImperial: Boolean, val isImperialTemperature: Boolean)
 
-    data class LineData(val time: Instant? = null, val x: Float? = null, val weatherData: WeatherData)
+    data class LineData(val time: Instant? = null, val distance: Float? = null, val weatherData: WeatherData)
 
-    abstract fun getLineData(lineData: List<LineData>, isImperial: Boolean): Set<LineGraphBuilder.Line>
+    abstract fun getLineData(
+        lineData: List<LineData>,
+        isImperial: Boolean,
+        upcomingRoute: UpcomingRoute?
+    ): Set<LineGraphBuilder.Line>
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
         flow {
@@ -221,11 +225,19 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                 }
 
                 val result = glance.compose(context, DpSize.Unspecified) {
-
                     val data = buildList {
-                        for(i in 0..12){
-                            val locationData = allData?.data?.getOrNull(i) ?: allData?.data?.lastOrNull()
-                            val data = locationData?.forecasts?.getOrNull(i)
+                        for(i in 0..<12){
+                            val locationData = if (upcomingRoute != null){
+                                allData?.data?.getOrNull(i)
+                            } else {
+                                allData?.data?.firstOrNull()
+                            }
+                            val data = if (i == 0){
+                                locationData?.current
+                            } else {
+                                locationData?.forecasts?.getOrNull(i)
+                            }
+
                             if (data == null) {
                                 Log.w(KarooHeadwindExtension.TAG, "No weather data available for forecast index $i")
                                 continue
@@ -235,25 +247,24 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
 
                             add(LineData(
                                 time = time,
-                                x = locationData.coords.distanceAlongRoute?.toFloat(),
+                                distance = locationData?.coords?.distanceAlongRoute?.toFloat(),
                                 weatherData = data,
                             ))
                         }
                     }
 
-                    val pointData = getLineData(data, settingsAndProfile.isImperialTemperature)
+                    val pointData = getLineData(data, settingsAndProfile.isImperialTemperature, upcomingRoute)
                     val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
-                        val addedHours = x / 60.0
                         val startTime = data.firstOrNull()?.time
-                        val time = startTime?.plus(floor(addedHours * 60).toLong(), ChronoUnit.MINUTES)
+                        val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
                         val timeLabel = timeFormatter.format(time)
-                        val beforeData = data.getOrNull(floor(x / 60.0).toInt().coerceAtLeast(0))
-                        val afterData = data.getOrNull(ceil(x / 60.0).toInt())
+                        val beforeData = data.getOrNull(floor(x).toInt().coerceAtLeast(0))
+                        val afterData = data.getOrNull(ceil(x).toInt().coerceAtMost(data.size - 1))
 
-                        if (beforeData?.x != null || afterData?.x != null) {
-                            val start = (beforeData?.x ?: afterData?.x) ?: 0.0f
-                            val end = (afterData?.x ?: beforeData?.x) ?: 0.0f
-                            val distance = start + (end - start) * ((x / 60) - floor(x / 60))
+                        if (beforeData?.distance != null || afterData?.distance != null) {
+                            val start = beforeData?.distance ?: 0.0f
+                            val end = (afterData?.distance ?: upcomingRoute?.routeLength?.toFloat()) ?: 0.0f
+                            val distance = start + (end - start) * (x - floor(x))
                             val distanceLabel = if (settingsAndProfile.isImperial) {
                                 "${(distance * 0.000621371).toInt()}mi"
                             } else {

@@ -1,16 +1,25 @@
 package de.timklge.karooheadwind.datatypes
 
+import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import io.hammerhead.karooext.KarooSystemService
 
 class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastDataType(karooSystem, "precipitationForecast") {
-    override fun getLineData(lineData: List<LineData>, isImperial: Boolean): Set<LineGraphBuilder.Line> {
+    override fun getLineData(
+        lineData: List<LineData>,
+        isImperial: Boolean,
+        upcomingRoute: UpcomingRoute?
+    ): Set<LineGraphBuilder.Line> {
         val precipitationPoints = lineData.map { data ->
             if (isImperial) { // Convert mm to inches
                 data.weatherData.precipitation * 0.0393701 // Convert mm to inches
             } else {
                 data.weatherData.precipitation
             }
+        }
+
+        val precipitationPropagation = lineData.map { data ->
+            data.weatherData.precipitationProbability ?: 0.0
         }
 
         return setOf(
@@ -20,6 +29,15 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
                 },
                 color = android.graphics.Color.BLUE,
                 label = if (!isImperial) "mm" else "in",
+            ),
+
+            LineGraphBuilder.Line(
+                dataPoints = precipitationPropagation.mapIndexed { index, value ->
+                    LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
+                },
+                color = android.graphics.Color.CYAN,
+                label = "%",
+                yAxis = LineGraphBuilder.YAxis.RIGHT
             )
         )
     }

@@ -294,35 +294,67 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                 "Distance along route ${positionIndex}: $position"
                             )
 
-                            val distanceFromCurrent = upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
-                                distanceAlongRoute?.minus(currentDistanceAlongRoute)
+                            val distanceFromCurrent =
+                                upcomingRoute?.distanceAlongRoute?.let { currentDistanceAlongRoute ->
+                                    distanceAlongRoute?.minus(currentDistanceAlongRoute)
+                                }
+
+                            val isCurrent = baseIndex == 0 && positionIndex == 0
+
+                            if (isCurrent && data?.current != null) {
+                                val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
+                                val unixTime = data.current.time
+                                val formattedTime =
+                                    timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                val formattedDate =
+                                    getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
+                                val hasNewDate = formattedDate != previousDate || baseIndex == 0
+
+                                RenderWidget(
+                                    arrowBitmap = baseBitmap,
+                                    current = interpretation,
+                                    windBearing = data.current.windDirection.roundToInt(),
+                                    windSpeed = msInUserUnit(data.current.windSpeed, settingsAndProfile.isImperial).roundToInt(),
+                                    windGusts = msInUserUnit(data.current.windGusts, settingsAndProfile.isImperial).roundToInt(),
+                                    precipitation = millimetersInUserUnit(data.current.precipitation, settingsAndProfile.isImperial),
+                                    precipitationProbability = null,
+                                    temperature = celciusInUserUnit(data.current.temperature, settingsAndProfile.isImperialTemperature).roundToInt(),
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
+                                    timeLabel = formattedTime,
+                                    dateLabel = if (hasNewDate) formattedDate else null,
+                                    distance = null,
+                                    isImperial = settingsAndProfile.isImperial,
+                                    isNight = data.current.isNight
+                                )
+
+                                previousDate = formattedDate
+                            } else {
+                                val weatherData = data?.forecasts?.getOrNull(baseIndex)
+                                val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
+                                val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
+                                val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
+                                val hasNewDate = formattedDate != previousDate || baseIndex == 0
+
+                                RenderWidget(
+                                    arrowBitmap = baseBitmap,
+                                    current = interpretation,
+                                    windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
+                                    windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
+                                    windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
+                                    precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, settingsAndProfile.isImperial),
+                                    precipitationProbability = weatherData?.precipitationProbability?.toInt(),
+                                    temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, settingsAndProfile.isImperialTemperature).roundToInt(),
+                                    temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
+                                    timeLabel = formattedTime,
+                                    dateLabel = if (hasNewDate) formattedDate else null,
+                                    distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
+                                    isImperial = settingsAndProfile.isImperial,
+                                    isNight = weatherData?.isNight == true
+                                )
+
+                                previousDate = formattedDate
                             }
-
-                            val weatherData = data?.forecasts?.getOrNull(baseIndex)
-                            val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
-                            val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
-                            val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                            val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
-                            val hasNewDate = formattedDate != previousDate || baseIndex == 0
-
-                            RenderWidget(
-                                arrowBitmap = baseBitmap,
-                                current = interpretation,
-                                windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                                windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
-                                windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
-                                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, settingsAndProfile.isImperial),
-                                precipitationProbability = weatherData?.precipitationProbability?.toInt(),
-                                temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, settingsAndProfile.isImperialTemperature).roundToInt(),
-                                temperatureUnit = if (settingsAndProfile.isImperialTemperature) TemperatureUnit.FAHRENHEIT else TemperatureUnit.CELSIUS,
-                                timeLabel = formattedTime,
-                                dateLabel = if (hasNewDate) formattedDate else null,
-                                distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
-                                isImperial = settingsAndProfile.isImperial,
-                                isNight = weatherData?.isNight == true
-                            )
-
-                            previousDate = formattedDate
                         }
                     }
                 }
