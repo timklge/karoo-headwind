@@ -6,7 +6,6 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.jsonWithUnknownKeys
-import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
 import de.timklge.karooheadwind.weatherprovider.WeatherProvider
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderException
@@ -102,7 +101,7 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
 
         val weatherDataForSelectedLocations = selectedCoordinates.map { coordinate ->
             async {
-                val response = makeOpenWeatherMapRequest(karooSystem, coordinate, apiKey, profile)
+                val response = makeOpenWeatherMapRequest(karooSystem, coordinate, apiKey)
                 val responseBody = response.body?.let { String(it) }
                     ?: throw WeatherProviderException(response.statusCode, "Null Response from OpenWeatherMap")
 
@@ -144,21 +143,13 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
     private suspend fun makeOpenWeatherMapRequest(
         service: KarooSystemService,
         coordinate: GpsCoordinates,
-        apiKey: String,
-        profile: UserProfile?
+        apiKey: String
     ): HttpResponseState.Complete {
         val response = callbackFlow {
 
-            // OpenWeatherMap only supports setting imperial or metric units for all measurements, not individually for distance / temperature
-            val unitsString = if (profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL || profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
-                "imperial"
-            } else {
-                "metric"
-            }
-
             // URL API 3.0 with onecall endpoint
             val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
-                    "&appid=$apiKey&exclude=minutely,daily,alerts&units=${unitsString}"
+                    "&appid=$apiKey&exclude=minutely,daily,alerts&units=metric"
 
             Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap API 3.0: $url")
 
