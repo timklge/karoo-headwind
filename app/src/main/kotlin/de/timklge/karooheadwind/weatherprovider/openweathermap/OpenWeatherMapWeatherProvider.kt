@@ -16,13 +16,17 @@ import io.hammerhead.karooext.models.OnHttpResponse
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.single
 import kotlinx.coroutines.flow.timeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -48,6 +52,8 @@ data class Snow(
 
 class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvider {
     companion object {
+        private const val MAX_API_CALLS = 4
+
         fun convertWeatherCodeToOpenMeteo(owmCode: Int): Int {
             // Mapping OpenWeatherMap to WMO OpenMeteo
             return when (owmCode) {
@@ -67,37 +73,92 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         coordinates: List<GpsCoordinates>,
         settings: HeadwindSettings,
         profile: UserProfile?
-    ): WeatherDataResponse {
+    ): WeatherDataResponse = coroutineScope {
 
-        val response = makeOpenWeatherMapRequest(karooSystem, coordinates, apiKey)
-        val responseBody = response.body?.let { String(it) } ?: throw Exception("Null response from OpenWeatherMap")
 
-        val responses = mutableListOf<WeatherDataForLocation>()
+        val selectedCoordinates = when {
+            coordinates.size <= MAX_API_CALLS -> coordinates
+            else -> {
 
-        val openWeatherMapWeatherDataForLocation = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapWeatherDataForLocation>(responseBody)
-        responses.add(openWeatherMapWeatherDataForLocation.toWeatherDataForLocation(null))
+                val mandatoryCoordinates = coordinates.take(3).toMutableList()
 
-        // FIXME Route forecast
 
-        return WeatherDataResponse(
+                val fourthIndex = if (coordinates.size > 6) {
+                    coordinates.size - 3
+                } else {
+                    (coordinates.size / 2) + 1
+                }
+
+                mandatoryCoordinates.add(coordinates[fourthIndex.coerceIn(3, coordinates.lastIndex)])
+                mandatoryCoordinates
+            }
+        }
+
+        Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap: searching for ${selectedCoordinates.size} locations from ${coordinates.size} total")
+        selectedCoordinates.forEachIndexed { index, coord ->
+            Log.d(KarooHeadwindExtension.TAG, "Point #$index: ${coord.lat}, ${coord.lon}, distance: ${coord.distanceAlongRoute}")
+        }
+
+
+        val weatherDataForSelectedLocations = selectedCoordinates.map { coordinate ->
+            async {
+                val response = makeOpenWeatherMapRequest(karooSystem, coordinate, apiKey, profile)
+                val responseBody = response.body?.let { String(it) }
+                    ?: throw WeatherProviderException(response.statusCode, "Null Response from OpenWeatherMap")
+
+                val weatherData = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapWeatherDataForLocation>(responseBody)
+                coordinate to weatherData
+            }
+        }.awaitAll()
+
+
+        val allLocationData = coordinates.map { originalCoord ->
+
+            val directMatch = weatherDataForSelectedLocations.find { it.first == originalCoord }
+
+            if (directMatch != null) {
+                directMatch.second.toWeatherDataForLocation(originalCoord.distanceAlongRoute)
+            } else {
+
+                val closestCoord = weatherDataForSelectedLocations.minByOrNull { (coord, _) ->
+                    if (originalCoord.distanceAlongRoute != null && coord.distanceAlongRoute != null) {
+                        (originalCoord.distanceAlongRoute - coord.distanceAlongRoute).absoluteValue
+                    } else {
+                        originalCoord.distanceTo(coord)
+                    }
+                } ?: throw WeatherProviderException(500, "Error searching nearly coordinate")
+
+
+                closestCoord.second.toWeatherDataForLocation(originalCoord.distanceAlongRoute)
+            }
+        }
+
+        WeatherDataResponse(
             provider = WeatherDataProvider.OPEN_WEATHER_MAP,
-            data = responses
+            data = allLocationData
         )
     }
+
 
     @OptIn(FlowPreview::class)
     private suspend fun makeOpenWeatherMapRequest(
         service: KarooSystemService,
-        coordinates: List<GpsCoordinates>,
-        apiKey: String
+        coordinate: GpsCoordinates,
+        apiKey: String,
+        profile: UserProfile?
     ): HttpResponseState.Complete {
         val response = callbackFlow {
+
             // OpenWeatherMap only supports setting imperial or metric units for all measurements, not individually for distance / temperature
-            val coordinate = coordinates.first()
+            val unitsString = if (profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL || profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
+                "imperial"
+            } else {
+                "metric"
+            }
 
             // URL API 3.0 with onecall endpoint
             val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
-                "&appid=$apiKey&exclude=minutely,daily,alerts&units=metric"
+                    "&appid=$apiKey&exclude=minutely,daily,alerts&units=${unitsString}"
 
             Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap API 3.0: $url")
 
