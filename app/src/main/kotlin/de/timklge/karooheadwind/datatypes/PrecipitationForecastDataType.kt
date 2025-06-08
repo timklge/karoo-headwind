@@ -19,7 +19,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
         }
 
         val precipitationPropagation = lineData.map { data ->
-            data.weatherData.precipitationProbability ?: 0.0
+            (data.weatherData.precipitationProbability?.coerceAtMost(99.0)) ?: 0.0 // Max 99 % so that the label doesn't take up too much space
         }
 
         return setOf(
