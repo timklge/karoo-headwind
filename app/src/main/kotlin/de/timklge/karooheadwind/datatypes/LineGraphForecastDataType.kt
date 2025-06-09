@@ -82,7 +82,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
             val settingsAndProfile = settingsAndProfileStream.firstOrNull()
 
             while (true) {
-                val data = (0..<10).map { index ->
+                val data = (0..<12).map { index ->
                     val timeAtFullHour = Instant.now().truncatedTo(ChronoUnit.HOURS).epochSecond
 
                     val weatherData = (0..<12).map {
@@ -228,7 +228,13 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                 val result = glance.compose(context, DpSize.Unspecified) {
                     val data = buildList {
                         for(i in 0..<12){
-                            val locationData = if (upcomingRoute != null){
+                            val isRouteLoaded = if (config.preview){
+                                true
+                            } else {
+                                upcomingRoute != null
+                            }
+
+                            val locationData = if (isRouteLoaded){
                                 allData?.data?.getOrNull(i)
                             } else {
                                 allData?.data?.firstOrNull()
@@ -267,9 +273,9 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                             val end = (afterData?.distance ?: upcomingRoute?.routeLength?.toFloat()) ?: 0.0f
                             val distance = start + (end - start) * (x - floor(x))
                             val distanceLabel = if (settingsAndProfile.isImperial) {
-                                "${(distance * 0.000621371).toInt()}mi"
+                                "${(distance * 0.000621371).toInt()}"
                             } else {
-                                "${(distance / 1000).toInt()}km"
+                                "${(distance / 1000).toInt()}"
                             }
                             return@drawLineGraph distanceLabel
                         } else {

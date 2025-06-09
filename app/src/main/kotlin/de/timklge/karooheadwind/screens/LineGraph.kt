@@ -54,7 +54,7 @@ class LineGraphBuilder(val context: Context) {
         if (lines.isEmpty() || lines.all { it.dataPoints.isEmpty() }) {
             val emptyPaint = Paint().apply {
                 color = primaryTextColor
-                textSize = 24f // Increased from 20f
+                textSize = 30f // Increased from 24f
                 textAlign = Align.CENTER
                 isAntiAlias = true
             }
@@ -63,8 +63,8 @@ class LineGraphBuilder(val context: Context) {
         }
 
         val marginTop = 10f
-        val marginBottom = 40f // Increased from 30f
-        var marginRight = 20f // Increased from 5f // Made var
+        val marginBottom = 55f // Increased from 40f
+        var marginRight = 25f // Increased from 20f // Made var, default updated
 
         var dataMinX = Float.MAX_VALUE
         var dataMaxX = Float.MIN_VALUE
@@ -101,7 +101,7 @@ class LineGraphBuilder(val context: Context) {
         if (!hasData) {
             val emptyPaint = Paint().apply {
                 color = primaryTextColor
-                textSize = 48f // Increased from 40f
+                textSize = 60f // Increased from 48f
                 textAlign = Align.CENTER
                 isAntiAlias = true
             }
@@ -111,7 +111,7 @@ class LineGraphBuilder(val context: Context) {
 
         // Dynamically calculate marginLeft based on Y-axis label widths
         val yAxisLabelPaint = Paint().apply {
-            textSize = 32f
+            textSize = 40f // Increased from 32f
             isAntiAlias = true
         }
 
@@ -149,8 +149,8 @@ class LineGraphBuilder(val context: Context) {
             }
         }
 
-        val yAxisTextRightToAxisGap = 15f // Current gap used: graphLeft - 15f
-        val canvasEdgePadding = 5f       // Desired padding from the canvas edge
+        val yAxisTextRightToAxisGap = 18f // Increased from 15f
+        val canvasEdgePadding = 3f       // Increased from 5f
 
         val dynamicMarginLeft =
             if (hasLeftYAxisData) maxLabelWidthLeft + yAxisTextRightToAxisGap + canvasEdgePadding else canvasEdgePadding
@@ -199,12 +199,13 @@ class LineGraphBuilder(val context: Context) {
         val graphBottom = height - marginBottom
         val graphRight = width - marginRight // Define graphRight for clarity
 
+
         // Legend properties
-        val legendTextSize = 26f // Increased from 22f
+        val legendTextSize = 25f
         val legendTextColor = primaryTextColor
         val legendPadding = 5f
-        val legendEntryHeight = 30f // Increased from 25f
-        val legendColorBoxSize = 24f // Increased from 20f
+        val legendEntryHeight = 30f
+        val legendColorBoxSize = 24f
         val legendTextMargin = 5f
 
         var effectiveMinX = dataMinX
@@ -353,7 +354,7 @@ class LineGraphBuilder(val context: Context) {
 
         val textPaint = Paint().apply {
             color = primaryTextColor
-            textSize = 32f // Increased from 28f
+            textSize = 40f // Increased from 32f
             isAntiAlias = true
         }
 
@@ -506,13 +507,13 @@ class LineGraphBuilder(val context: Context) {
                 val xPos = mapX(value)
                 if (xPos >= graphLeft - 5f && xPos <= graphLeft + graphWidth + 5f) {
                     canvas.drawLine(xPos, graphBottom - 5f, xPos, graphBottom + 5f, axisPaint)
-                    canvas.drawText(labelProvider(value), xPos, graphBottom + 30f, textPaint)
+                    canvas.drawText(labelProvider(value), xPos, graphBottom + 40f, textPaint)
                 }
             }
         } else {
             val xPos = mapX(dataMinX)
             canvas.drawLine(xPos, graphBottom - 5f, xPos, graphBottom + 5f, axisPaint)
-            canvas.drawText(labelProvider(dataMinX), xPos, graphBottom + 30f, textPaint)
+            canvas.drawText(labelProvider(dataMinX), xPos, graphBottom + 40f, textPaint)
         }
 
         textPaint.textAlign = Align.CENTER
