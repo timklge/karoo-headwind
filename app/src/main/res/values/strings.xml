@@ -21,8 +21,6 @@
     <string name="surfacePressure_description">Atmospheric pressure at surface in configured unit</string>
     <string name="sealevelPressure">Sealevel pressure</string>
     <string name="sealevelPressure_description">Atmospheric pressure at sea level in configured unit</string>
-    <string name="weather">Weather</string>
-    <string name="weather_description">Current weather conditions</string>
     <string name="weather_forecast">Weather Forecast</string>
     <string name="weather_forecast_description">Current hourly weather forecast</string>
     <string name="temperature_forecast">Temperature Forecast</string>
@@ -33,14 +31,8 @@
     <string name="precipitation_forecast_description">Current hourly precipitation forecast</string>
     <string name="headwind_speed">Headwind speed</string>
     <string name="headwind_speed_description">Current headwind speed</string>
-    <string name="temperature">Temperature</string>
-    <string name="temperature_description">Current temperature in configured unit</string>
     <string name="userwind_speed_description">Current headwind or wind speed based on user setting</string>
     <string name="userwind_speed">Set wind speed</string>
-    <string name="graphical_forecast">Graphical Forecast</string>
-    <string name="graphical_forecast_description">Current graphical weather forecast</string>
-    <string name="tailwind">Tailwind</string>
-    <string name="tailwind_description">Current tailwind, wind speed and gust speed</string>
     <string name="relativeGrade">Relative Grade</string>
     <string name="relativeGrade_description">Perceived grade in percent</string>
     <string name="relativeElevationGain">Relative Elevation Gain</string>

@@ -27,9 +27,7 @@ import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.ServiceStatusSingleton
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import de.timklge.karooheadwind.datatypes.ForecastDataType
-import de.timklge.karooheadwind.datatypes.WeatherDataType.Companion.timeFormatter
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
@@ -40,6 +38,7 @@ import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.util.celciusInUserUnit
 import de.timklge.karooheadwind.util.millimetersInUserUnit
 import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import java.time.Instant
@@ -105,7 +104,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
         val requestedWeatherPosition = forecastData?.data?.firstOrNull()?.coords
 
-        val formattedTime = currentWeatherData?.let { timeFormatter.format(Instant.ofEpochSecond(it.time)) }
+        val formattedTime = currentWeatherData?.let { ForecastDataType.timeFormatter.format(Instant.ofEpochSecond(it.time)) }
         val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(it.time)) }
 
         if (karooConnected == true && currentWeatherData != null) {

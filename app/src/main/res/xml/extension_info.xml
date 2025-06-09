@@ -13,13 +13,6 @@
         typeId="tailwind-and-ride-speed" />
 
     <DataType
-        description="@string/tailwind_description"
-        displayName="@string/tailwind"
-        graphical="true"
-        icon="@drawable/wind"
-        typeId="tailwind" />
-
-    <DataType
         description="@string/headwind_description"
         displayName="@string/headwind"
         graphical="true"
@@ -27,11 +20,11 @@
         typeId="headwind" />
 
     <DataType
-        description="@string/weather_description"
-        displayName="@string/weather"
-        graphical="true"
+        description="@string/windDirectionAndSpeed_description"
+        displayName="@string/windDirectionAndSpeed"
+        graphical="false"
         icon="@drawable/wind"
-        typeId="weather" />
+        typeId="windDirectionAndSpeed" />
 
     <DataType
         description="@string/weather_forecast_description"
@@ -62,25 +55,11 @@
         typeId="windForecast" />
 
     <DataType
-        description="@string/graphical_forecast_description"
-        displayName="@string/graphical_forecast"
-        graphical="true"
-        icon="@drawable/wind"
-        typeId="graphicalForecast" />
-
-    <DataType
         description="@string/headwind_speed_description"
         displayName="@string/headwind_speed"
         graphical="false"
         icon="@drawable/wind"
         typeId="headwindSpeed" />
-
-    <DataType
-        description="@string/windDirectionAndSpeed_description"
-        displayName="@string/windDirectionAndSpeed"
-        graphical="false"
-        icon="@drawable/wind"
-        typeId="windDirectionAndSpeed" />
 
     <DataType
         description="@string/relativeHumidity_description"
@@ -137,13 +116,6 @@
         graphical="false"
         icon="@drawable/ic_cloud"
         typeId="sealevelPressure" />
-
-    <DataType
-        description="@string/temperature_description"
-        displayName="@string/temperature"
-        graphical="false"
-        icon="@drawable/thermometer"
-        typeId="temperature" />
 
     <DataType
         description="@string/relativeGrade_description"

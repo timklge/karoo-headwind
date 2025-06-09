@@ -6,7 +6,6 @@ import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import de.timklge.karooheadwind.datatypes.GraphicalForecastDataType
 import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
@@ -17,11 +16,9 @@ import de.timklge.karooheadwind.datatypes.RelativeHumidityDataType
 import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
-import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
-import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
-import de.timklge.karooheadwind.datatypes.WeatherDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
+import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
@@ -68,14 +65,12 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         listOf(
             HeadwindDirectionDataType(karooSystem, applicationContext),
             TailwindAndRideSpeedDataType(karooSystem, applicationContext),
-            WeatherDataType(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
             RelativeHumidityDataType(karooSystem, applicationContext),
             CloudCoverDataType(karooSystem, applicationContext),
             WindGustsDataType(karooSystem, applicationContext),
             WindSpeedDataType(karooSystem, applicationContext),
-            TemperatureDataType(karooSystem, applicationContext),
             WindDirectionDataType(karooSystem, applicationContext),
             WindDirectionAndSpeedDataType(karooSystem, applicationContext),
             PrecipitationDataType(karooSystem, applicationContext),
@@ -84,7 +79,6 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             TemperatureForecastDataType(karooSystem),
             PrecipitationForecastDataType(karooSystem),
             WindForecastDataType(karooSystem),
-            GraphicalForecastDataType(karooSystem),
             WindDirectionAndSpeedDataType(karooSystem, applicationContext),
             RelativeGradeDataType(karooSystem, applicationContext),
             RelativeElevationGainDataType(karooSystem, applicationContext),
