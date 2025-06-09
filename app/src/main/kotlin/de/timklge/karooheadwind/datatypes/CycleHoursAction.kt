@@ -25,9 +25,9 @@ class CycleHoursAction : ActionCallback {
 
         var hourOffset = currentSettings.currentForecastHourOffset + 3
         val requestedPositions = forecastData?.data?.size
-        val requestedHours = forecastData?.data?.firstOrNull()?.forecasts?.size
+        val requestedHours = forecastData?.data?.firstOrNull()?.forecasts?.size?.coerceAtMost(6)
 
-        if (forecastData == null || requestedHours == null || requestedPositions == null || hourOffset >= requestedHours || (requestedPositions in 2..hourOffset)) {
+        if (forecastData == null || requestedHours == null || requestedPositions == null || (requestedPositions == 1 && hourOffset >= requestedHours) || (requestedPositions in 2..hourOffset)) {
             hourOffset = 0
         }
 
