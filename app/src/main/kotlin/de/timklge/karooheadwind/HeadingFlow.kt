@@ -91,8 +91,8 @@ suspend fun KarooSystemService.updateLastKnownGps(context: Context) {
 
 fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinates?> {
     /* return flow {
-        emit(GpsCoordinates(52.5164069,13.3784))
-        // emit(GpsCoordinates(32.46,-111.524))
+        // emit(GpsCoordinates(52.5164069,13.3784))
+        emit(GpsCoordinates(32.46,-111.524))
         awaitCancellation()
     } */
 

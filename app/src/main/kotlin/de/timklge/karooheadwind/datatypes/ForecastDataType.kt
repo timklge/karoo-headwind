@@ -301,6 +301,17 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
                             val isCurrent = baseIndex == 0 && positionIndex == 0
 
+                            val time = if (isCurrent && data?.current != null) {
+                                Instant.ofEpochSecond(data.current.time)
+                            } else {
+                                Instant.ofEpochSecond(data?.forecasts?.getOrNull(baseIndex)?.time ?: 0)
+                            }
+
+                            if (time.isBefore(Instant.now().minus(1, ChronoUnit.HOURS)) || (upcomingRoute == null && time.isAfter(Instant.now().plus(6, ChronoUnit.HOURS)))) {
+                                Log.d(KarooHeadwindExtension.TAG, "Skipping forecast data for time $time as it is in the past or too close to now")
+                                continue
+                            }
+
                             if (isCurrent && data?.current != null) {
                                 val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                 val unixTime = data.current.time
@@ -330,7 +341,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                 val weatherData = data?.forecasts?.getOrNull(baseIndex)
                                 val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
                                 val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
-                                val formattedTime = getTimeFormatter(context).format(Instant.ofEpochSecond(unixTime))
+                                val formattedTime = getTimeFormatter(context).format(Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalTime())
                                 val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                 val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
