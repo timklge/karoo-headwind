@@ -15,7 +15,6 @@ import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
-import de.timklge.karooheadwind.datatypes.TailwindDataType.StreamData
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
@@ -74,6 +73,17 @@ class TailwindAndRideSpeedDataType(
     private val applicationContext: Context
 ) : DataTypeImpl("karoo-headwind", "tailwind-and-ride-speed") {
     private val glance = GlanceRemoteViews()
+
+    data class StreamData(
+        val headingResponse: HeadingResponse,
+        val absoluteWindDirection: Double?,
+        val windSpeed: Double?,
+        val settings: HeadwindSettings,
+        val rideSpeed: Double? = null,
+        val gustSpeed: Double? = null,
+        val isImperial: Boolean = false,
+        val isVisible: Boolean = true
+    )
 
     private fun previewFlow(profileFlow: Flow<UserProfile>): Flow<StreamData> {
         return flow {

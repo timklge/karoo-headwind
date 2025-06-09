@@ -256,7 +256,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
                     if (!config.preview) modifier = modifier.clickable(onClick = actionRunCallback<CycleHoursAction>())
 
-                    Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.Start) {
+                    Row(modifier = modifier, horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
                         val hourOffset = widgetSettings?.currentForecastHourOffset ?: 0
                         val positionOffset = if (allData?.data?.size == 1) 0 else hourOffset
 
@@ -270,6 +270,9 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                         }
 
                         for (baseIndex in hourOffset..hourOffset + 2) {
+                            // Only show first value if placed in a 1x1 grid cell
+                            if (baseIndex > 0 && config.gridSize.first == 30) break
+
                             val positionIndex = if (allData?.data?.size == 1) 0 else baseIndex
 
                             if (allData?.data?.getOrNull(positionIndex) == null) break
