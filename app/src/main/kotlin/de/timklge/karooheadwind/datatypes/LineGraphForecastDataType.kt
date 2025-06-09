@@ -25,6 +25,7 @@ import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import de.timklge.karooheadwind.throttle
+import de.timklge.karooheadwind.util.getTimeFormatter
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -58,10 +58,6 @@ import kotlin.math.floor
 abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
-
-    companion object {
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("UTC"))
-    }
 
     data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
                           val widgetSettings: HeadwindWidgetSettings? = null,
@@ -252,6 +248,11 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
 
                             val time = Instant.ofEpochSecond(data.time)
 
+                            if (time.isBefore(Instant.now().minus(1, ChronoUnit.HOURS)) || (locationData?.coords?.distanceAlongRoute == null && time.isAfter(Instant.now().plus(6, ChronoUnit.HOURS)))) {
+                                Log.d(KarooHeadwindExtension.TAG, "Skipping forecast data for time $time as it is in the past or too close to now")
+                                continue
+                            }
+
                             add(LineData(
                                 time = time,
                                 distance = locationData?.coords?.distanceAlongRoute?.toFloat(),
@@ -264,7 +265,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                     val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
                         val startTime = data.firstOrNull()?.time
                         val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
-                        val timeLabel = timeFormatter.format(time)
+                        val timeLabel = getTimeFormatter(context).format(time?.atZone(ZoneId.systemDefault())?.toLocalTime())
                         val beforeData = data.getOrNull(floor(x).toInt().coerceAtLeast(0))
                         val afterData = data.getOrNull(ceil(x).toInt().coerceAtMost(data.size - 1))
 

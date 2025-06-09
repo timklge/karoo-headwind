@@ -11,6 +11,7 @@ import android.graphics.Path
 import androidx.annotation.ColorInt
 import kotlin.math.abs
 import androidx.core.graphics.createBitmap
+import kotlin.math.roundToInt
 
 class LineGraphBuilder(val context: Context) {
     enum class YAxis {
@@ -120,26 +121,18 @@ class LineGraphBuilder(val context: Context) {
             val yLabelStringsLeft = mutableListOf<String>()
             val numYTicksForCalc = 2 // As used later for drawing Y-axis ticks
 
+            val minRange = numYTicksForCalc.toFloat()
+            if (dataMaxYLeft - dataMinYLeft < minRange) {
+                dataMaxYLeft += minRange - (dataMaxYLeft - dataMinYLeft)
+            }
+
             // Determine Y-axis label strings (mirrors logic from where labels are drawn)
             if (abs(dataMaxYLeft - dataMinYLeft) < 0.0001f) {
-                yLabelStringsLeft.add(
-                    String.format(
-                        java.util.Locale.getDefault(),
-                        "%.0f",
-                        dataMinYLeft
-                    )
-                )
+                yLabelStringsLeft.add(dataMinYLeft.roundToInt().toString())
             } else {
                 for (i in 0..numYTicksForCalc) {
-                    val value =
-                        dataMinYLeft + ((dataMaxYLeft - dataMinYLeft) / numYTicksForCalc) * i
-                    yLabelStringsLeft.add(
-                        String.format(
-                            java.util.Locale.getDefault(),
-                            "%.0f",
-                            value
-                        )
-                    )
+                    val value = dataMinYLeft + ((dataMaxYLeft - dataMinYLeft) / numYTicksForCalc) * i
+                    yLabelStringsLeft.add(value.roundToInt().toString())
                 }
             }
 
@@ -161,25 +154,18 @@ class LineGraphBuilder(val context: Context) {
             val yLabelStringsRight = mutableListOf<String>()
             val numYTicksForCalc = 2 // As used later for drawing Y-axis ticks
 
+            // Adjust Y-axis range based on numYTicksForCalc.
+            val minRange = numYTicksForCalc.toFloat()
+            if (dataMaxYRight - dataMinYRight < minRange) {
+                dataMaxYRight += minRange - (dataMaxYRight - dataMinYRight)
+            }
+
             if (abs(dataMaxYRight - dataMinYRight) < 0.0001f) {
-                yLabelStringsRight.add(
-                    String.format(
-                        java.util.Locale.getDefault(),
-                        "%.0f",
-                        dataMinYRight
-                    )
-                )
+                yLabelStringsRight.add(dataMinYRight.roundToInt().toString())
             } else {
                 for (i in 0..numYTicksForCalc) {
-                    val value =
-                        dataMinYRight + ((dataMaxYRight - dataMinYRight) / numYTicksForCalc) * i
-                    yLabelStringsRight.add(
-                        String.format(
-                            java.util.Locale.getDefault(),
-                            "%.0f",
-                            value
-                        )
-                    )
+                    val value = dataMinYRight + ((dataMaxYRight - dataMinYRight) / numYTicksForCalc) * i
+                    yLabelStringsRight.add(value.roundToInt().toString())
                 }
             }
 
@@ -405,7 +391,7 @@ class LineGraphBuilder(val context: Context) {
                         // Draw faint horizontal grid line
                         canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                         canvas.drawText(
-                            String.format(java.util.Locale.getDefault(), "%.0f", value),
+                            value.roundToInt().toString(),
                             graphLeft - 15f,
                             yPos + (textPaint.textSize / 3),
                             textPaint
@@ -418,7 +404,7 @@ class LineGraphBuilder(val context: Context) {
                 // Draw faint horizontal grid line
                 canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                 canvas.drawText(
-                    String.format(java.util.Locale.getDefault(), "%.0f", dataMinYLeft),
+                    dataMinYLeft.roundToInt().toString(),
                     graphLeft - 15f,
                     yPos + (textPaint.textSize / 3),
                     textPaint
@@ -445,7 +431,7 @@ class LineGraphBuilder(val context: Context) {
                         // Draw faint horizontal grid line
                         canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                         canvas.drawText(
-                            String.format(java.util.Locale.getDefault(), "%.0f", value),
+                            value.roundToInt().toString(),
                             graphRight + 15f,
                             yPos + (textPaint.textSize / 3),
                             textPaint
@@ -464,7 +450,7 @@ class LineGraphBuilder(val context: Context) {
                 // Draw faint horizontal grid line
                 canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                 canvas.drawText(
-                    String.format(java.util.Locale.getDefault(), "%.0f", dataMinYRight),
+                    dataMinYRight.roundToInt().toString(),
                     graphRight + 15f,
                     yPos + (textPaint.textSize / 3),
                     textPaint
@@ -500,7 +486,7 @@ class LineGraphBuilder(val context: Context) {
         }
 
         textPaint.textAlign = Align.CENTER
-        val numXTicks = if (gridHeight > 15) 3 else 1
+        val numXTicks = if (gridHeight > 15) 2 else 1
         if (abs(dataMaxX - dataMinX) > 0.0001f) {
             for (i in 0..numXTicks) {
                 val value = dataMinX + ((dataMaxX - dataMinX) / numXTicks) * i

@@ -38,6 +38,7 @@ import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.streamWidgetSettings
 import de.timklge.karooheadwind.throttle
 import de.timklge.karooheadwind.util.celciusInUserUnit
+import de.timklge.karooheadwind.util.getTimeFormatter
 import de.timklge.karooheadwind.util.millimetersInUserUnit
 import de.timklge.karooheadwind.util.msInUserUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
@@ -88,10 +89,6 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
 
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
-
-    companion object {
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
-    }
 
     data class StreamData(val data: WeatherDataResponse?, val settings: SettingsAndProfile,
                           val widgetSettings: HeadwindWidgetSettings? = null,
@@ -307,10 +304,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             if (isCurrent && data?.current != null) {
                                 val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                 val unixTime = data.current.time
-                                val formattedTime =
-                                    timeFormatter.format(Instant.ofEpochSecond(unixTime))
-                                val formattedDate =
-                                    getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
+                                val formattedTime = getTimeFormatter(context).format(Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalTime())
+                                val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()))
                                 val hasNewDate = formattedDate != previousDate || baseIndex == 0
 
                                 RenderWidget(
@@ -335,7 +330,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                 val weatherData = data?.forecasts?.getOrNull(baseIndex)
                                 val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
                                 val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
-                                val formattedTime = timeFormatter.format(Instant.ofEpochSecond(unixTime))
+                                val formattedTime = getTimeFormatter(context).format(Instant.ofEpochSecond(unixTime))
                                 val formattedDate = getShortDateFormatter().format(Instant.ofEpochSecond(unixTime))
                                 val hasNewDate = formattedDate != previousDate || baseIndex == 0
 

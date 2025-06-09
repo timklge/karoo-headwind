@@ -5,6 +5,7 @@ import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -91,6 +92,7 @@ suspend fun KarooSystemService.updateLastKnownGps(context: Context) {
 fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinates?> {
     /* return flow {
         emit(GpsCoordinates(52.5164069,13.3784))
+        // emit(GpsCoordinates(32.46,-111.524))
         awaitCancellation()
     } */
 
