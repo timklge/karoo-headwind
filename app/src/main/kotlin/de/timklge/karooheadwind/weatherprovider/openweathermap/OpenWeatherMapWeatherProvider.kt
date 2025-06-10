@@ -125,7 +125,7 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
                     } else {
                         originalCoord.distanceTo(coord)
                     }
-                } ?: throw WeatherProviderException(500, "Error searching nearly coordinate")
+                } ?: throw WeatherProviderException(500, "Error finding nearest coordinate")
 
 
                 closestCoord.second.toWeatherDataForLocation(originalCoord.distanceAlongRoute)
