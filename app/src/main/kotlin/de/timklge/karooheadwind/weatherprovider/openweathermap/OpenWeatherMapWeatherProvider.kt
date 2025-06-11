@@ -15,8 +15,6 @@ import io.hammerhead.karooext.models.OnHttpResponse
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.callbackFlow
@@ -51,7 +49,7 @@ data class Snow(
 
 class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvider {
     companion object {
-        private const val MAX_API_CALLS = 4
+        private const val MAX_API_CALLS = 3
 
         fun convertWeatherCodeToOpenMeteo(owmCode: Int): Int {
             // Mapping OpenWeatherMap to WMO OpenMeteo
@@ -73,27 +71,30 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         settings: HeadwindSettings,
         profile: UserProfile?
     ): WeatherDataResponse = coroutineScope {
-        val selectedCoordinates = coordinates.take(4)
+        val selectedCoordinates = coordinates.take((MAX_API_CALLS - 1).coerceAtLeast(1)).toMutableList()
+
+        if (coordinates.isNotEmpty() && !selectedCoordinates.contains(coordinates.last())){
+            selectedCoordinates.add(coordinates.last())
+        }
 
         Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap: searching for ${selectedCoordinates.size} locations from ${coordinates.size} total")
         selectedCoordinates.forEachIndexed { index, coord ->
             Log.d(KarooHeadwindExtension.TAG, "Point #$index: ${coord.lat}, ${coord.lon}, distance: ${coord.distanceAlongRoute}")
         }
 
-        val weatherDataForSelectedLocations = selectedCoordinates.map { coordinate ->
-            async {
+        val weatherDataForSelectedLocations = buildList {
+            for (coordinate in selectedCoordinates){
                 val response = makeOpenWeatherMapRequest(karooSystem, coordinate, apiKey)
                 val responseBody = response.body?.let { String(it) }
                     ?: throw WeatherProviderException(response.statusCode, "Null Response from OpenWeatherMap")
 
                 val weatherData = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapWeatherDataForLocation>(responseBody)
-                coordinate to weatherData
-            }
-        }.awaitAll()
 
+                add(coordinate to weatherData)
+            }
+        }
 
         val allLocationData = coordinates.map { originalCoord ->
-
             val directMatch = weatherDataForSelectedLocations.find { it.first == originalCoord }
 
             if (directMatch != null) {

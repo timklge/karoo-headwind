@@ -232,7 +232,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 response
             }.retry(Long.MAX_VALUE) { e ->
                 Log.w(TAG, "Failed to get weather data", e)
-                delay(1.minutes); true
+                delay(2.minutes); true
             }.collect { response ->
                 try {
                     saveCurrentData(applicationContext, response)
