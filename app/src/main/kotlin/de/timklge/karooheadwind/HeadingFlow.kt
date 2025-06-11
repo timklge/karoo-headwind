@@ -5,7 +5,8 @@ import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
-import kotlinx.coroutines.awaitCancellation
+import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -99,7 +101,33 @@ fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinat
     val initialFlow = flow {
         val lastKnownPosition = context.getLastKnownPosition()
 
-        emit(lastKnownPosition)
+        if (lastKnownPosition == null) {
+            val initialState = streamDataFlow(DataType.Type.LOCATION).firstOrNull()?.let { it as? StreamState.Streaming }
+
+            initialState?.dataPoint?.let { dataPoint ->
+                val lat = dataPoint.values[DataType.Field.LOC_LATITUDE]
+                val lng = dataPoint.values[DataType.Field.LOC_LONGITUDE]
+                val orientation = dataPoint.values[DataType.Field.LOC_BEARING]
+
+                if (lat != null && lng != null) {
+                    emit(GpsCoordinates(lat, lng, orientation))
+
+                    Log.i(KarooHeadwindExtension.TAG, "No last known position found, fetched initial GPS position")
+                } else {
+                    emit(null)
+
+                    Log.w(KarooHeadwindExtension.TAG, "No last known position found, initial GPS position is unavailable")
+                }
+            } ?: run {
+                emit(null)
+
+                Log.w(KarooHeadwindExtension.TAG, "No last known position found, initial GPS position is unavailable")
+            }
+        } else {
+            emit(lastKnownPosition)
+
+            Log.i(KarooHeadwindExtension.TAG, "Using last known position: $lastKnownPosition")
+        }
     }
 
     val gpsFlow = streamLocation()
