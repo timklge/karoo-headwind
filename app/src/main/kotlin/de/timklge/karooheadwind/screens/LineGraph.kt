@@ -381,7 +381,7 @@ class LineGraphBuilder(val context: Context) {
         // Draw Left Y-axis ticks and labels
         if (hasLeftYAxisData) {
             textPaint.textAlign = Align.RIGHT
-            val numYTicks = if (gridWidth > 15) 2 else 1
+            val numYTicks = if (gridHeight > 15) (gridHeight / 10) else 1
             if (abs(dataMaxYLeft - dataMinYLeft) > 0.0001f) {
                 for (i in 0..numYTicks) {
                     val value = dataMinYLeft + ((dataMaxYLeft - dataMinYLeft) / numYTicks) * i
