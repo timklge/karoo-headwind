@@ -8,7 +8,8 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
     override fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
-        upcomingRoute: UpcomingRoute?
+        upcomingRoute: UpcomingRoute?,
+        isPreview: Boolean
     ): Set<LineGraphBuilder.Line> {
         val precipitationPoints = lineData.map { data ->
             if (isImperial) { // Convert mm to inches

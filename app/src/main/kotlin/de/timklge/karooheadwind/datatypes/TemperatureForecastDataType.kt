@@ -8,7 +8,8 @@ class TemperatureForecastDataType(karooSystem: KarooSystemService) : LineGraphFo
     override fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
-        upcomingRoute: UpcomingRoute?
+        upcomingRoute: UpcomingRoute?,
+        isPreview: Boolean
     ): Set<LineGraphBuilder.Line> {
         val linePoints = lineData.map { data ->
             if (isImperial) {
