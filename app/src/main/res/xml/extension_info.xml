@@ -118,6 +118,13 @@
         typeId="sealevelPressure" />
 
     <DataType
+        description="@string/temperature_description"
+        displayName="@string/temperature"
+        graphical="false"
+        icon="@drawable/thermometer"
+        typeId="temperature" />
+
+    <DataType
         description="@string/relativeGrade_description"
         displayName="@string/relativeGrade"
         graphical="false"
