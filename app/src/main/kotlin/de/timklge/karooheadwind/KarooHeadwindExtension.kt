@@ -113,7 +113,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                         old == new
                     }
                 }
-                .debounce(Duration.ofSeconds(5))
+                .throttle(5_000L)
 
             var requestedGpsCoordinates: List<GpsCoordinates> = emptyList()
 
