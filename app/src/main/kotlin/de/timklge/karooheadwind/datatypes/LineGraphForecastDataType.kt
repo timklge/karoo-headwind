@@ -70,7 +70,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
     abstract fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
-        upcomingRoute: UpcomingRoute?
+        upcomingRoute: UpcomingRoute?,
+        isPreview: Boolean
     ): Set<LineGraphBuilder.Line>
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
@@ -261,7 +262,12 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                         }
                     }
 
-                    val pointData = getLineData(data, settingsAndProfile.isImperialTemperature, upcomingRoute)
+                    val pointData = getLineData(
+                        data,
+                        settingsAndProfile.isImperialTemperature,
+                        upcomingRoute,
+                        config.preview
+                    )
                     val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
                         val startTime = data.firstOrNull()?.time
                         val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)

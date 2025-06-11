@@ -73,31 +73,12 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         settings: HeadwindSettings,
         profile: UserProfile?
     ): WeatherDataResponse = coroutineScope {
-
-
-        val selectedCoordinates = when {
-            coordinates.size <= MAX_API_CALLS -> coordinates
-            else -> {
-
-                val mandatoryCoordinates = coordinates.take(3).toMutableList()
-
-
-                val fourthIndex = if (coordinates.size > 6) {
-                    coordinates.size - 3
-                } else {
-                    (coordinates.size / 2) + 1
-                }
-
-                mandatoryCoordinates.add(coordinates[fourthIndex.coerceIn(3, coordinates.lastIndex)])
-                mandatoryCoordinates
-            }
-        }
+        val selectedCoordinates = coordinates.take(4)
 
         Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap: searching for ${selectedCoordinates.size} locations from ${coordinates.size} total")
         selectedCoordinates.forEachIndexed { index, coord ->
             Log.d(KarooHeadwindExtension.TAG, "Point #$index: ${coord.lat}, ${coord.lon}, distance: ${coord.distanceAlongRoute}")
         }
-
 
         val weatherDataForSelectedLocations = selectedCoordinates.map { coordinate ->
             async {
