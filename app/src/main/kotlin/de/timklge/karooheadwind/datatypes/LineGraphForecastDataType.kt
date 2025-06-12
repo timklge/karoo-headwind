@@ -1,8 +1,10 @@
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
+import android.graphics.Canvas
 import android.util.Log
 import androidx.compose.ui.unit.DpSize
+import androidx.core.graphics.createBitmap
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
@@ -71,7 +73,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
         lineData: List<LineData>,
         isImperial: Boolean,
         upcomingRoute: UpcomingRoute?,
-        isPreview: Boolean
+        isPreview: Boolean,
+        context: Context
     ): Set<LineGraphBuilder.Line>
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
@@ -265,8 +268,10 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                         data,
                         settingsAndProfile.isImperialTemperature,
                         upcomingRoute,
-                        config.preview
+                        config.preview,
+                        context
                     )
+
                     val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
                         val startTime = data.firstOrNull()?.time
                         val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
