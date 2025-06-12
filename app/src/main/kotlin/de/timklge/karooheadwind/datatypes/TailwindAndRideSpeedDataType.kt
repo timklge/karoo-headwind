@@ -16,6 +16,7 @@ import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.getRelativeHeadingFlow
+import de.timklge.karooheadwind.screens.isNightMode
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamDatatypeIsVisible
@@ -199,14 +200,10 @@ class TailwindAndRideSpeedDataType(
                     "$sign${headwindSpeedUserUnit.roundToInt().absoluteValue} ${windSpeedUserUnit.roundToInt()}${gustSpeedAddon}"
                 }
 
-
-                var dayColor = Color(ContextCompat.getColor(context, R.color.black))
-                var nightColor = Color(ContextCompat.getColor(context, R.color.white))
-
                 val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
                 val windSpeedInKmh = headwindSpeed * 3.6
-                dayColor = interpolateWindColor(windSpeedInKmh, false, context)
-                nightColor = interpolateWindColor(windSpeedInKmh, true, context)
+                val dayColor = interpolateWindColor(windSpeedInKmh, false, context)
+                val nightColor = interpolateWindColor(windSpeedInKmh, true, context)
 
                 val result = glance.compose(context, DpSize.Unspecified) {
                     HeadwindDirection(

@@ -1,5 +1,6 @@
 package de.timklge.karooheadwind.datatypes
 
+import android.content.Context
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import io.hammerhead.karooext.KarooSystemService
@@ -9,7 +10,8 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
         lineData: List<LineData>,
         isImperial: Boolean,
         upcomingRoute: UpcomingRoute?,
-        isPreview: Boolean
+        isPreview: Boolean,
+        context: Context
     ): Set<LineGraphBuilder.Line> {
         val precipitationPoints = lineData.map { data ->
             if (isImperial) { // Convert mm to inches

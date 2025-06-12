@@ -9,29 +9,32 @@ import android.graphics.Paint
 import android.graphics.Paint.Align
 import android.graphics.Path
 import androidx.annotation.ColorInt
-import kotlin.math.abs
 import androidx.core.graphics.createBitmap
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
+
+fun isNightMode(context: Context): Boolean {
+    val nightModeFlags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+}
 
 class LineGraphBuilder(val context: Context) {
     enum class YAxis {
         LEFT, RIGHT
     }
 
-    data class DataPoint(val x: Float, val y: Float)
+    data class DataPoint(val x: Float, val y: Float) // color field removed
 
     data class Line(
-        val dataPoints: List<DataPoint>,
+        val dataPoints: List<DataPoint>, // DataPoint type is now the new one
         @ColorInt val color: Int,
         val label: String? = null,
         val yAxis: YAxis = YAxis.LEFT, // Default to left Y-axis
-        val drawCircles: Boolean = true // Default to true
+        val drawCircles: Boolean = true, // Default to true
+        val colorFunc: ((Float) -> Int)? = null, // Optional color function for dynamic colors,
+        val alpha: Int = 80
     )
-
-    private fun isNightMode(): Boolean {
-        val nightModeFlags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
-    }
 
     fun drawLineGraph(
         width: Int,
@@ -41,10 +44,9 @@ class LineGraphBuilder(val context: Context) {
         lines: Set<Line>,
         labelProvider: ((Float) -> String)
     ): Bitmap {
-        val isNightMode = isNightMode()
-
         val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
+        val isNightMode = isNightMode(context)
 
         val backgroundColor = if (isNightMode) Color.BLACK else Color.WHITE
         val primaryTextColor = if (isNightMode) Color.WHITE else Color.BLACK
@@ -287,7 +289,7 @@ class LineGraphBuilder(val context: Context) {
             if (!hasRightYAxisData || abs(effectiveMaxYRight - effectiveMinYRight) < 0.0001f) 1f else (effectiveMaxYRight - effectiveMinYRight)
 
         fun mapX(originalX: Float): Float {
-            return graphLeft + ((originalX - effectiveMinX) / rangeX) * graphWidth
+            return floor(graphLeft + ((originalX - effectiveMinX) / rangeX) * graphWidth)
         }
 
         fun mapYLeft(originalY: Float): Float {
@@ -347,35 +349,113 @@ class LineGraphBuilder(val context: Context) {
         for (line in lines) {
             if (line.dataPoints.isEmpty()) continue
 
-            linePaint.color = line.color
-            val path = Path()
-            val firstPoint = line.dataPoints.first()
             val mapY = if (line.yAxis == YAxis.LEFT) ::mapYLeft else ::mapYRight
 
-            path.moveTo(mapX(firstPoint.x), mapY(firstPoint.y))
-            if (line.drawCircles) {
-                canvas.drawCircle(
-                    mapX(firstPoint.x),
-                    mapY(firstPoint.y),
-                    8f,
-                    linePaint.apply { style = Paint.Style.FILL })
-            }
-            linePaint.style = Paint.Style.STROKE
-
+            // Draw area between line and X axis, colorized per segment (match line colorization)
+            val zeroY = mapY((if (line.yAxis == YAxis.LEFT) effectiveMinYLeft else effectiveMinYRight).coerceAtLeast(0f))
             for (i in 1 until line.dataPoints.size) {
-                val point = line.dataPoints[i]
-                path.lineTo(mapX(point.x), mapY(point.y))
-                if (line.drawCircles) {
-                    canvas.drawCircle(
-                        mapX(point.x),
-                        mapY(point.y),
-                        8f,
-                        linePaint.apply { style = Paint.Style.FILL })
+                val prev = line.dataPoints[i - 1]
+                val curr = line.dataPoints[i]
+                if (line.colorFunc != null) {
+                    val N = 4 // Number of sub-segments (tweak for smoothness/performance)
+                    val adjustment = 0.5f // Pixel adjustment to help close seams
+
+                    for (j in 0 until N) {
+                        val t0 = j / N.toFloat()
+                        val t1 = (j + 1) / N.toFloat()
+                        val x0 = prev.x + (curr.x - prev.x) * t0
+                        val y0 = prev.y + (curr.y - prev.y) * t0
+                        val x1 = prev.x + (curr.x - prev.x) * t1
+                        val y1 = prev.y + (curr.y - prev.y) * t1
+                        val color0 = line.colorFunc.invoke(y0)
+
+                        val mappedX0 = mapX(x0)
+                        val mappedY0 = mapY(y0)
+                        val mappedX1 = mapX(x1)
+                        val mappedY1 = mapY(y1)
+
+                        // Extend the right edge of internal sub-segments to create an overlap
+                        val rightEdgeX = if (j < N - 1) mappedX1 + adjustment else mappedX1
+
+                        val areaPath = Path().apply {
+                            moveTo(mappedX0, mappedY0)
+                            lineTo(rightEdgeX, mappedY1)
+                            lineTo(rightEdgeX, zeroY)
+                            lineTo(mappedX0, zeroY)
+                            close()
+                        }
+                        val areaPaint = Paint().apply {
+                            style = Paint.Style.FILL
+                            color = color0
+                            isAntiAlias = true
+                            alpha = line.alpha
+                        }
+                        canvas.drawPath(areaPath, areaPaint)
+                    }
+                } else {
+                    val areaPath = Path().apply {
+                        moveTo(mapX(prev.x), mapY(prev.y))
+                        lineTo(mapX(curr.x), mapY(curr.y))
+                        lineTo(mapX(curr.x), zeroY)
+                        lineTo(mapX(prev.x), zeroY)
+                        close()
+                    }
+                    val areaPaint = Paint().apply {
+                        style = Paint.Style.FILL
+                        color = line.color
+                        isAntiAlias = true
+                        alpha = line.alpha
+                    }
+                    canvas.drawPath(areaPath, areaPaint)
                 }
-                linePaint.style = Paint.Style.STROKE
             }
 
-            canvas.drawPath(path, linePaint)
+            // Draw the line, colorized per segment (improved: split for colorFunc)
+            for (i in 1 until line.dataPoints.size) {
+                val prev = line.dataPoints[i - 1]
+                val curr = line.dataPoints[i]
+                if (line.colorFunc != null) {
+                    val N = 4 // Number of sub-segments (tweak for smoothness/performance)
+                    for (j in 0 until N) {
+                        val t0 = j / N.toFloat()
+                        val t1 = (j + 1) / N.toFloat()
+                        val x0 = prev.x + (curr.x - prev.x) * t0
+                        val y0 = prev.y + (curr.y - prev.y) * t0
+                        val x1 = prev.x + (curr.x - prev.x) * t1
+                        val y1 = prev.y + (curr.y - prev.y) * t1
+                        val color0 = line.colorFunc.invoke(y0)
+                        // Optionally, blend color0 and color1 for the segment, or just use color0
+                        val segPaint = Paint(linePaint).apply {
+                            color = color0
+                        }
+                        canvas.drawLine(
+                            mapX(x0), mapY(y0),
+                            mapX(x1), mapY(y1),
+                            segPaint
+                        )
+                    }
+                } else {
+                    val segPaint = Paint(linePaint).apply {
+                        color = line.color
+                    }
+                    canvas.drawLine(
+                        mapX(prev.x), mapY(prev.y),
+                        mapX(curr.x), mapY(curr.y),
+                        segPaint
+                    )
+                }
+            }
+
+            // Draw circles if enabled
+            if (line.drawCircles) {
+                for (point in line.dataPoints) {
+                    val circlePaint = Paint(linePaint).apply {
+                        style = Paint.Style.FILL
+                        color = line.colorFunc?.invoke(point.y) ?: line.color
+                    }
+                    canvas.drawCircle(mapX(point.x), mapY(point.y), 8f, circlePaint)
+                }
+            }
         }
 
         // Draw Left Y-axis ticks and labels

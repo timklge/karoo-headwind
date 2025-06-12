@@ -1,12 +1,16 @@
 package de.timklge.karooheadwind.datatypes
 
+import android.content.Context
+import android.graphics.Color
 import android.util.Log
+import androidx.compose.ui.graphics.toArgb
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.lerpWeather
 import de.timklge.karooheadwind.screens.LineGraphBuilder
+import de.timklge.karooheadwind.screens.isNightMode
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.ceil
@@ -23,7 +27,8 @@ class WindForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastD
         lineData: List<LineData>,
         isImperial: Boolean,
         upcomingRoute: UpcomingRoute?,
-        isPreview: Boolean
+        isPreview: Boolean,
+        context: Context
     ): Set<LineGraphBuilder.Line> {
         val windPoints = lineData.map { data ->
             if (isImperial) { // Convert m/s to mph
@@ -47,16 +52,21 @@ class WindForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastD
                     val t = i / HEADWIND_SAMPLE_COUNT.toDouble()
 
                     if (isPreview) {
-                        return@mapNotNull LineGraphBuilder.DataPoint(i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()), (-10f) + (20f * kotlin.random.Random.nextFloat()))
+                        // Use a sine wave for headwind preview speed
+                        val headwindSpeed = 10f * kotlin.math.sin(i * Math.PI * 2 / HEADWIND_SAMPLE_COUNT).toFloat()
+                        val headwindSpeedInKmh = headwindSpeed * 3.6 // Convert m/s to km/h
+
+                        return@mapNotNull LineGraphBuilder.DataPoint(x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
+                            y = headwindSpeed)
                     }
 
                     if (upcomingRoute == null) return@mapNotNull null
 
-                    val beforeLineData = lineData.getOrNull(floor(lineData.size * t).toInt()) ?: lineData.firstOrNull()
-                    val afterLineData = lineData.getOrNull(ceil(lineData.size * t).toInt()) ?: lineData.lastOrNull()
+                    val beforeLineData = lineData.getOrNull(floor((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.firstOrNull()
+                    val afterLineData = lineData.getOrNull(ceil((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.lastOrNull()
 
                     if (beforeLineData?.weatherData == null || afterLineData?.weatherData == null || beforeLineData.distance == null
-                        || afterLineData.distance == null) return@mapNotNull null
+                        || afterLineData.distance == null || beforeLineData == afterLineData) return@mapNotNull null
 
                     val dt = remap(t.toFloat(),
                         floor(lineData.size * t).toFloat() / lineData.size,
@@ -95,7 +105,10 @@ class WindForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastD
                         headwindSpeed * 3.6 // Convert m/s to km/h
                     }
 
-                    LineGraphBuilder.DataPoint(i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()), headwindSpeedInUserUnit.toFloat())
+                    LineGraphBuilder.DataPoint(
+                        x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
+                        y = headwindSpeedInUserUnit.toFloat()
+                    )
                 }
             } else {
                 emptyList()
@@ -107,33 +120,39 @@ class WindForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastD
 
         return buildSet {
             add(LineGraphBuilder.Line(
-                dataPoints = windPoints.mapIndexed { index, value ->
-                    LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
-                },
-                color = android.graphics.Color.GRAY,
-                label = "Wind" // if (!isImperial) "Wind km/h" else "Wind mph",
-            ))
-            add(LineGraphBuilder.Line(
                 dataPoints = gustPoints.mapIndexed { index, value ->
                     LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
                 },
-                color = android.graphics.Color.DKGRAY,
+                color = Color.DKGRAY,
                 label = "Gust" // if (!isImperial) "Gust km/h" else "Gust mph",
+            ))
+
+            add(LineGraphBuilder.Line(
+                dataPoints = windPoints.mapIndexed { index, value ->
+                    LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
+                },
+                color = Color.GRAY,
+                label = "Wind" // if (!isImperial) "Wind km/h" else "Wind mph",
             ))
 
             if (headwindPoints.isNotEmpty()) {
                 add(LineGraphBuilder.Line(
                     dataPoints = headwindPoints,
-                    color = android.graphics.Color.MAGENTA,
-                    label = "Headwind", // if (!isImperial) "Headwind km/h" else "Headwind mph",
-                    drawCircles = false
+                    color = if (isNightMode(context)) Color.WHITE else Color.BLACK,
+                    label = "Head", // if (!isImperial) "Headwind km/h" else "Headwind mph",
+                    drawCircles = false,
+                    colorFunc = { headwindSpeed ->
+                        val headwindSpeedInKmh = headwindSpeed * 3.6 // Convert m/s to km/h
+                        interpolateWindColor(headwindSpeedInKmh, isNightMode(context), context).toArgb()
+                    },
+                    alpha = 255
                 ))
             }
         }
     }
 
     companion object {
-        const val HEADWIND_SAMPLE_COUNT = 30
+        const val HEADWIND_SAMPLE_COUNT = 50
     }
 
 }
