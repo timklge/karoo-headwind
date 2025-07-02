@@ -10,11 +10,11 @@
     <string name="cloudCover">Cloud cover</string>
     <string name="cloudCover_description">Current cloud cover in percent</string>
     <string name="windSpeed">Wind speed</string>
-    <string name="windSpeed_description">Current wind speed in configured unit</string>
+    <string name="windSpeed_description">Current absolute wind speed</string>
     <string name="windGusts">Wind gusts</string>
     <string name="windGusts_description">Current wind gust speed in configured unit</string>
     <string name="windDirection">Absolute wind direction</string>
-    <string name="windDirection_description">Current wind direction</string>
+    <string name="windDirection_description">Current absolute wind direction</string>
     <string name="precipitation">Rainfall</string>
     <string name="precipitation_description">Current precipitation (rainfall / snowfall)</string>
     <string name="surfacePressure">Surface pressure</string>
@@ -41,4 +41,6 @@
     <string name="relativeElevationGain_description">Perceived elevation gain in meters</string>
     <string name="windDirectionAndSpeed">Wind direction and speed</string>
     <string name="windDirectionAndSpeed_description">Current wind direction and wind speed</string>
+    <string name="windDirectionAndSpeedCircle">Wind direction and speed (Circle)</string>
+    <string name="windDirectionAndSpeedCircle_description">Current wind direction and wind speed (Circle graphics)</string>
 </resources>

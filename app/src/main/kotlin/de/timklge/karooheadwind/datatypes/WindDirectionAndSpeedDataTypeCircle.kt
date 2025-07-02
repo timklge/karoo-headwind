@@ -43,52 +43,13 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
-class HeadwindDirectionDataType(
+class WindDirectionAndSpeedDataTypeCircle(
     private val karooSystem: KarooSystemService,
     private val applicationContext: Context
-) : DataTypeImpl("karoo-headwind", "headwind") {
+) : DataTypeImpl("karoo-headwind", "windDirectionAndSpeedCircle") {
     private val glance = GlanceRemoteViews()
 
     data class StreamData(val headingResponse: HeadingResponse, val absoluteWindDirection: Double?, val windSpeed: Double?, val settings: HeadwindSettings)
-
-    private fun streamValues(): Flow<Double> = flow {
-        combine(
-            karooSystem.getRelativeHeadingFlow(applicationContext),
-            applicationContext.streamCurrentWeatherData(karooSystem),
-            applicationContext.streamSettings(karooSystem),
-        ) { headingResponse, currentWeather, settings ->
-            StreamData(
-                headingResponse,
-                currentWeather?.windDirection,
-                currentWeather?.windSpeed,
-                settings,
-            )
-        }.collect { streamData ->
-            val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
-
-            var returnValue = 0.0
-            if (value != null && streamData.absoluteWindDirection != null && streamData.windSpeed != null) {
-                var windDirection = value
-
-                if (windDirection < 0) windDirection += 360
-
-                returnValue = windDirection
-            }
-
-            emit(returnValue)
-        }
-    }
-
-    override fun startStream(emitter: Emitter<StreamState>) {
-        val job = CoroutineScope(Dispatchers.IO).launch {
-            streamValues().collect { returnValue ->
-                emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to returnValue))))
-            }
-        }
-        emitter.setCancellable {
-            job.cancel()
-        }
-    }
 
     data class DirectionAndSpeed(
         val bearing: Double,
@@ -132,7 +93,7 @@ class HeadwindDirectionDataType(
         val flow = if (config.preview) {
             previewFlow()
         } else {
-            val directionFlow = streamValues()
+            val directionFlow = streamValues(context, karooSystem)
             val speedFlow = flow {
                 emit(0.0)
                 emitAll(streamValues(context, karooSystem))
@@ -204,5 +165,16 @@ class HeadwindDirectionDataType(
                 emit(headwindSpeed)
             }
         }
+    }
+}
+
+suspend fun KarooSystemService.getRefreshRateInMilliseconds(context: Context): Long {
+    val refreshRate = context.streamSettings(this).first().refreshRate
+    val isK2 = hardwareType == HardwareType.K2
+
+    return if (isK2){
+        refreshRate.k2Ms
+    } else {
+        refreshRate.k3Ms
     }
 }

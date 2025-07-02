@@ -20,6 +20,7 @@ import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
+import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataTypeCircle
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
@@ -43,8 +44,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.time.debounce
-import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.absoluteValue
@@ -66,6 +65,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         listOf(
             HeadwindDirectionDataType(karooSystem, applicationContext),
             TailwindAndRideSpeedDataType(karooSystem, applicationContext),
+            WindDirectionAndSpeedDataTypeCircle(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
             RelativeHumidityDataType(karooSystem, applicationContext),
