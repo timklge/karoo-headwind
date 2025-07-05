@@ -94,6 +94,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                         val forecastWindSpeed = 0.0 + (0..10).random()
                         val forecastWindDirection = 0.0 + (0..360).random()
                         val forecastWindGusts = 0.0 + (0..10).random()
+                        val forcastUvi = 0.0 + (0..12).random()
                         WeatherData(
                             time = forecastTime,
                             temperature = forecastTemperature,
@@ -108,7 +109,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                             windGusts = forecastWindGusts,
                             weatherCode = forecastWeatherCode,
                             isForecast = true,
-                            isNight = it < 2
+                            isNight = it < 2,
+                            uvi = forcastUvi
                         )
                     }
 
@@ -130,7 +132,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                             windGusts = 10.0,
                             weatherCode = WeatherInterpretation.getKnownWeatherCodes().random(),
                             isForecast = false,
-                            isNight = false
+                            isNight = false,
+                            uvi = 2.0
                         ),
                         coords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour),
                         timezone = "UTC",

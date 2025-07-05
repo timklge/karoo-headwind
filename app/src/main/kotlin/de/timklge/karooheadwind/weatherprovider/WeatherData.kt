@@ -17,6 +17,7 @@ data class WeatherData(
     val windGusts: Double,
     val weatherCode: Int,
     val isForecast: Boolean,
-    val isNight: Boolean
+    val isNight: Boolean,
+    val uvi: Double,
 )
 

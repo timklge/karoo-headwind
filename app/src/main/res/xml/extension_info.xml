@@ -125,6 +125,13 @@
         typeId="temperature" />
 
     <DataType
+            description="@string/uvi_description"
+            displayName="@string/uvi"
+            graphical="false"
+            icon="@drawable/thermometer"
+            typeId="uvi" />
+
+    <DataType
         description="@string/relativeGrade_description"
         displayName="@string/relativeGrade"
         graphical="false"

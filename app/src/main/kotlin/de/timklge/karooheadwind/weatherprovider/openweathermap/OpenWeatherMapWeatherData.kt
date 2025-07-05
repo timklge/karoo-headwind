@@ -19,9 +19,11 @@ data class OpenWeatherMapWeatherData(
     val wind_gust: Double? = null,
     val rain: Rain? = null,
     val snow: Snow? = null,
+    val uvi: Double,
     val weather: List<Weather>){
 
     fun toWeatherData(): WeatherData = WeatherData(
+        uvi = uvi,
         temperature = temp,
         relativeHumidity = humidity,
         precipitation = rain?.h1 ?: 0.0,

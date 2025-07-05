@@ -23,6 +23,7 @@ class WeatherForecastDataType(karooSystem: KarooSystemService) : ForecastDataTyp
         distance: Double?,
         isImperial: Boolean,
         isNight: Boolean,
+        uvi: Double,
     ) {
         Weather(
             arrowBitmap = arrowBitmap,

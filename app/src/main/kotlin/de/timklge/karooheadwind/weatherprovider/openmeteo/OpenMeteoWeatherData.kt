@@ -18,6 +18,7 @@ data class OpenMeteoWeatherData(
     @SerialName("wind_gusts_10m") val windGusts: Double,
     @SerialName("weather_code") val weatherCode: Int,
     @SerialName("is_day") val isDay: Int,
+    @SerialName("uv_index") val uvi: Double,
 ) {
     fun toWeatherData(): WeatherData = WeatherData(
         temperature = temperature,
@@ -33,6 +34,7 @@ data class OpenMeteoWeatherData(
         time = time,
         isForecast = false,
         isNight = isDay == 0,
+        uvi = uvi
     )
 }
 
