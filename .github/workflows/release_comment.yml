@@ -1,0 +1,54 @@
+name: Comment on Fixed Issues/PRs on Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to run the workflow for'
+        required: false
+        default: ''
+
+jobs:
+  comment-on-fixed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all tags and branches
+      - name: Find closed issues/PRs and comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use the input tag if provided, otherwise use the tag from the push event
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            RELEASE_TAG="${{ github.event.inputs.tag }}"
+          else
+            RELEASE_TAG="${{ github.ref }}"
+            # Remove the 'refs/tags/' part to get the tag name
+            RELEASE_TAG="${RELEASE_TAG#refs/tags/}"
+          fi
+          
+          # Get the previous tag. If there is no previous tag, this will be empty.
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -v "$RELEASE_TAG" | head -n 1)
+          
+          # Get the commit range
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # If there is no previous tag, get all commits up to the current tag
+            COMMIT_RANGE="$RELEASE_TAG"
+          else
+            COMMIT_RANGE="$PREVIOUS_TAG..$RELEASE_TAG"
+          fi
+          
+          # Find the commits in this release
+          COMMITS=$(git log "$COMMIT_RANGE" --pretty=format:"%B")
+          
+          # Extract issues/PRs closed (simple regex, can be improved)
+          echo "$COMMITS" | grep -oE "#[0-9]+" | sort -u | while read ISSUE; do
+            ISSUE_NUMBER="${ISSUE//#/}"
+            COMMENT="This issue/pr has been fixed in release ${RELEASE_TAG} :tada:"
+            gh issue comment "$ISSUE_NUMBER" --body "$COMMENT"
+          done
+        shell: bash

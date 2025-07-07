@@ -29,6 +29,8 @@
     <string name="temperature_forecast_description">Current hourly temperature forecast</string>
     <string name="wind_forecast">Wind Forecast</string>
     <string name="wind_forecast_description">Current hourly wind forecast</string>
+    <string name="headwind_forecast">Headwind Forecast</string>
+    <string name="headwind_forecast_description">Current hourly headwind forecast for loaded route</string>
     <string name="precipitation_forecast">Precipitation Forecast</string>
     <string name="precipitation_forecast_description">Current hourly precipitation forecast</string>
     <string name="temperature">Temperature</string>
