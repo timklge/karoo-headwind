@@ -12,7 +12,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
-    ): Set<LineGraphBuilder.Line> {
+    ): LineGraphForecastData {
         val precipitationPoints = lineData.map { data ->
             if (isImperial) { // Convert mm to inches
                 data.weatherData.precipitation * 0.0393701 // Convert mm to inches
@@ -25,7 +25,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
             (data.weatherData.precipitationProbability?.coerceAtMost(99.0)) ?: 0.0 // Max 99 % so that the label doesn't take up too much space
         }
 
-        return setOf(
+        return LineGraphForecastData.LineData(setOf(
             LineGraphBuilder.Line(
                 dataPoints = precipitationPoints.mapIndexed { index, value ->
                     LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
@@ -42,7 +42,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
                 label = "%",
                 yAxis = LineGraphBuilder.YAxis.RIGHT
             )
-        )
+        ))
     }
 
 }

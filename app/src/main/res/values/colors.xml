@@ -5,6 +5,7 @@
 
     <color name="white">#ffffff</color>
     <color name="black">#000000</color>
+    <color name="gray">#808080</color>
 
     <color name="green">#00ff00</color>
     <color name="orange">#ff9930</color>

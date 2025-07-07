@@ -7,6 +7,7 @@ import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
+import de.timklge.karooheadwind.datatypes.HeadwindForecastDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationForecastDataType
@@ -17,8 +18,8 @@ import de.timklge.karooheadwind.datatypes.SealevelPressureDataType
 import de.timklge.karooheadwind.datatypes.SurfacePressureDataType
 import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
-import de.timklge.karooheadwind.datatypes.UviDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
+import de.timklge.karooheadwind.datatypes.UviDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataTypeCircle
@@ -81,6 +82,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             TemperatureForecastDataType(karooSystem),
             PrecipitationForecastDataType(karooSystem),
             WindForecastDataType(karooSystem),
+            HeadwindForecastDataType(karooSystem),
             WindDirectionAndSpeedDataType(karooSystem, applicationContext),
             RelativeGradeDataType(karooSystem, applicationContext),
             RelativeElevationGainDataType(karooSystem, applicationContext),

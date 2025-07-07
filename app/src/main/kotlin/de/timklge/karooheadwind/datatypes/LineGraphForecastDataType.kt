@@ -2,6 +2,7 @@ package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.util.Log
 import androidx.compose.ui.unit.DpSize
 import androidx.core.graphics.createBitmap
@@ -16,6 +17,7 @@ import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.HeadwindWidgetSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getHeadingFlow
@@ -58,6 +60,11 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
+    sealed class LineGraphForecastData {
+        data class LineData(val data: Set<LineGraphBuilder.Line>) : LineGraphForecastData()
+        data class Error(val message: String) : LineGraphForecastData()
+    }
+
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
 
@@ -75,7 +82,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
-    ): Set<LineGraphBuilder.Line>
+    ): LineGraphForecastData
 
     private fun previewFlow(settingsAndProfileStream: Flow<SettingsAndProfile>): Flow<StreamData> =
         flow {
@@ -275,30 +282,41 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                         context
                     )
 
-                    val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData) { x ->
-                        val startTime = data.firstOrNull()?.time
-                        val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
-                        val timeLabel = getTimeFormatter(context).format(time?.atZone(ZoneId.systemDefault())?.toLocalTime())
-                        val beforeData = data.getOrNull(floor(x).toInt().coerceAtLeast(0))
-                        val afterData = data.getOrNull(ceil(x).toInt().coerceAtMost(data.size - 1))
+                    when (pointData) {
+                        is LineGraphForecastData.LineData -> {
+                            val bitmap = LineGraphBuilder(context).drawLineGraph(config.viewSize.first, config.viewSize.second, config.gridSize.first, config.gridSize.second, pointData.data) { x ->
+                                val startTime = data.firstOrNull()?.time
+                                val time = startTime?.plus(floor(x).toLong(), ChronoUnit.HOURS)
+                                val timeLabel = getTimeFormatter(context).format(time?.atZone(ZoneId.systemDefault())?.toLocalTime())
+                                val beforeData = data.getOrNull(floor(x).toInt().coerceAtLeast(0))
+                                val afterData = data.getOrNull(ceil(x).toInt().coerceAtMost(data.size - 1))
 
-                        if (beforeData?.distance != null || afterData?.distance != null) {
-                            val start = beforeData?.distance ?: 0.0f
-                            val end = (afterData?.distance ?: upcomingRoute?.routeLength?.toFloat()) ?: 0.0f
-                            val distance = start + (end - start) * (x - floor(x))
-                            val distanceLabel = if (settingsAndProfile.isImperial) {
-                                "${(distance * 0.000621371).toInt()}"
-                            } else {
-                                "${(distance / 1000).toInt()}"
+                                if (beforeData?.distance != null || afterData?.distance != null) {
+                                    val start = beforeData?.distance ?: 0.0f
+                                    val end = (afterData?.distance ?: upcomingRoute?.routeLength?.toFloat()) ?: 0.0f
+                                    val distance = start + (end - start) * (x - floor(x))
+                                    val distanceLabel = if (settingsAndProfile.isImperial) {
+                                        "${(distance * 0.000621371).toInt()}"
+                                    } else {
+                                        "${(distance / 1000).toInt()}"
+                                    }
+                                    return@drawLineGraph distanceLabel
+                                } else {
+                                    timeLabel
+                                }
                             }
-                            return@drawLineGraph distanceLabel
-                        } else {
-                            timeLabel
-                        }
-                    }
 
-                    Box(modifier = GlanceModifier.fillMaxSize()){
-                        Image(ImageProvider(bitmap), "Forecast", modifier = GlanceModifier.fillMaxSize())
+                            Box(modifier = GlanceModifier.fillMaxSize()){
+                                Image(ImageProvider(bitmap), "Forecast", modifier = GlanceModifier.fillMaxSize())
+                            }
+                        }
+
+                        is LineGraphForecastData.Error -> {
+                            emitter.onNext(ShowCustomStreamState(pointData.message, null))
+                            Box(modifier = GlanceModifier.fillMaxSize()){
+
+                            }
+                        }
                     }
                 }
 

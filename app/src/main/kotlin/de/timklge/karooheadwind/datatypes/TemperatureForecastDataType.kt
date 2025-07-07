@@ -12,7 +12,7 @@ class TemperatureForecastDataType(karooSystem: KarooSystemService) : LineGraphFo
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
-    ): Set<LineGraphBuilder.Line> {
+    ): LineGraphForecastData {
         val linePoints = lineData.map { data ->
             if (isImperial) {
                 data.weatherData.temperature * 9 / 5 + 32 // Convert Celsius to Fahrenheit
@@ -21,7 +21,7 @@ class TemperatureForecastDataType(karooSystem: KarooSystemService) : LineGraphFo
             }
         }
 
-        return setOf(
+        return LineGraphForecastData.LineData(setOf(
             LineGraphBuilder.Line(
                 dataPoints = linePoints.mapIndexed { index, value ->
                     LineGraphBuilder.DataPoint(index.toFloat(), value.toFloat())
@@ -29,7 +29,7 @@ class TemperatureForecastDataType(karooSystem: KarooSystemService) : LineGraphFo
                 color = android.graphics.Color.RED,
                 label = if (!isImperial) "°C" else "°F",
             )
-        )
+        ))
     }
 
 }

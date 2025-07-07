@@ -62,6 +62,13 @@
         typeId="windForecast" />
 
     <DataType
+        description="@string/headwind_forecast_description"
+        displayName="@string/headwind_forecast"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="headwindForecast" />
+
+    <DataType
         description="@string/headwind_speed_description"
         displayName="@string/headwind_speed"
         graphical="false"
