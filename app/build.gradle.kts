@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Add route forecast support for OpenWeatherMap (thx @lockevod!)\n* Crop timespan in forecast widgets to 6 hours, use am / pm time format, enlarge font\n* Remove tailwind, icon forecast, weather data fields",
+            "releaseNotes" to "* Add UV-index datafield (thx @saversux!)\n* Readd a datafield that shows headwind direction and absolute wind speed datafield\n* Split wind forecast field into wind and headwind forecast fields",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview1.png",
                 "$baseUrl/preview3.png",
