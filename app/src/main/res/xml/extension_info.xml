@@ -22,9 +22,16 @@
     <DataType
         description="@string/windDirectionAndSpeed_description"
         displayName="@string/windDirectionAndSpeed"
-        graphical="false"
+        graphical="true"
         icon="@drawable/wind"
         typeId="windDirectionAndSpeed" />
+
+    <DataType
+        description="@string/windDirectionAndSpeedCircle_description"
+        displayName="@string/windDirectionAndSpeedCircle"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="windDirectionAndSpeedCircle" />
 
     <DataType
         description="@string/weather_forecast_description"
