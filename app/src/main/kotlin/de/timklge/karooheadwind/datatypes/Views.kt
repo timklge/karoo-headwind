@@ -22,6 +22,10 @@ import androidx.glance.text.TextStyle
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.streamSettings
+import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.HardwareType
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
 suspend fun getErrorWidget(glance: GlanceRemoteViews, context: Context, settings: HeadwindSettings?, headingResponse: HeadingResponse?): RemoteViewsCompositionResult {
@@ -74,5 +78,16 @@ suspend fun getErrorWidget(glance: GlanceRemoteViews, context: Context, errorCod
                 )
             )
         }
+    }
+}
+
+suspend fun KarooSystemService.getRefreshRateInMilliseconds(context: Context): Long {
+    val refreshRate = context.streamSettings(this).first().refreshRate
+    val isK2 = hardwareType == HardwareType.K2
+
+    return if (isK2){
+        refreshRate.k2Ms
+    } else {
+        refreshRate.k3Ms
     }
 }
