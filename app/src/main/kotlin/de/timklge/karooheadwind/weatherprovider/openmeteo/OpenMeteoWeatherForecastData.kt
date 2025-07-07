@@ -19,6 +19,7 @@ data class OpenMeteoWeatherForecastData(
     @SerialName("pressure_msl") val sealevelPressure: List<Double>,
     @SerialName("is_day") val isDay: List<Int>,
     @SerialName("relative_humidity_2m") val relativeHumidity: List<Int>,
+    @SerialName("uv_index") val uvi: List<Double>,
     ) {
     fun toWeatherData(): List<WeatherData> {
         return time.mapIndexed { index, t ->
@@ -37,6 +38,7 @@ data class OpenMeteoWeatherForecastData(
                 surfacePressure = surfacePressure[index],
                 sealevelPressure = sealevelPressure[index],
                 relativeHumidity = relativeHumidity[index],
+                uvi = uvi[index]
             )
         }
     }

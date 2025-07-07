@@ -294,9 +294,9 @@ fun lerpWeather(
         weatherCode = closestWeatherData.weatherCode,
         isForecast = closestWeatherData.isForecast,
         isNight = closestWeatherData.isNight,
+        uvi = start.uvi + (end.uvi - start.uvi) * factor
     )
 }
-
 fun lerpWeatherTime(
     weatherData: List<WeatherData>?,
     currentWeatherData: WeatherData

@@ -22,6 +22,8 @@
     <string name="sealevelPressure">Sealevel pressure</string>
     <string name="sealevelPressure_description">Atmospheric pressure at sea level in configured unit</string>
     <string name="weather_forecast">Weather Forecast</string>
+    <string name="uvi">UV Index</string>
+    <string name="uvi_description">Current UV Index at current location</string>
     <string name="weather_forecast_description">Current hourly weather forecast</string>
     <string name="temperature_forecast">Temperature Forecast</string>
     <string name="temperature_forecast_description">Current hourly temperature forecast</string>

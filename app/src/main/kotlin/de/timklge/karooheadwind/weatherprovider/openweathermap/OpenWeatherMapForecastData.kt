@@ -20,7 +20,8 @@ data class OpenWeatherMapForecastData(
     val pop: Double,
     val rain: Rain? = null,
     val snow: Snow? = null,
-    val weather: List<Weather>
+    val weather: List<Weather>,
+    val uvi: Double,
 ) {
     fun toWeatherData(currentWeatherData: OpenWeatherMapWeatherData): WeatherData {
         val dtInstant = Instant.ofEpochSecond(dt)
@@ -32,6 +33,7 @@ data class OpenWeatherMapForecastData(
         val sunsetTime = sunsetInstant.atZone(ZoneOffset.UTC).toLocalTime()
 
         return WeatherData(
+            uvi = uvi,
             temperature = temp,
             relativeHumidity = humidity,
             precipitation = rain?.h1 ?: 0.0,

@@ -65,27 +65,29 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 abstract class ForecastDataType(private val karooSystem: KarooSystemService, typeId: String) : DataTypeImpl("karoo-headwind", typeId) {
     @Composable
-    abstract fun RenderWidget(arrowBitmap: Bitmap,
-                              current: WeatherInterpretation,
-                              windBearing: Int,
-                              windSpeed: Int,
-                              windGusts: Int,
-                              precipitation: Double,
-                              precipitationProbability: Int?,
-                              temperature: Int,
-                              temperatureUnit: TemperatureUnit,
-                              timeLabel: String,
-                              dateLabel: String?,
-                              distance: Double?,
-                              isImperial: Boolean,
-                              isNight: Boolean)
+    abstract fun RenderWidget(
+        arrowBitmap: Bitmap,
+        current: WeatherInterpretation,
+        windBearing: Int,
+        windSpeed: Int,
+        windGusts: Int,
+        precipitation: Double,
+        precipitationProbability: Int?,
+        temperature: Int,
+        temperatureUnit: TemperatureUnit,
+        timeLabel: String,
+        dateLabel: String?,
+        distance: Double?,
+        isImperial: Boolean,
+        isNight: Boolean,
+        uvi: Double
+    )
 
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
@@ -107,6 +109,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                     val weatherData = (0..<12).map {
                         val forecastTime = timeAtFullHour + it * 60 * 60
                         val forecastTemperature = 20.0 + (-20..20).random()
+                        val forecastUvi = 0.0 + (0..12).random().toDouble()
                         val forecastPrecipitation = 0.0 + (0..10).random()
                         val forecastPrecipitationProbability = (0..100).random()
                         val forecastWeatherCode = WeatherInterpretation.getKnownWeatherCodes().random()
@@ -127,7 +130,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             windGusts = forecastWindGusts,
                             weatherCode = forecastWeatherCode,
                             isForecast = true,
-                            isNight = it < 2
+                            isNight = it < 2,
+                            uvi = forecastUvi
                         )
                     }
 
@@ -149,7 +153,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             windGusts = 10.0,
                             weatherCode = WeatherInterpretation.getKnownWeatherCodes().random(),
                             isForecast = false,
-                            isNight = false
+                            isNight = false,
+                            uvi = 2.0
                         ),
                         coords = GpsCoordinates(0.0, 0.0, distanceAlongRoute = index * distancePerHour),
                         timezone = "UTC",
@@ -333,7 +338,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = null,
                                     isImperial = settingsAndProfile.isImperial,
-                                    isNight = data.current.isNight
+                                    isNight = data.current.isNight,
+                                    uvi = data.current.uvi
                                 )
 
                                 previousDate = formattedDate
@@ -359,7 +365,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     dateLabel = if (hasNewDate) formattedDate else null,
                                     distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
                                     isImperial = settingsAndProfile.isImperial,
-                                    isNight = weatherData?.isNight == true
+                                    isNight = weatherData?.isNight == true,
+                                    uvi = weatherData?.uvi ?: 0.0
                                 )
 
                                 previousDate = formattedDate
