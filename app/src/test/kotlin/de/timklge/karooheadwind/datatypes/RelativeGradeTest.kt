@@ -1,3 +1,5 @@
+package de.timklge.karooheadwind.datatypes
+
 import de.timklge.karooheadwind.datatypes.RelativeGradeDataType
 import org.junit.Test
 import kotlin.test.assertEquals
