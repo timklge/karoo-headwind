@@ -55,68 +55,69 @@ class HeadwindForecastDataType(karooSystem: KarooSystemService) : LineGraphForec
         }
 
         val headwindPoints = try {
-            if (upcomingRoute != null){
-                (0..<HEADWIND_SAMPLE_COUNT).mapNotNull { i ->
-                    val t = i / HEADWIND_SAMPLE_COUNT.toDouble()
+            (0..<HEADWIND_SAMPLE_COUNT).mapNotNull { i ->
+                val t = i / HEADWIND_SAMPLE_COUNT.toDouble()
 
-                    if (isPreview) {
-                        // Use a sine wave for headwind preview speed
-                        val headwindSpeed = 10f * kotlin.math.sin(i * Math.PI * 2 / HEADWIND_SAMPLE_COUNT).toFloat()
+                if (isPreview) {
+                    // Use a sine wave for headwind preview speed
+                    val headwindSpeed = 10f * kotlin.math.sin(i * Math.PI * 2 / HEADWIND_SAMPLE_COUNT).toFloat()
 
-                        return@mapNotNull LineGraphBuilder.DataPoint(x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
-                            y = headwindSpeed)
-                    }
-
-                    val beforeLineData = lineData.getOrNull(floor((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.firstOrNull()
-                    val afterLineData = lineData.getOrNull(ceil((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.lastOrNull()
-
-                    if (beforeLineData?.weatherData == null || afterLineData?.weatherData == null || beforeLineData.distance == null
-                        || afterLineData.distance == null || beforeLineData == afterLineData) return@mapNotNull null
-
-                    val dt = remap(t.toFloat(),
-                        floor(lineData.size * t).toFloat() / lineData.size,
-                        ceil(lineData.size * t).toFloat() / lineData.size,
-                        0.0f, 1.0f
-                    ).toDouble()
-                    val interpolatedWeather = lerpWeather(beforeLineData.weatherData, afterLineData.weatherData, dt)
-                    val beforeDistanceAlongRoute = beforeLineData.distance
-                    val afterDistanceAlongRoute = afterLineData.distance
-                    val distanceAlongRoute = (beforeDistanceAlongRoute + (afterDistanceAlongRoute - beforeDistanceAlongRoute) * dt).coerceIn(0.0, upcomingRoute.routeLength)
-                    val coordsAlongRoute = try {
-                        TurfMeasurement.along(upcomingRoute.routePolyline, distanceAlongRoute, TurfConstants.UNIT_METERS)
-                    } catch(e: Exception) {
-                        Log.e(KarooHeadwindExtension.TAG, "Error getting coordinates along route", e)
-                        return@mapNotNull null
-                    }
-                    val nextCoordsAlongRoute = try {
-                        TurfMeasurement.along(upcomingRoute.routePolyline, distanceAlongRoute + 5, TurfConstants.UNIT_METERS)
-                    } catch(e: Exception) {
-                        Log.e(KarooHeadwindExtension.TAG, "Error getting next coordinates along route", e)
-                        return@mapNotNull null
-                    }
-                    val bearingAlongRoute = try {
-                        TurfMeasurement.bearing(coordsAlongRoute, nextCoordsAlongRoute)
-                    } catch(e: Exception) {
-                        Log.e(KarooHeadwindExtension.TAG, "Error calculating bearing along route", e)
-                        return@mapNotNull null
-                    }
-                    val windBearing = interpolatedWeather.windDirection + 180
-                    val diff = signedAngleDifference(bearingAlongRoute, windBearing)
-                    val headwindSpeed = cos( (diff + 180) * Math.PI / 180.0) * interpolatedWeather.windSpeed
-
-                    val headwindSpeedInUserUnit = if (isImperial) {
-                        headwindSpeed * 2.23694 // Convert m/s to mph
-                    } else {
-                        headwindSpeed * 3.6 // Convert m/s to km/h
-                    }
-
-                    LineGraphBuilder.DataPoint(
-                        x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
-                        y = headwindSpeedInUserUnit.toFloat()
-                    )
+                    return@mapNotNull LineGraphBuilder.DataPoint(x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
+                        y = headwindSpeed)
                 }
-            } else {
-                emptyList()
+
+                if (upcomingRoute == null) {
+                    Log.e(KarooHeadwindExtension.TAG, "Upcoming route is null")
+                    return@mapNotNull null
+                }
+
+                val beforeLineData = lineData.getOrNull(floor((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.firstOrNull()
+                val afterLineData = lineData.getOrNull(ceil((lineData.size) * t).toInt().coerceAtLeast(0)) ?: lineData.lastOrNull()
+
+                if (beforeLineData?.weatherData == null || afterLineData?.weatherData == null || beforeLineData.distance == null
+                    || afterLineData.distance == null || beforeLineData == afterLineData) return@mapNotNull null
+
+                val dt = remap(t.toFloat(),
+                    floor(lineData.size * t).toFloat() / lineData.size,
+                    ceil(lineData.size * t).toFloat() / lineData.size,
+                    0.0f, 1.0f
+                ).toDouble()
+                val interpolatedWeather = lerpWeather(beforeLineData.weatherData, afterLineData.weatherData, dt)
+                val beforeDistanceAlongRoute = beforeLineData.distance
+                val afterDistanceAlongRoute = afterLineData.distance
+                val distanceAlongRoute = (beforeDistanceAlongRoute + (afterDistanceAlongRoute - beforeDistanceAlongRoute) * dt).coerceIn(0.0, upcomingRoute.routeLength)
+                val coordsAlongRoute = try {
+                    TurfMeasurement.along(upcomingRoute.routePolyline, distanceAlongRoute, TurfConstants.UNIT_METERS)
+                } catch(e: Exception) {
+                    Log.e(KarooHeadwindExtension.TAG, "Error getting coordinates along route", e)
+                    return@mapNotNull null
+                }
+                val nextCoordsAlongRoute = try {
+                    TurfMeasurement.along(upcomingRoute.routePolyline, distanceAlongRoute + 5, TurfConstants.UNIT_METERS)
+                } catch(e: Exception) {
+                    Log.e(KarooHeadwindExtension.TAG, "Error getting next coordinates along route", e)
+                    return@mapNotNull null
+                }
+                val bearingAlongRoute = try {
+                    TurfMeasurement.bearing(coordsAlongRoute, nextCoordsAlongRoute)
+                } catch(e: Exception) {
+                    Log.e(KarooHeadwindExtension.TAG, "Error calculating bearing along route", e)
+                    return@mapNotNull null
+                }
+                val windBearing = interpolatedWeather.windDirection + 180
+                val diff = signedAngleDifference(bearingAlongRoute, windBearing)
+                val headwindSpeed = cos( (diff + 180) * Math.PI / 180.0) * interpolatedWeather.windSpeed
+
+                val headwindSpeedInUserUnit = if (isImperial) {
+                    headwindSpeed * 2.23694 // Convert m/s to mph
+                } else {
+                    headwindSpeed * 3.6 // Convert m/s to km/h
+                }
+
+                LineGraphBuilder.DataPoint(
+                    x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
+                    y = headwindSpeedInUserUnit.toFloat()
+                )
             }
         } catch(e: Exception) {
             Log.e(KarooHeadwindExtension.TAG, "Error calculating headwind points", e)
