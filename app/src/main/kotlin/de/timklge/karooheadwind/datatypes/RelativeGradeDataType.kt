@@ -4,11 +4,9 @@ import android.content.Context
 import android.util.Log
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.KarooHeadwindExtension
-import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
-import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
 import io.hammerhead.karooext.KarooSystemService
@@ -19,7 +17,6 @@ import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
-import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,12 +33,88 @@ import kotlin.math.cos
 class RelativeGradeDataType(private val karooSystemService: KarooSystemService, private val context: Context): DataTypeImpl("karoo-headwind", "relativeGrade") {
     data class RelativeGradeResponse(val relativeGrade: Double, val actualGrade: Double, val riderSpeed: Double)
 
+    data class ResistanceForces(
+        val airResistanceWithoutWind: Double,
+        val airResistanceWithWind: Double,
+        val rollingResistance: Double,
+        val gravitationalForce: Double
+    )
+
     companion object {
         // Default physical constants - adjust as needed
         const val DEFAULT_GRAVITY = 9.80665 // Acceleration due to gravity (m/s^2)
         const val DEFAULT_AIR_DENSITY = 1.225 // Air density at sea level, 15°C (kg/m^3)
         const val DEFAULT_CDA = 0.4 // Default coefficient of drag * frontal area (m^2). Varies significantly with rider position and equipment.
-        const val DEFAULT_BIKE_WEIGHT = 10.0 // Default bike weight (kg).
+        const val DEFAULT_BIKE_WEIGHT = 9.0 // Default bike weight (kg).
+        const val DEFAULT_CRR = 0.005 // Default coefficient of rolling resistance
+
+        /**
+         * Estimates the various resistance forces acting on a cyclist.
+         *
+         * @param actualGrade The current gradient of the road (unitless, e.g., 0.05 for 5%).
+         * @param riderSpeed The speed of the rider relative to the ground (m/s). Must be non-negative.
+         * @param windSpeed The speed of the wind relative to the ground (m/s). Must be non-negative.
+         * @param windDirectionDegrees The direction of the wind relative to the rider's direction
+         *                             of travel (degrees).
+         *                             0 = direct headwind, 90 = crosswind right,
+         *                             180 = direct tailwind, 270 = crosswind left.
+         * @param totalMass The combined mass of the rider and the bike (kg). Must be positive.
+         * @param cda The rider's coefficient of drag multiplied by their frontal area (m^2).
+         *            Defaults to DEFAULT_CDA. Represents aerodynamic efficiency.
+         * @param crr The coefficient of rolling resistance. Defaults to DEFAULT_CRR.
+         * @param airDensity The density of the air (kg/m^3). Defaults to DEFAULT_AIR_DENSITY.
+         * @param g The acceleration due to gravity (m/s^2). Defaults to DEFAULT_GRAVITY.
+         * @return A [ResistanceForces] object containing the calculated forces, or null
+         *         if input parameters are invalid.
+         */
+        fun estimateResistanceForces(
+            actualGrade: Double,
+            riderSpeed: Double,
+            windSpeed: Double,
+            windDirectionDegrees: Double,
+            totalMass: Double,
+            cda: Double = DEFAULT_CDA,
+            crr: Double = DEFAULT_CRR,
+            airDensity: Double = DEFAULT_AIR_DENSITY,
+            g: Double = DEFAULT_GRAVITY
+        ): ResistanceForces? {
+            // --- Input Validation ---
+            if (totalMass <= 0.0 || riderSpeed < 0.0 || windSpeed < 0.0 || g <= 0.0 || airDensity < 0.0 || cda < 0.0 || crr < 0.0) {
+                Log.w(KarooHeadwindExtension.TAG, "Warning: Invalid input parameters for force calculation.")
+                return null
+            }
+
+            // 1. Calculate wind component parallel to rider's direction
+            val windComponentParallel = windSpeed * cos(Math.toRadians(windDirectionDegrees))
+
+            // 2. Calculate effective air speed
+            val effectiveAirSpeed = riderSpeed + windComponentParallel
+
+            // 3. Calculate aerodynamic resistance factor
+            val aeroFactor = 0.5 * airDensity * cda
+
+            // 4. Calculate air resistance forces
+            // Drag Force = aeroFactor * speed^2 * sign(speed)
+            val airResistanceWithWind = aeroFactor * effectiveAirSpeed * abs(effectiveAirSpeed)
+            val airResistanceWithoutWind = aeroFactor * riderSpeed * abs(riderSpeed)
+
+            // 5. Calculate gravitational force (force due to slope)
+            // Decomposing the gravitational force along the slope
+            val gravitationalForce = totalMass * g * actualGrade
+
+            // 6. Calculate rolling resistance force
+            // This is simplified; in reality, it's perpendicular to the road surface.
+            // F_rolling = Crr * N = Crr * m * g * cos(arctan(grade))
+            // For small angles, cos(arctan(grade)) is close to 1, so we approximate.
+            val rollingResistance = totalMass * g * crr
+
+            return ResistanceForces(
+                airResistanceWithoutWind = airResistanceWithoutWind,
+                airResistanceWithWind = airResistanceWithWind,
+                rollingResistance = rollingResistance,
+                gravitationalForce = gravitationalForce
+            )
+        }
 
         /**
          * Estimates the "relative grade" experienced by a cyclist.
@@ -76,42 +149,42 @@ class RelativeGradeDataType(private val karooSystemService: KarooSystemService, 
             airDensity: Double = DEFAULT_AIR_DENSITY,
             g: Double = DEFAULT_GRAVITY,
         ): Double {
-            // --- Input Validation ---
-            if (totalMass <= 0.0 || riderSpeed < 0.0 || windSpeed < 0.0 || g <= 0.0 || airDensity < 0.0 || cda < 0.0) {
-                Log.w(KarooHeadwindExtension.TAG, "Warning: Invalid input parameters. Mass/g must be positive; speeds, airDensity, Cda must be non-negative.")
+            val forces = estimateResistanceForces(
+                actualGrade,
+                riderSpeed,
+                windSpeed,
+                windDirectionDegrees,
+                totalMass,
+                cda,
+                DEFAULT_CRR,
+                airDensity,
+                g
+            )
+
+            if (forces == null) {
+                Log.w(KarooHeadwindExtension.TAG, "Could not calculate forces for relative grade.")
                 return Double.NaN
             }
+
             if (riderSpeed == 0.0 && windSpeed == 0.0) {
                 // If no movement and no wind, relative grade is just the actual grade
                 return actualGrade
             }
 
-            // 1. Calculate the component of wind speed parallel to the rider's direction of travel.
-            //    cos(0 rad) = 1 (headwind), cos(PI rad) = -1 (tailwind)
-            val windComponentParallel = windSpeed * cos(Math.toRadians(windDirectionDegrees))
-
-            // 2. Calculate the effective air speed the rider experiences.
-            //    This is rider speed + the parallel wind component.
-            val effectiveAirSpeed = riderSpeed + windComponentParallel
-
-            // 3. Calculate the aerodynamic resistance factor constant part.
-            val aeroFactor = 0.5 * airDensity * cda
-
-            // 4. Calculate the gravitational force component denominator.
+            // The difference in force is purely from the wind.
+            // This difference in force, when equated to a change in gravitational force, gives the change in grade.
+            // delta_F_air = F_air_with_wind - F_air_without_wind
+            // delta_F_air = m * g * delta_grade
+            // delta_grade = delta_F_air / (m * g)
+            // relative_grade = actual_grade + delta_grade
+            val dragForceDifference = forces.airResistanceWithWind - forces.airResistanceWithoutWind
             val gravitationalFactor = totalMass * g
 
-            // 5. Calculate the difference in the aerodynamic drag force term between
-            //    the current situation (with wind) and the hypothetical no-wind situation.
-            //    Drag Force = aeroFactor * effectiveAirSpeed * abs(effectiveAirSpeed)
-            //    We use speed * abs(speed) to ensure drag always opposes relative air motion.
-            val dragForceDifference = aeroFactor * ( (effectiveAirSpeed * abs(effectiveAirSpeed)) - (riderSpeed * abs(riderSpeed)) )
+            if (gravitationalFactor == 0.0) {
+                return actualGrade // Avoid division by zero
+            }
 
-            // 6. Calculate the relative grade.
-            //    It's the actual grade plus the equivalent grade change caused by the wind.
-            //    Equivalent Grade Change = Drag Force Difference / Gravitational Force Component
-            val relativeGrade = actualGrade + (dragForceDifference / gravitationalFactor)
-
-            return relativeGrade
+            return actualGrade + (dragForceDifference / gravitationalFactor)
         }
 
         suspend fun streamRelativeGrade(karooSystemService: KarooSystemService, context: Context): Flow<RelativeGradeResponse> {
