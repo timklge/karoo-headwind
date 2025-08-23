@@ -9,7 +9,6 @@ import android.graphics.RectF
 import androidx.annotation.ColorInt
 import androidx.core.graphics.createBitmap
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 class BarChartBuilder(val context: Context) {
 
@@ -46,7 +45,7 @@ class BarChartBuilder(val context: Context) {
             return bitmap
         }
 
-        val marginTop = 30f
+        val marginTop = 45f
         val marginBottom = 45f
         val marginLeft = 5f
         val marginRight = 5f
@@ -102,10 +101,15 @@ class BarChartBuilder(val context: Context) {
                 zeroY + barHeight
             }
 
-            // Draw bar label at bottom with increased font size
+            // Draw bar
+            barPaint.color = bar.color
+            val rect = RectF(barLeft, barTop, barRight, barBottom)
+            canvas.drawRect(rect, barPaint)
+
+            // Draw label where value used to be with increased font size
             val labelPaint = Paint().apply {
                 color = primaryTextColor
-                textSize = 24f
+                textSize = 32f  // Increased from 24f and 28f
                 textAlign = Paint.Align.CENTER
                 isAntiAlias = true
             }
@@ -113,64 +117,35 @@ class BarChartBuilder(val context: Context) {
             // Use smallLabel if small is true, otherwise use regular label
             val labelToUse = if (small) bar.smallLabel else bar.label
 
-            // Split long labels into multiple lines
-            val words = labelToUse.split(" ")
-            if (words.size > 1 && labelToUse.length > 8) {
-                val midPoint = words.size / 2
-                val line1 = words.take(midPoint).joinToString(" ")
-                val line2 = words.drop(midPoint).joinToString(" ")
-
-                canvas.drawText(line1, barLeft + barWidth / 2f, chartBottom + 30f, labelPaint)
-                canvas.drawText(line2, barLeft + barWidth / 2f, chartBottom + 60f, labelPaint)
+            val labelY = if (bar.value >= 0) {
+                barTop - 10f  // Position above positive bars
             } else {
-                canvas.drawText(labelToUse, barLeft + barWidth / 2f, chartBottom + 30f, labelPaint)
+                barBottom + labelPaint.textSize + 10f  // Position below negative bars
             }
 
-            // Draw bar
-            barPaint.color = bar.color
-            val rect = RectF(barLeft, barTop, barRight, barBottom)
-            canvas.drawRect(rect, barPaint)
-
-            // Draw value label on top of bar only if not small
-            if (!small) {
-                val valuePaint = Paint().apply {
-                    color = primaryTextColor
-                    textSize = 28f
-                    textAlign = Paint.Align.CENTER
-                    isAntiAlias = true
-                }
-
-                val valueText = "${bar.value.roundToInt()}"
-                val valueLabelY = if (bar.value >= 0) {
-                    barTop - 5f
-                } else {
-                    barBottom + valuePaint.textSize + 5f
-                }
-
-                // Create semi-transparent background box for value label
-                val backgroundPaint = Paint().apply {
-                    color = if (isNightMode) Color.argb(200, 0, 0, 0) else Color.argb(200, 255, 255, 255)
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-
-                // Calculate text bounds for background box
-                val textBounds = android.graphics.Rect()
-                valuePaint.getTextBounds(valueText, 0, valueText.length, textBounds)
-
-                val padding = 8f
-                val boxLeft = barLeft + barWidth / 2f - textBounds.width() / 2f - padding
-                val boxRight = barLeft + barWidth / 2f + textBounds.width() / 2f + padding
-                val boxTop = valueLabelY - textBounds.height() - padding / 2f
-                val boxBottom = valueLabelY + padding / 2f
-
-                // Draw rounded rectangle background
-                val backgroundRect = RectF(boxLeft, boxTop, boxRight, boxBottom)
-                val cornerRadius = 6f
-                canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
-
-                canvas.drawText(valueText, barLeft + barWidth / 2f, valueLabelY, valuePaint)
+            // Create semi-transparent background box for label
+            val backgroundPaint = Paint().apply {
+                color = if (isNightMode) Color.argb(200, 0, 0, 0) else Color.argb(200, 255, 255, 255)
+                style = Paint.Style.FILL
+                isAntiAlias = true
             }
+
+            // Calculate text bounds for background box
+            val textBounds = android.graphics.Rect()
+            labelPaint.getTextBounds(labelToUse, 0, labelToUse.length, textBounds)
+
+            val padding = 8f
+            val boxLeft = barLeft + barWidth / 2f - textBounds.width() / 2f - padding
+            val boxRight = barLeft + barWidth / 2f + textBounds.width() / 2f + padding
+            val boxTop = labelY - textBounds.height() - padding / 2f
+            val boxBottom = labelY + padding / 2f
+
+            // Draw rounded rectangle background
+            val backgroundRect = RectF(boxLeft, boxTop, boxRight, boxBottom)
+            val cornerRadius = 6f
+            canvas.drawRoundRect(backgroundRect, cornerRadius, cornerRadius, backgroundPaint)
+
+            canvas.drawText(labelToUse, barLeft + barWidth / 2f, labelY, labelPaint)
         }
 
         return bitmap
