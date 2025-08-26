@@ -30,7 +30,7 @@ class RelativeElevationGainDataType(private val karooSystemService: KarooSystemS
         val gradeDifferenceDueToWind = relativeGrade - actualGrade
         var intervalWindElevation = 0.0
 
-        if (gradeDifferenceDueToWind > 0) {
+        if (gradeDifferenceDueToWind > 0 && relativeGrade > 0) {
             val distanceCovered = riderSpeed * deltaTime
             intervalWindElevation = distanceCovered * gradeDifferenceDueToWind
         }
