@@ -47,4 +47,6 @@
     <string name="windDirectionAndSpeed_description">Current wind direction and wind speed</string>
     <string name="windDirectionAndSpeedCircle">Wind direction, speed (Circle)</string>
     <string name="windDirectionAndSpeedCircle_description">Current wind direction and wind speed (Circle graphics)</string>
+    <string name="forces">Resistance forces</string>
+    <string name="forces_description">Current resistance forces (air, rolling, gradient)</string>
 </resources>

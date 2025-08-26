@@ -158,4 +158,11 @@
         graphical="false"
         icon="@drawable/wind"
         typeId="relativeElevationGain" />
+
+    <DataType
+        description="@string/forces_description"
+        displayName="@string/forces"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="forces" />
 </ExtensionInfo>
