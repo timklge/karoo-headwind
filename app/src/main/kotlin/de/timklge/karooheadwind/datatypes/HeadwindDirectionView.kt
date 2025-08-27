@@ -67,7 +67,7 @@ fun HeadwindDirection(
     val baseModifier = GlanceModifier.fillMaxSize().padding(5.dp).background(dayColor, nightColor).cornerRadius(10.dp)
 
     Box(
-        modifier = baseModifier, // TODO if (!preview) baseModifier.clickable(actionStartActivity<MainActivity>()) else baseModifier,
+        modifier = if (!preview) baseModifier.clickable(actionStartActivity<MainActivity>()) else baseModifier,
         contentAlignment = Alignment(
             vertical = Alignment.Vertical.CenterVertically,
             horizontal = Alignment.Horizontal.CenterHorizontally,
