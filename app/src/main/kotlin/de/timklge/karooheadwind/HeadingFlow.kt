@@ -12,11 +12,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 
 sealed class HeadingResponse {
     data object NoGps: HeadingResponse()
@@ -108,8 +108,9 @@ fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinat
                 val lat = dataPoint.values[DataType.Field.LOC_LATITUDE]
                 val lng = dataPoint.values[DataType.Field.LOC_LONGITUDE]
                 val orientation = dataPoint.values[DataType.Field.LOC_BEARING]
+                val accuracy = dataPoint.values[DataType.Field.LOC_ACCURACY]
 
-                if (lat != null && lng != null) {
+                if (lat != null && lng != null && accuracy != null && accuracy < 500) {
                     emit(GpsCoordinates(lat, lng, orientation))
 
                     Log.i(KarooHeadwindExtension.TAG, "No last known position found, fetched initial GPS position")
@@ -130,9 +131,21 @@ fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinat
         }
     }
 
-    val gpsFlow = streamLocation()
-        .filter { it.orientation != null }
-        .map { GpsCoordinates(it.lat, it.lng, it.orientation) }
+    val gpsFlow = streamDataFlow(DataType.Type.LOCATION).mapNotNull { it as? StreamState.Streaming }
+        .mapNotNull { dataPoint ->
+            val lat = dataPoint.dataPoint.values[DataType.Field.LOC_LATITUDE]
+            val lng = dataPoint.dataPoint.values[DataType.Field.LOC_LONGITUDE]
+            val orientation = dataPoint.dataPoint.values[DataType.Field.LOC_BEARING]
+            val accuracy = dataPoint.dataPoint.values[DataType.Field.LOC_ACCURACY]
+
+            Log.i(KarooHeadwindExtension.TAG, "Received GPS update: lat=$lat, lng=$lng, accuracy=$accuracy, orientation=$orientation")
+
+            if (lat != null && lng != null && accuracy != null && accuracy < 500) {
+                GpsCoordinates(lat, lng, orientation)
+            } else {
+                null
+            }
+        }
 
     val concatenatedFlow = concatenate(initialFlow, gpsFlow)
 
