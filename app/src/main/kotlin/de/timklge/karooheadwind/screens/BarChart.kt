@@ -50,18 +50,19 @@ class BarChartBuilder(val context: Context) {
         val marginLeft = 5f
         val marginRight = 5f
 
-        val chartWidth = width - marginLeft - marginRight
-        val chartHeight = height - marginTop - marginBottom
-        val chartLeft = marginLeft
-        val chartTop = marginTop
-        val chartBottom = height - marginBottom
-
         // Find the maximum absolute value to determine scale
         val maxValue = bars.maxOfOrNull { abs(it.value) } ?: 1.0
         val minValue = bars.minOfOrNull { it.value } ?: 0.0
 
         // Determine if we need to show negative values
         val hasNegativeValues = minValue < 0
+
+        val chartWidth = width - marginLeft - marginRight
+        val chartHeight = height - marginTop - marginBottom
+        val chartLeft = marginLeft
+        val chartTop = marginTop
+        val chartBottom = if (hasNegativeValues) height - marginBottom else height - 5.0f
+
         val zeroY = if (hasNegativeValues) {
             chartTop + chartHeight * (maxValue / (maxValue - minValue)).toFloat()
         } else {
