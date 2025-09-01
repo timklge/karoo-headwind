@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Fix unit of plain wind gust / speed datafield\n* Fix headwind forecast preview\n* Add UV-index datafield (thx @saversux!)\n* Readd a datafield that shows headwind direction and absolute wind speed datafield",
+            "releaseNotes" to "* Open main extension menu when clicking on graphical headwind / tailwind datafield\n* Only update position if the estimated accuracy is within 500 meters\n* Add force distribution datafield\n* Only increase relative elevation gain when relative grade is positive",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview1.png",
                 "$baseUrl/preview3.png",
