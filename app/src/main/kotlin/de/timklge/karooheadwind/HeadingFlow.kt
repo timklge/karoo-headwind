@@ -1,14 +1,20 @@
 package de.timklge.karooheadwind
 
 import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
@@ -17,6 +23,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import java.time.Instant
 
 sealed class HeadingResponse {
     data object NoGps: HeadingResponse()
@@ -47,12 +54,10 @@ fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingRes
 }
 
 fun KarooSystemService.getHeadingFlow(context: Context): Flow<HeadingResponse> {
-    // return flowOf(HeadingResponse.Value(20.0))
-
-    return getGpsCoordinateFlow(context)
-        .map { coords ->
-            val heading = coords?.bearing
-            Log.d(KarooHeadwindExtension.TAG, "Updated gps bearing: $heading")
+    // Use magnetometer heading instead of GPS bearing
+    return getMagnetometerHeadingFlow(context)
+        .map { heading ->
+            Log.d(KarooHeadwindExtension.TAG, "Updated magnetometer heading: $heading")
             val headingValue = heading?.let { HeadingResponse.Value(it) }
 
             headingValue ?: HeadingResponse.NoGps
@@ -155,4 +160,86 @@ fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinat
             gps?.round(settings.roundLocationTo.km.toDouble())
         }
         .dropNullsIfNullEncountered()
+}
+
+fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double?> = callbackFlow {
+    val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+    Log.d(KarooHeadwindExtension.TAG, "Using magnetometer for heading")
+
+    if (rotationVectorSensor == null) {
+        Log.w(KarooHeadwindExtension.TAG, "Rotation vector sensor not available, falling back to GPS bearing")
+
+        // Fall back to GPS bearing
+        getGpsCoordinateFlow(context)
+            .collect { coords ->
+                val bearing = coords?.bearing
+                if (bearing != null) {
+                    trySend(bearing)
+                } else {
+                    trySend(null)
+                }
+            }
+        return@callbackFlow
+    }
+
+    var lastEventReceived: Instant? = null
+
+    val listener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent?) {
+            if (event == null){
+                Log.w(KarooHeadwindExtension.TAG, "Received null sensor event")
+                return
+            }
+
+            if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                if (lastEventReceived != null){
+                    val now = Instant.now()
+                    val duration = java.time.Duration.between(lastEventReceived, now).toMillis()
+                    if (duration < 500){
+                        // Throttle to max 2 updates per second
+                        return
+                    }
+                    lastEventReceived = now
+                } else {
+                    lastEventReceived = Instant.now()
+                }
+
+                val rotationMatrix = FloatArray(9)
+                val orientationAngles = FloatArray(3)
+
+                // Convert rotation vector to rotation matrix
+                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+
+                // Get orientation angles from rotation matrix
+                SensorManager.getOrientation(rotationMatrix, orientationAngles)
+
+                // Azimuth in radians, convert to degrees
+                val azimuthRad = orientationAngles[0]
+                var azimuthDeg = Math.toDegrees(azimuthRad.toDouble())
+
+                // Normalize to 0-360 range
+                if (azimuthDeg < 0) {
+                    azimuthDeg += 360.0
+                }
+
+                // Log.d(KarooHeadwindExtension.TAG, "Rotation vector heading: $azimuthDeg degrees")
+
+                trySend(azimuthDeg)
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+            Log.d(KarooHeadwindExtension.TAG, "Sensor accuracy changed: ${sensor?.name}, accuracy: $accuracy")
+        }
+    }
+
+    // Register listener for rotation vector sensor
+    sensorManager.registerListener(listener, rotationVectorSensor, SensorManager.SENSOR_DELAY_UI)
+
+    awaitClose {
+        sensorManager.unregisterListener(listener)
+        Log.d(KarooHeadwindExtension.TAG, "Rotation vector listener unregistered")
+    }
 }

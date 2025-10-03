@@ -5,6 +5,7 @@ import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.datatypes.CloudCoverDataType
+import de.timklge.karooheadwind.datatypes.CompassDataType
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindForecastDataType
@@ -89,7 +90,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             RelativeElevationGainDataType(karooSystem, applicationContext),
             TemperatureDataType(karooSystem, applicationContext),
             UviDataType(karooSystem, applicationContext),
-            ResistanceForcesDataType(karooSystem, applicationContext)
+            ResistanceForcesDataType(karooSystem, applicationContext),
+            CompassDataType(karooSystem, applicationContext)
         )
     }
 
