@@ -117,7 +117,7 @@ class CompassDataType(
         return flow {
             while (true) {
                 emit(StreamData(isVisible = true, bearing = 360f * Math.random().toFloat()))
-                delay(10_000)
+                delay(5_000)
             }
         }
     }
@@ -163,7 +163,7 @@ class CompassDataType(
                     ) {
                         Image(
                             modifier = GlanceModifier.fillMaxSize(),
-                            provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, streamData.bearing.toInt())),
+                            provider = ImageProvider(getArrowBitmapByBearing(baseBitmap, 0-streamData.bearing.toInt())),
                             contentDescription = "Relative wind direction indicator",
                             contentScale = ContentScale.Fit,
                         )
