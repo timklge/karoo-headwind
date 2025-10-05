@@ -76,7 +76,7 @@ class ResistanceForcesDataType(val karooSystem: KarooSystemService, context: Con
                 previewFlow()
             } else {
                 val relativeWindDirectionFlow = karooSystem.getRelativeHeadingFlow(context).filterIsInstance<HeadingResponse.Value>().map { it.diff + 180 }
-                val speedFlow = karooSystem.streamDataFlow(DataType.Type.SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
+                val speedFlow = karooSystem.streamDataFlow(DataType.Type.SMOOTHED_3S_AVERAGE_SPEED).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue ?: 0.0 }
                 val actualGradeFlow = karooSystem.streamDataFlow(DataType.Type.ELEVATION_GRADE).filterIsInstance<StreamState.Streaming>().map { it.dataPoint.singleValue }.filterNotNull().map { it / 100.0 } // Convert to decimal grade
                 val totalMassFlow = karooSystem.streamUserProfile().map {
                     if (it.weight in 30.0f..300.0f){
