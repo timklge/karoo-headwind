@@ -1,11 +1,8 @@
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
 import android.util.Log
 import androidx.compose.ui.unit.DpSize
-import androidx.core.graphics.createBitmap
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
@@ -22,6 +19,7 @@ import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.screens.LineGraphBuilder
+import de.timklge.karooheadwind.screens.isNightMode
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
@@ -222,7 +220,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
             dataFlow.filter { it.isVisible }.collect { (allData, settingsAndProfile, _, headingResponse, upcomingRoute) ->
                 Log.d(KarooHeadwindExtension.TAG, "Updating weather forecast view")
 
-                if (allData?.data.isNullOrEmpty()){
+                if (allData?.data.isNullOrEmpty() || headingResponse is HeadingResponse.NoGps || headingResponse is HeadingResponse.NoWeatherData){
                     emitter.updateView(
                         getErrorWidget(
                             glance,
@@ -244,9 +242,9 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                             }
 
                             val locationData = if (isRouteLoaded){
-                                allData?.data?.getOrNull(i)
+                                allData.data.getOrNull(i)
                             } else {
-                                allData?.data?.firstOrNull()
+                                allData.data.firstOrNull()
                             }
                             val data = if (i == 0){
                                 locationData?.current
@@ -262,7 +260,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                             val time = Instant.ofEpochSecond(data.time)
 
                             if (time.isBefore(Instant.now().minus(1, ChronoUnit.HOURS)) || (locationData?.coords?.distanceAlongRoute == null && time.isAfter(Instant.now().plus(6, ChronoUnit.HOURS)))) {
-                                Log.d(KarooHeadwindExtension.TAG, "Skipping forecast data for time $time as it is in the past or too close to now")
+                                // Log.d(KarooHeadwindExtension.TAG, "Skipping forecast data for time $time as it is in the past or too close to now")
                                 continue
                             }
 
@@ -312,7 +310,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
                         }
 
                         is LineGraphForecastData.Error -> {
-                            emitter.onNext(ShowCustomStreamState(pointData.message, null))
+                            emitter.onNext(ShowCustomStreamState(pointData.message, if (isNightMode(context)) context.resources.getColor(R.color.white) else context.resources.getColor(R.color.black)))
                             Box(modifier = GlanceModifier.fillMaxSize()){
 
                             }
