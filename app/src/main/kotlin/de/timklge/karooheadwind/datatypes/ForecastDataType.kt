@@ -205,7 +205,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                 context.streamCurrentForecastWeatherData(),
                 settingsAndProfileStream,
                 context.streamWidgetSettings(),
-                karooSystem.getHeadingFlow(context).throttle(3 * 60_000L),
+                karooSystem.getHeadingFlow(karooSystem, context).throttle(3 * 60_000L),
                 karooSystem.streamUpcomingRoute().distinctUntilChanged { old, new ->
                     val oldDistance = old?.distanceAlongRoute
                     val newDistance = new?.distanceAlongRoute

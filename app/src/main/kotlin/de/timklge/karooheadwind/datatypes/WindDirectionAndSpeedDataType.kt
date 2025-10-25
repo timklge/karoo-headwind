@@ -72,7 +72,7 @@ class WindDirectionAndSpeedDataType(
 
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
-        Log.d(KarooHeadwindExtension.TAG, "Starting headwind direction view with $emitter")
+        Log.d(KarooHeadwindExtension.TAG, "Starting wind direction and speed view with $emitter")
 
         val baseBitmap = BitmapFactory.decodeResource(
             context.resources,

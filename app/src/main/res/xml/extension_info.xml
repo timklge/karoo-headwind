@@ -165,4 +165,11 @@
         graphical="true"
         icon="@drawable/wind"
         typeId="forces" />
+
+    <DataType
+        description="@string/compass_description"
+        displayName="@string/compass"
+        graphical="true"
+        icon="@drawable/arrow"
+        typeId="compass" />
 </ExtensionInfo>
