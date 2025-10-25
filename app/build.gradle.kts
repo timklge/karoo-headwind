@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Add compass data field\n* Use magnetometer to determine heading",
+            "releaseNotes" to "* Add compass data field\n* Optionally, use magnetometer to determine heading",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview1.png",
                 "$baseUrl/preview3.png",

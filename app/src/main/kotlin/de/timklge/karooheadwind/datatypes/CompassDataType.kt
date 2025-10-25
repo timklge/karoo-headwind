@@ -52,7 +52,7 @@ class CompassDataType(
     @OptIn(ExperimentalGlanceRemoteViewsApi::class)
     private val glance = GlanceRemoteViews()
 
-    data class StreamData(val bearing: Float, val isVisible: Boolean)
+    data class StreamData(val bearing: Float?, val isVisible: Boolean)
 
     private fun drawCompassNeedle(bitmap: Bitmap, baseColor: Int) {
         val canvas = Canvas(bitmap)
@@ -142,13 +142,13 @@ class CompassDataType(
         val flow = if (config.preview) {
             previewFlow()
         } else {
-            combine(karooSystem.getHeadingFlow(context), karooSystem.streamDatatypeIsVisible(dataTypeId)){ bearingResponse, isVisible ->
+            combine(karooSystem.getHeadingFlow(karooSystem, context), karooSystem.streamDatatypeIsVisible(dataTypeId)){ bearingResponse, isVisible ->
                 val bearing = when(bearingResponse) {
                     is HeadingResponse.Value -> ((bearingResponse.diff + 360) % 360).toFloat()
                     else -> null
                 }
 
-                StreamData(bearing = bearing ?: 0f, isVisible = isVisible)
+                StreamData(bearing = bearing, isVisible = isVisible)
             }
         }
 
@@ -157,6 +157,11 @@ class CompassDataType(
 
             val refreshRate = karooSystem.getRefreshRateInMilliseconds(context)
             flow.filter { it.isVisible }.throttle(refreshRate).collect { streamData ->
+                if (streamData.bearing == null) {
+                    emitter.updateView(getErrorWidget(glance, context, HeadwindDirectionDataType.ERROR_NO_GPS).remoteViews)
+                    return@collect
+                }
+
                 val result = glance.compose(context, androidx.compose.ui.unit.DpSize.Unspecified) {
                     Box(
                         modifier = if (!config.preview) baseModifier.clickable(actionStartActivity<MainActivity>()) else baseModifier,

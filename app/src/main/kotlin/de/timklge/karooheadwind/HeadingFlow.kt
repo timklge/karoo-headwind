@@ -11,6 +11,7 @@ import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -34,7 +36,7 @@ sealed class HeadingResponse {
 fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingResponse> {
     val currentWeatherData = context.streamCurrentWeatherData(this)
 
-    return getHeadingFlow(context)
+    return getHeadingFlow(this, context)
         .combine(currentWeatherData) { bearing, data -> bearing to data }
         .map { (bearing, data) ->
             when {
@@ -53,16 +55,33 @@ fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingRes
         }
 }
 
-fun KarooSystemService.getHeadingFlow(context: Context): Flow<HeadingResponse> {
-    // Use magnetometer heading instead of GPS bearing
-    return getMagnetometerHeadingFlow(context)
-        .map { heading ->
-            Log.d(KarooHeadwindExtension.TAG, "Updated magnetometer heading: $heading")
-            val headingValue = heading?.let { HeadingResponse.Value(it) }
+@OptIn(ExperimentalCoroutinesApi::class)
+fun KarooSystemService.getHeadingFlow(karooSystemService: KarooSystemService, context: Context): Flow<HeadingResponse> {
+    return context.streamSettings(karooSystemService).map { it.useMagnetometerForHeading }.distinctUntilChanged().flatMapLatest { useMagnetometerForHeading ->
+        if (useMagnetometerForHeading) {
+            Log.i(KarooHeadwindExtension.TAG, "Using magnetometer for heading as per settings")
 
-            headingValue ?: HeadingResponse.NoGps
+            getMagnetometerHeadingFlow(context)
+                .map { heading ->
+                    val headingValue = heading?.let { HeadingResponse.Value(it) }
+
+                    headingValue ?: HeadingResponse.NoGps
+                }
+                .distinctUntilChanged()
+        } else {
+            Log.i(KarooHeadwindExtension.TAG, "Using GPS bearing for heading as per settings")
+
+            getGpsCoordinateFlow(context).map {  gps ->
+                if (gps != null) {
+                    val headingValue = gps.bearing?.let { HeadingResponse.Value(it) }
+
+                    headingValue ?: HeadingResponse.NoGps
+                } else {
+                    HeadingResponse.NoGps
+                }
+            }
         }
-        .distinctUntilChanged()
+    }
 }
 
 fun <T> concatenate(vararg flows: Flow<T>) = flow {
@@ -197,8 +216,8 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
                 if (lastEventReceived != null){
                     val now = Instant.now()
                     val duration = java.time.Duration.between(lastEventReceived, now).toMillis()
-                    if (duration < 500){
-                        // Throttle to max 2 updates per second
+                    if (duration < 750){
+                        // Throttle
                         return
                     }
                     lastEventReceived = now
@@ -236,7 +255,7 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
     }
 
     // Register listener for rotation vector sensor
-    sensorManager.registerListener(listener, rotationVectorSensor, SensorManager.SENSOR_DELAY_UI)
+    sensorManager.registerListener(listener, rotationVectorSensor, 750_000) // 750ms
 
     awaitClose {
         sensorManager.unregisterListener(listener)
