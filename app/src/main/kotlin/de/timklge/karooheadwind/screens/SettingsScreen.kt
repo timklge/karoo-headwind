@@ -150,6 +150,9 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selected = refreshRateSelection
         ) { selectedOption ->
             refreshRateSetting = RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
         }
 
         val roundLocationDropdownOptions = RoundLocationSetting.entries.toList()
@@ -164,12 +167,20 @@ fun SettingsScreen(onFinish: () -> Unit) {
         ) { selectedOption ->
             selectedRoundLocationSetting =
                 RoundLocationSetting.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
         }
 
         if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
             OutlinedTextField(
                 value = forecastMilesPerHour, modifier = Modifier.fillMaxWidth(),
-                onValueChange = { forecastMilesPerHour = it },
+                onValueChange = {
+                    forecastMilesPerHour = it
+                    coroutineScope.launch {
+                        updateSettings()
+                    }
+                },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("mi") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -178,7 +189,12 @@ fun SettingsScreen(onFinish: () -> Unit) {
         } else {
             OutlinedTextField(
                 value = forecastKmPerHour, modifier = Modifier.fillMaxWidth(),
-                onValueChange = { forecastKmPerHour = it },
+                onValueChange = {
+                    forecastKmPerHour = it
+                    coroutineScope.launch {
+                        updateSettings()
+                    }
+                },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("km") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -187,13 +203,23 @@ fun SettingsScreen(onFinish: () -> Unit) {
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = showDistanceInForecast, onCheckedChange = { showDistanceInForecast = it})
+            Switch(checked = showDistanceInForecast, onCheckedChange = {
+                showDistanceInForecast = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
             Spacer(modifier = Modifier.width(10.dp))
             Text("Show Distance in Forecast")
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = useMagnetometerForHeading, onCheckedChange = { useMagnetometerForHeading = it})
+            Switch(checked = useMagnetometerForHeading, onCheckedChange = {
+                useMagnetometerForHeading = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
             Spacer(modifier = Modifier.width(10.dp))
             Text("Use Magnetometer")
         }
@@ -208,8 +234,18 @@ fun SettingsScreen(onFinish: () -> Unit) {
         WeatherProviderSection(
             selectedProvider = selectedWeatherProvider,
             karooSystemService = karooSystem,
-            onProviderChanged = { selectedWeatherProvider = it },
-            onApiKeyChanged = { openWeatherMapApiKey = it },
+            onProviderChanged = {
+                selectedWeatherProvider = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            },
+            onApiKeyChanged = {
+                openWeatherMapApiKey = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            },
             apiKey = openWeatherMapApiKey
         )
 
