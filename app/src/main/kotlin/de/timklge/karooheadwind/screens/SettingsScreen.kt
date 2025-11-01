@@ -31,8 +31,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -174,12 +177,18 @@ fun SettingsScreen(onFinish: () -> Unit) {
 
         if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
             OutlinedTextField(
-                value = forecastMilesPerHour, modifier = Modifier.fillMaxWidth(),
+                value = forecastMilesPerHour,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            coroutineScope.launch {
+                                updateSettings()
+                            }
+                        }
+                    },
                 onValueChange = {
                     forecastMilesPerHour = it
-                    coroutineScope.launch {
-                        updateSettings()
-                    }
                 },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("mi") },
@@ -188,12 +197,18 @@ fun SettingsScreen(onFinish: () -> Unit) {
             )
         } else {
             OutlinedTextField(
-                value = forecastKmPerHour, modifier = Modifier.fillMaxWidth(),
+                value = forecastKmPerHour,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            coroutineScope.launch {
+                                updateSettings()
+                            }
+                        }
+                    },
                 onValueChange = {
                     forecastKmPerHour = it
-                    coroutineScope.launch {
-                        updateSettings()
-                    }
                 },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("km") },
@@ -242,11 +257,13 @@ fun SettingsScreen(onFinish: () -> Unit) {
             },
             onApiKeyChanged = {
                 openWeatherMapApiKey = it
+            },
+            apiKey = openWeatherMapApiKey,
+            onSettingsSave = {
                 coroutineScope.launch {
                     updateSettings()
                 }
-            },
-            apiKey = openWeatherMapApiKey
+            }
         )
 
         Spacer(modifier = Modifier.padding(30.dp))
@@ -261,6 +278,7 @@ fun WeatherProviderSection(
     onProviderChanged: (WeatherDataProvider) -> Unit,
     apiKey: String,
     onApiKeyChanged: (String) -> Unit,
+    onSettingsSave: () -> Unit
 ) {
     val profile by karooSystemService.streamUserProfile().collectAsStateWithLifecycle(null)
     val settings by LocalContext.current.streamSettings(karooSystemService).collectAsStateWithLifecycle(HeadwindSettings())
@@ -296,7 +314,12 @@ fun WeatherProviderSection(
                 label = { Text("OpenWeatherMap API Key") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 4.dp)
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            onSettingsSave()
+                        }
+                    },
                     singleLine = true
             )
 
