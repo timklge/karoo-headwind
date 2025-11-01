@@ -31,8 +31,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -150,6 +153,9 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selected = refreshRateSelection
         ) { selectedOption ->
             refreshRateSetting = RefreshRate.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
         }
 
         val roundLocationDropdownOptions = RoundLocationSetting.entries.toList()
@@ -164,12 +170,26 @@ fun SettingsScreen(onFinish: () -> Unit) {
         ) { selectedOption ->
             selectedRoundLocationSetting =
                 RoundLocationSetting.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
         }
 
         if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
             OutlinedTextField(
-                value = forecastMilesPerHour, modifier = Modifier.fillMaxWidth(),
-                onValueChange = { forecastMilesPerHour = it },
+                value = forecastMilesPerHour,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            coroutineScope.launch {
+                                updateSettings()
+                            }
+                        }
+                    },
+                onValueChange = {
+                    forecastMilesPerHour = it
+                },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("mi") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -177,8 +197,19 @@ fun SettingsScreen(onFinish: () -> Unit) {
             )
         } else {
             OutlinedTextField(
-                value = forecastKmPerHour, modifier = Modifier.fillMaxWidth(),
-                onValueChange = { forecastKmPerHour = it },
+                value = forecastKmPerHour,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            coroutineScope.launch {
+                                updateSettings()
+                            }
+                        }
+                    },
+                onValueChange = {
+                    forecastKmPerHour = it
+                },
                 label = { Text("Forecast Distance per Hour") },
                 suffix = { Text("km") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -187,13 +218,23 @@ fun SettingsScreen(onFinish: () -> Unit) {
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = showDistanceInForecast, onCheckedChange = { showDistanceInForecast = it})
+            Switch(checked = showDistanceInForecast, onCheckedChange = {
+                showDistanceInForecast = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
             Spacer(modifier = Modifier.width(10.dp))
             Text("Show Distance in Forecast")
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = useMagnetometerForHeading, onCheckedChange = { useMagnetometerForHeading = it})
+            Switch(checked = useMagnetometerForHeading, onCheckedChange = {
+                useMagnetometerForHeading = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
             Spacer(modifier = Modifier.width(10.dp))
             Text("Use Magnetometer")
         }
@@ -208,9 +249,21 @@ fun SettingsScreen(onFinish: () -> Unit) {
         WeatherProviderSection(
             selectedProvider = selectedWeatherProvider,
             karooSystemService = karooSystem,
-            onProviderChanged = { selectedWeatherProvider = it },
-            onApiKeyChanged = { openWeatherMapApiKey = it },
-            apiKey = openWeatherMapApiKey
+            onProviderChanged = {
+                selectedWeatherProvider = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            },
+            onApiKeyChanged = {
+                openWeatherMapApiKey = it
+            },
+            apiKey = openWeatherMapApiKey,
+            onSettingsSave = {
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            }
         )
 
         Spacer(modifier = Modifier.padding(30.dp))
@@ -225,6 +278,7 @@ fun WeatherProviderSection(
     onProviderChanged: (WeatherDataProvider) -> Unit,
     apiKey: String,
     onApiKeyChanged: (String) -> Unit,
+    onSettingsSave: () -> Unit
 ) {
     val profile by karooSystemService.streamUserProfile().collectAsStateWithLifecycle(null)
     val settings by LocalContext.current.streamSettings(karooSystemService).collectAsStateWithLifecycle(HeadwindSettings())
@@ -260,7 +314,12 @@ fun WeatherProviderSection(
                 label = { Text("OpenWeatherMap API Key") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 4.dp)
+                    .onFocusChanged { focusState ->
+                        if (!focusState.isFocused) {
+                            onSettingsSave()
+                        }
+                    },
                     singleLine = true
             )
 
