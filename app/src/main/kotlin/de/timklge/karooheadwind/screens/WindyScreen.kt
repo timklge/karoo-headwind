@@ -173,15 +173,16 @@ fun WindyScreen(onFinish: () -> Unit) {
                     }
                 }
 
+                WebView.setWebContentsDebuggingEnabled(true)
+
                 loadUrl(windyUrl)
             }
         },
-        onReset = { webView ->
+        onRelease = { webView ->
             webView.stopLoading()
             webView.loadUrl("about:blank")
-            webView.clearHistory()
             webView.removeAllViews()
             webView.destroy()
-        }
+        },
     )
 }
