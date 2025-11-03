@@ -1,5 +1,9 @@
 package de.timklge.karooheadwind.screens
 
+import android.annotation.SuppressLint
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,14 +37,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
+import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
+import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.HardwareType
+import io.hammerhead.karooext.models.UserProfile
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +68,7 @@ fun MainScreen(close: () -> Unit) {
 
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val tabs = listOf("Weather", "Settings")
+    val tabs = listOf("Live", "Setup", "Windy")
 
     fun refreshData() {
         coroutineScope.launch {
@@ -76,7 +89,7 @@ fun MainScreen(close: () -> Unit) {
     }
 
     fun onFinish() {
-        if (tabIndex > 0){
+        if (tabIndex > 0) {
             tabIndex--
         } else {
             close()
@@ -101,15 +114,21 @@ fun MainScreen(close: () -> Unit) {
         }
     }
 
-    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = isRefreshing, onRefresh = { refreshData() }) {
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)) {
+    PullToRefreshBox(
+        modifier = Modifier.fillMaxSize(),
+        isRefreshing = isRefreshing,
+        onRefresh = { refreshData() }) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 TabRow(selectedTabIndex = tabIndex) {
                     tabs.forEachIndexed { index, title ->
-                        Tab(text = { Text(title) },
+                        Tab(
+                            text = { Text(title) },
                             selected = tabIndex == index,
                             onClick = { tabIndex = index }
                         )
@@ -118,17 +137,21 @@ fun MainScreen(close: () -> Unit) {
                 when (tabIndex) {
                     0 -> WeatherScreen(::onFinish)
                     1 -> SettingsScreen(::onFinish)
+                    2 -> WindyScreen(::onFinish)
                 }
             }
         }
 
-        if (welcomeDialogVisible){
-            AlertDialog(onDismissRequest = { },
-                confirmButton = { Button(onClick = {
-                    coroutineScope.launch {
-                        saveSettings(ctx, HeadwindSettings(welcomeDialogAccepted = true))
-                    }
-                }) { Text("OK") } },
+        if (welcomeDialogVisible) {
+            AlertDialog(
+                onDismissRequest = { },
+                confirmButton = {
+                    Button(onClick = {
+                        coroutineScope.launch {
+                            saveSettings(ctx, HeadwindSettings(welcomeDialogAccepted = true))
+                        }
+                    }) { Text("OK") }
+                },
                 text = {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         Text("Welcome to karoo-headwind!")
@@ -145,16 +168,19 @@ fun MainScreen(close: () -> Unit) {
             )
         }
 
-        Image(
-            painter = painterResource(id = R.drawable.back),
-            contentDescription = "Back",
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 10.dp)
-                .size(54.dp)
-                .clickable {
-                    onFinish()
-                }
-        )
+        // Do not show back button on the Windy tab
+        if (tabIndex != 2) {
+            Image(
+                painter = painterResource(id = R.drawable.back),
+                contentDescription = "Back",
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(bottom = 10.dp)
+                    .size(54.dp)
+                    .clickable {
+                        onFinish()
+                    }
+            )
+        }
     }
 }

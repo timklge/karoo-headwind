@@ -44,6 +44,8 @@ If the app cannot connect to the weather service, it will retry the download eve
 
 By default, the app will use GPS bearing to determine your riding direction. You can switch to using the Karoo's magnetometer in the settings menu.
 
+If you are connected to WiFi, you can open an embedded [windy.com](https://www.windy.com) map to see a detailed wind forecast for your area. You can zoom and pan the map as desired.
+
 ## Credits
 
 - Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt)) and the [Google Noto Color Emoji font](https://fonts.google.com/noto/specimen/Noto+Color+Emoji) (SIL Open Font License 1.1)
