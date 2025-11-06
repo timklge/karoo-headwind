@@ -178,6 +178,9 @@ fun WindyScreen(onFinish: () -> Unit) {
                 loadUrl(windyUrl)
             }
         },
+        update = { webView ->
+            webView.loadUrl(windyUrl)
+        },
         onRelease = { webView ->
             webView.stopLoading()
             webView.loadUrl("about:blank")
