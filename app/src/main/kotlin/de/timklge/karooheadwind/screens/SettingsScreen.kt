@@ -176,12 +176,15 @@ fun SettingsScreen(onFinish: () -> Unit) {
         }
 
         if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
+            var milesFieldWasFocused by remember { mutableStateOf(false) }
             OutlinedTextField(
                 value = forecastMilesPerHour,
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
+                        if (focusState.isFocused) {
+                            milesFieldWasFocused = true
+                        } else if (milesFieldWasFocused) {
                             coroutineScope.launch {
                                 updateSettings()
                             }
@@ -196,12 +199,15 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 singleLine = true
             )
         } else {
+            var kmFieldWasFocused by remember { mutableStateOf(false) }
             OutlinedTextField(
                 value = forecastKmPerHour,
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
+                        if (focusState.isFocused) {
+                            kmFieldWasFocused = true
+                        } else if (kmFieldWasFocused) {
                             coroutineScope.launch {
                                 updateSettings()
                             }
@@ -306,6 +312,7 @@ fun WeatherProviderSection(
         }
 
         if (selectedProvider == WeatherDataProvider.OPEN_WEATHER_MAP) {
+            var apiKeyFieldWasFocused by remember { mutableStateOf(false) }
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = {
@@ -316,11 +323,13 @@ fun WeatherProviderSection(
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .onFocusChanged { focusState ->
-                        if (!focusState.isFocused) {
+                        if (focusState.isFocused) {
+                            apiKeyFieldWasFocused = true
+                        } else if (apiKeyFieldWasFocused) {
                             onSettingsSave()
                         }
                     },
-                    singleLine = true
+                singleLine = true
             )
 
             Text(
