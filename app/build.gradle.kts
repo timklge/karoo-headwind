@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Add compass data field\n* Optionally, use magnetometer to determine heading\n* Fix headwind forecast datafield does not show error if no route is loaded",
+            "releaseNotes" to "* Show true north instead of magnetic north in magnetometer mode, batch sensor values\n* Add compass data field\n* Optionally, use magnetometer to determine heading\n* Fix headwind forecast datafield does not show error if no route is loaded",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview3.png",
                 "$baseUrl/preview1.png",
