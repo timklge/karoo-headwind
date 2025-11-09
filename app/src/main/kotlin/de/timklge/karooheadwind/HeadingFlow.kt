@@ -6,6 +6,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.SensorManager.SENSOR_DELAY_NORMAL
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
@@ -289,7 +290,7 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
     }
 
     // Register listener for rotation vector sensor
-    sensorManager.registerListener(listener, rotationVectorSensor, 750_000) // 750ms
+    sensorManager.registerListener(listener, rotationVectorSensor, SENSOR_DELAY_NORMAL, 500_000) // 750ms
 
     awaitClose {
         gpsJob.cancel()
