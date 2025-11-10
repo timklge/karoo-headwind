@@ -13,7 +13,9 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +29,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.SharingStarted
 import java.time.Instant
 
 sealed class HeadingResponse {
@@ -189,7 +192,79 @@ fun KarooSystemService.getGpsCoordinateFlow(context: Context): Flow<GpsCoordinat
         .dropNullsIfNullEncountered()
 }
 
-fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double?> = callbackFlow {
+// Shared magnetometer sensor data holder
+private object MagnetometerSensorHolder {
+    @Volatile
+    private var sharedMagnetometerFlow: Flow<FloatArray?>? = null
+    private val lock = Any()
+
+    fun getSharedSensorFlow(context: Context): Flow<FloatArray?> {
+        return sharedMagnetometerFlow ?: synchronized(lock) {
+            sharedMagnetometerFlow ?: createSharedSensorFlow(context).also {
+                sharedMagnetometerFlow = it
+            }
+        }
+    }
+
+    private fun createSharedSensorFlow(context: Context): Flow<FloatArray?> {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+
+        if (rotationVectorSensor == null) {
+            Log.w(KarooHeadwindExtension.TAG, "Rotation vector sensor not available")
+            return flow { emit(null) }
+        }
+
+        return callbackFlow {
+            var lastEventReceived: Instant? = null
+
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent?) {
+                    if (event == null) {
+                        Log.w(KarooHeadwindExtension.TAG, "Received null sensor event")
+                        return
+                    }
+
+                    if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
+                        // Throttle to max one event every 750ms
+                        if (lastEventReceived != null) {
+                            val now = Instant.now()
+                            val duration = java.time.Duration.between(lastEventReceived, now).toMillis()
+                            if (duration < 750) {
+                                return
+                            }
+                            lastEventReceived = now
+                        } else {
+                            lastEventReceived = Instant.now()
+                        }
+
+                        Log.d(KarooHeadwindExtension.TAG, "Received rotation vector sensor event: ${event.values.joinToString(",")}")
+
+                        trySend(event.values.copyOf())
+                    }
+                }
+
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+                    Log.d(KarooHeadwindExtension.TAG, "Sensor accuracy changed: ${sensor?.name}, accuracy: $accuracy")
+                }
+            }
+
+            Log.d(KarooHeadwindExtension.TAG, "Registering rotation vector sensor listener")
+            sensorManager.registerListener(listener, rotationVectorSensor, SensorManager.SENSOR_DELAY_NORMAL, 500_000) // 500ms
+
+            awaitClose {
+                sensorManager.unregisterListener(listener)
+                Log.d(KarooHeadwindExtension.TAG, "Rotation vector listener unregistered")
+            }
+        }.shareIn(
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000, replayExpirationMillis = 0),
+            replay = 1
+        )
+    }
+}
+
+fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double?> {
     val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     val rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
@@ -199,112 +274,58 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
         Log.w(KarooHeadwindExtension.TAG, "Rotation vector sensor not available, falling back to GPS bearing")
 
         // Fall back to GPS bearing
-        getGpsCoordinateFlow(context)
-            .collect { coords ->
-                val bearing = coords?.bearing
-                if (bearing != null) {
-                    trySend(bearing)
-                } else {
-                    trySend(null)
-                }
-            }
-        return@callbackFlow
+        return getGpsCoordinateFlow(context).map { coords -> coords?.bearing }
     }
 
-    var lastEventReceived: Instant? = null
-    var currentGpsCoordinates: GpsCoordinates? = null
-    var lastLogAt: Instant? = Instant.now()
-
-    // Launch a coroutine to keep track of GPS coordinates for declination calculation
-    val gpsJob = launch(Dispatchers.IO) {
-        getGpsCoordinateFlow(context).collect { coords ->
-            currentGpsCoordinates = coords
+    // Combine GPS coordinates with sensor data
+    return MagnetometerSensorHolder.getSharedSensorFlow(context)
+        .combine(getGpsCoordinateFlow(context)) { sensorValues, gpsCoordinates ->
+            sensorValues to gpsCoordinates
         }
-    }
-
-    val listener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent?) {
-            if (event == null){
-                Log.w(KarooHeadwindExtension.TAG, "Received null sensor event")
-                return
+        .map { (sensorValues, gpsCoordinates) ->
+            if (sensorValues == null) {
+                return@map null
             }
 
-            if (event.sensor.type == Sensor.TYPE_ROTATION_VECTOR) {
-                if (lastEventReceived != null){
-                    val now = Instant.now()
-                    val duration = java.time.Duration.between(lastEventReceived, now).toMillis()
-                    if (duration < 750){
-                        // Throttle
-                        return
-                    }
-                    lastEventReceived = now
-                } else {
-                    lastEventReceived = Instant.now()
-                }
+            val rotationMatrix = FloatArray(9)
+            val orientationAngles = FloatArray(3)
 
-                val rotationMatrix = FloatArray(9)
-                val orientationAngles = FloatArray(3)
+            // Convert rotation vector to rotation matrix
+            SensorManager.getRotationMatrixFromVector(rotationMatrix, sensorValues)
 
-                // Convert rotation vector to rotation matrix
-                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+            // Get orientation angles from rotation matrix
+            SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
-                // Get orientation angles from rotation matrix
-                SensorManager.getOrientation(rotationMatrix, orientationAngles)
+            // Azimuth in radians, convert to degrees (this is magnetic north)
+            val azimuthRad = orientationAngles[0]
+            var magneticNorth = Math.toDegrees(azimuthRad.toDouble())
 
-                // Azimuth in radians, convert to degrees (this is magnetic north)
-                val azimuthRad = orientationAngles[0]
-                var magneticNorth = Math.toDegrees(azimuthRad.toDouble())
+            // Normalize to 0-360 range
+            if (magneticNorth < 0) {
+                magneticNorth += 360.0
+            }
 
+            // Convert magnetic north to true north using GPS coordinates
+            val trueNorth = gpsCoordinates?.let { coords ->
+                val geomagneticField = GeomagneticField(
+                    coords.lat.toFloat(),
+                    coords.lon.toFloat(),
+                    0f,
+                    System.currentTimeMillis()
+                )
+                val declination = geomagneticField.declination
+
+                var corrected = magneticNorth + declination
                 // Normalize to 0-360 range
-                if (magneticNorth < 0) {
-                    magneticNorth += 360.0
+                if (corrected < 0) {
+                    corrected += 360.0
+                } else if (corrected >= 360.0) {
+                    corrected -= 360.0
                 }
 
-                // Convert magnetic north to true north using GPS coordinates
-                val trueNorth = currentGpsCoordinates?.let { coords ->
-                    val geomagneticField = GeomagneticField(
-                        coords.lat.toFloat(),
-                        coords.lon.toFloat(),
-                        0f,
-                        System.currentTimeMillis()
-                    )
-                    val declination = geomagneticField.declination
+                corrected
+            } ?: magneticNorth // Fall back to magnetic north if GPS not available
 
-                    var corrected = magneticNorth + declination
-                    // Normalize to 0-360 range
-                    if (corrected < 0) {
-                        corrected += 360.0
-                    } else if (corrected >= 360.0) {
-                        corrected -= 360.0
-                    }
-
-                    if (lastLogAt?.isBefore(Instant.now().minusSeconds(3)) == true) {
-                        Log.d(KarooHeadwindExtension.TAG, "Magnetic: $magneticNorth°, Declination: $declination°, True North: $corrected°")
-
-                        lastLogAt = Instant.now()
-                    }
-
-                    corrected
-                } ?: let {
-                    Log.w(KarooHeadwindExtension.TAG, "No GPS coordinates available for declination calculation, using magnetic north $magneticNorth")
-                    magneticNorth // Fall back to magnetic north if GPS not available
-                }
-
-                trySend(trueNorth)
-            }
+            trueNorth
         }
-
-        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-            Log.d(KarooHeadwindExtension.TAG, "Sensor accuracy changed: ${sensor?.name}, accuracy: $accuracy")
-        }
-    }
-
-    // Register listener for rotation vector sensor
-    sensorManager.registerListener(listener, rotationVectorSensor, 750_000_000, 750_000) // 750ms
-
-    awaitClose {
-        gpsJob.cancel()
-        sensorManager.unregisterListener(listener)
-        Log.d(KarooHeadwindExtension.TAG, "Rotation vector listener unregistered")
-    }
 }
