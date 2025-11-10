@@ -138,7 +138,7 @@ fun WindyScreen(onFinish: () -> Unit) {
     }
 
     if (location == null) {
-        if (showWarnings) Text("waiting for GPS fix...", modifier = Modifier.padding(10.dp))
+        if (showWarnings) Text("Waiting for GPS fix...", modifier = Modifier.padding(10.dp))
         return
     }
 

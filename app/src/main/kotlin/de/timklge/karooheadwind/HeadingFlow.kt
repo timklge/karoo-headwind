@@ -1,16 +1,19 @@
 package de.timklge.karooheadwind
 
 import android.content.Context
+import android.hardware.GeomagneticField
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.SensorManager.SENSOR_DELAY_NORMAL
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 import java.time.Instant
 
 sealed class HeadingResponse {
@@ -204,6 +208,14 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
     }
 
     var lastEventReceived: Instant? = null
+    var currentGpsCoordinates: GpsCoordinates? = null
+
+    // Launch a coroutine to keep track of GPS coordinates for declination calculation
+    val gpsJob = launch(Dispatchers.IO) {
+        getGpsCoordinateFlow(context).collect { coords ->
+            currentGpsCoordinates = coords
+        }
+    }
 
     val listener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent?) {
@@ -234,18 +246,41 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
                 // Get orientation angles from rotation matrix
                 SensorManager.getOrientation(rotationMatrix, orientationAngles)
 
-                // Azimuth in radians, convert to degrees
+                // Azimuth in radians, convert to degrees (this is magnetic north)
                 val azimuthRad = orientationAngles[0]
-                var azimuthDeg = Math.toDegrees(azimuthRad.toDouble())
+                var magneticNorth = Math.toDegrees(azimuthRad.toDouble())
 
                 // Normalize to 0-360 range
-                if (azimuthDeg < 0) {
-                    azimuthDeg += 360.0
+                if (magneticNorth < 0) {
+                    magneticNorth += 360.0
                 }
 
-                // Log.d(KarooHeadwindExtension.TAG, "Rotation vector heading: $azimuthDeg degrees")
+                // Convert magnetic north to true north using GPS coordinates
+                val trueNorth = currentGpsCoordinates?.let { coords ->
+                    val geomagneticField = GeomagneticField(
+                        coords.lat.toFloat(),
+                        coords.lon.toFloat(),
+                        0f,
+                        System.currentTimeMillis()
+                    )
+                    val declination = geomagneticField.declination
 
-                trySend(azimuthDeg)
+                    var corrected = magneticNorth + declination
+                    // Normalize to 0-360 range
+                    if (corrected < 0) {
+                        corrected += 360.0
+                    } else if (corrected >= 360.0) {
+                        corrected -= 360.0
+                    }
+
+                    Log.d(KarooHeadwindExtension.TAG, "Magnetic: $magneticNorth°, Declination: $declination°, True North: $corrected°")
+                    corrected
+                } ?: let {
+                    Log.w(KarooHeadwindExtension.TAG, "No GPS coordinates available for declination calculation, using magnetic north $magneticNorth")
+                    magneticNorth // Fall back to magnetic north if GPS not available
+                }
+
+                trySend(trueNorth)
             }
         }
 
@@ -255,9 +290,10 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
     }
 
     // Register listener for rotation vector sensor
-    sensorManager.registerListener(listener, rotationVectorSensor, 750_000) // 750ms
+    sensorManager.registerListener(listener, rotationVectorSensor, SENSOR_DELAY_NORMAL, 500_000) // 750ms
 
     awaitClose {
+        gpsJob.cancel()
         sensorManager.unregisterListener(listener)
         Log.d(KarooHeadwindExtension.TAG, "Rotation vector listener unregistered")
     }
