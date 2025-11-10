@@ -6,7 +6,6 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.hardware.SensorManager.SENSOR_DELAY_NORMAL
 import android.util.Log
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.util.signedAngleDifference
@@ -40,6 +39,8 @@ sealed class HeadingResponse {
 fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingResponse> {
     val currentWeatherData = context.streamCurrentWeatherData(this)
 
+    var lastLogAt: Instant? = Instant.now()
+
     return getHeadingFlow(this, context)
         .combine(currentWeatherData) { bearing, data -> bearing to data }
         .map { (bearing, data) ->
@@ -48,7 +49,10 @@ fun KarooSystemService.getRelativeHeadingFlow(context: Context): Flow<HeadingRes
                     val windBearing = data.windDirection + 180
                     val diff = signedAngleDifference(bearing.diff, windBearing)
 
-                    Log.d(KarooHeadwindExtension.TAG, "Wind bearing: Heading $bearing vs wind $windBearing => $diff")
+                    if (lastLogAt?.isBefore(Instant.now().minusSeconds(3)) == true) {
+                        Log.d(KarooHeadwindExtension.TAG, "Wind bearing: Heading $bearing vs wind $windBearing => $diff")
+                        lastLogAt = Instant.now()
+                    }
 
                     HeadingResponse.Value(diff)
                 }
@@ -209,6 +213,7 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
 
     var lastEventReceived: Instant? = null
     var currentGpsCoordinates: GpsCoordinates? = null
+    var lastLogAt: Instant? = Instant.now()
 
     // Launch a coroutine to keep track of GPS coordinates for declination calculation
     val gpsJob = launch(Dispatchers.IO) {
@@ -273,7 +278,12 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
                         corrected -= 360.0
                     }
 
-                    Log.d(KarooHeadwindExtension.TAG, "Magnetic: $magneticNorth°, Declination: $declination°, True North: $corrected°")
+                    if (lastLogAt?.isBefore(Instant.now().minusSeconds(3)) == true) {
+                        Log.d(KarooHeadwindExtension.TAG, "Magnetic: $magneticNorth°, Declination: $declination°, True North: $corrected°")
+
+                        lastLogAt = Instant.now()
+                    }
+
                     corrected
                 } ?: let {
                     Log.w(KarooHeadwindExtension.TAG, "No GPS coordinates available for declination calculation, using magnetic north $magneticNorth")
@@ -290,7 +300,7 @@ fun KarooSystemService.getMagnetometerHeadingFlow(context: Context): Flow<Double
     }
 
     // Register listener for rotation vector sensor
-    sensorManager.registerListener(listener, rotationVectorSensor, SENSOR_DELAY_NORMAL, 500_000) // 750ms
+    sensorManager.registerListener(listener, rotationVectorSensor, 750_000_000, 750_000) // 750ms
 
     awaitClose {
         gpsJob.cancel()
