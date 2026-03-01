@@ -19,6 +19,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.getGpsCoordinateFlow
+import de.timklge.karooheadwind.util.buildKarooOkHttpClient
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HardwareType
 import kotlinx.coroutines.channels.awaitClose
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import org.maplibre.android.MapLibre
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.module.http.HttpRequestUtil
 
 fun getDistinctCoordinateFlow(karooSystem: KarooSystemService, ctx: android.content.Context) = karooSystem.getGpsCoordinateFlow(ctx).distinctUntilChanged { a, b ->
     (a == null && b == null) || (a != null && b != null && a.distanceTo(b) < 1_000)
@@ -122,6 +124,7 @@ fun WindyScreen() {
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             MapLibre.getInstance(ctx)
+            HttpRequestUtil.setOkHttpClient(buildKarooOkHttpClient(karooSystem))
 
             MapView(context).apply {
                 getMapAsync { map ->
@@ -130,11 +133,10 @@ fun WindyScreen() {
                         Log.i(KarooHeadwindExtension.TAG, "MapLibre style loaded")
                     }
 
-                    // Move camera to current location with zoom level 7
                     location?.let {
                         map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
                             .target(LatLng(it.lat, it.lon))
-                            .zoom(7.0)
+                            .zoom(9.0)
                             .build()
                     }
                 }

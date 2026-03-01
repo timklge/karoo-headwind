@@ -18,6 +18,9 @@ android {
         targetSdk = 35
         versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
         versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+        }
     }
 
     signingConfigs {
@@ -108,6 +111,7 @@ tasks.withType<ProcessApplicationManifest>().configureEach {
 dependencies {
     implementation(libs.mapbox.sdk.turf)
     implementation(libs.hammerhead.karoo.ext)
+    implementation(libs.okhttp)
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.androidx.lifeycle)
     implementation(libs.androidx.activity.compose)

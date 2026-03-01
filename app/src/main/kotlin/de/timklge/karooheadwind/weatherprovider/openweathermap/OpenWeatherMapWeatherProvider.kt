@@ -6,25 +6,20 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.WeatherDataProvider
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.jsonWithUnknownKeys
+import de.timklge.karooheadwind.util.buildKarooOkHttpClient
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
 import de.timklge.karooheadwind.weatherprovider.WeatherProvider
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderException
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HttpResponseState
-import io.hammerhead.karooext.models.OnHttpResponse
 import io.hammerhead.karooext.models.UserProfile
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.single
-import kotlinx.coroutines.flow.timeout
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import kotlin.math.absoluteValue
-import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
@@ -73,7 +68,7 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
     ): WeatherDataResponse = coroutineScope {
         val selectedCoordinates = coordinates.take((MAX_API_CALLS - 1).coerceAtLeast(1)).toMutableList()
 
-        if (coordinates.isNotEmpty() && !selectedCoordinates.contains(coordinates.last())){
+        if (coordinates.isNotEmpty() && !selectedCoordinates.contains(coordinates.last())) {
             selectedCoordinates.add(coordinates.last())
         }
 
@@ -82,12 +77,11 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
             Log.d(KarooHeadwindExtension.TAG, "Point #$index: ${coord.lat}, ${coord.lon}, distance: ${coord.distanceAlongRoute}")
         }
 
-        val weatherDataForSelectedLocations = buildList {
-            for (coordinate in selectedCoordinates){
-                val response = makeOpenWeatherMapRequest(karooSystem, coordinate, apiKey)
-                val responseBody = response.body?.let { String(it) }
-                    ?: throw WeatherProviderException(response.statusCode, "Null Response from OpenWeatherMap")
+        val client = buildKarooOkHttpClient(karooSystem)
 
+        val weatherDataForSelectedLocations = buildList {
+            for (coordinate in selectedCoordinates) {
+                val responseBody = makeOpenWeatherMapRequest(client, coordinate, apiKey)
                 val weatherData = jsonWithUnknownKeys.decodeFromString<OpenWeatherMapWeatherDataForLocation>(responseBody)
 
                 add(coordinate to weatherData)
@@ -120,60 +114,37 @@ class OpenWeatherMapWeatherProvider(private val apiKey: String) : WeatherProvide
         )
     }
 
-
-    @OptIn(FlowPreview::class)
     private suspend fun makeOpenWeatherMapRequest(
-        service: KarooSystemService,
+        client: OkHttpClient,
         coordinate: GpsCoordinates,
         apiKey: String
-    ): HttpResponseState.Complete {
-        val response = callbackFlow {
+    ): String {
+        val url = "https://api.openweathermap.org/data/3.0/onecall" +
+            "?lat=${coordinate.lat}&lon=${coordinate.lon}" +
+            "&appid=$apiKey&exclude=minutely,daily,alerts&units=metric"
 
-            // URL API 3.0 with onecall endpoint
-            val url = "https://api.openweathermap.org/data/3.0/onecall?lat=${coordinate.lat}&lon=${coordinate.lon}" +
-                    "&appid=$apiKey&exclude=minutely,daily,alerts&units=metric"
+        Log.d(KarooHeadwindExtension.TAG, "OpenWeatherMap: GET $url")
 
-            Log.d(KarooHeadwindExtension.TAG, "Http request to OpenWeatherMap API 3.0: $url")
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
 
-            val listenerId = service.addConsumer(
-                OnHttpResponse.MakeHttpRequest(
-                    "GET",
-                    url,
-                    waitForConnection = false,
-                    headers = mapOf("User-Agent" to KarooHeadwindExtension.TAG)
-                ),
-                onEvent = { event: OnHttpResponse ->
-                    if (event.state is HttpResponseState.Complete) {
-                        Log.d(KarooHeadwindExtension.TAG, "Http response received from OpenWeatherMap")
-                        trySend(event.state as HttpResponseState.Complete)
-                        close()
-                    }
-                },
-                onError = { err ->
-                    Log.e(KarooHeadwindExtension.TAG, "Http error: $err")
-                    close(WeatherProviderException(0, err))
-                }
-            )
-
-            awaitClose {
-                service.removeConsumer(listenerId)
-            }
-        }.timeout(30.seconds).catch { e: Throwable ->
-            if (e is TimeoutCancellationException) {
-                emit(HttpResponseState.Complete(500, mapOf(), null, "Timeout"))
-            } else {
-                throw e
-            }
-        }.single()
-
-        if (response.statusCode == 401 || response.statusCode == 403){
-            Log.e(KarooHeadwindExtension.TAG, "OpenWeatherMap API key is invalid or expired")
-            throw WeatherProviderException(response.statusCode, "OpenWeatherMap API key is invalid or expired")
-        } else if (response.statusCode !in 200..299) {
-            Log.e(KarooHeadwindExtension.TAG, "OpenWeatherMap API request failed with status code ${response.statusCode}")
-            throw WeatherProviderException(response.statusCode, "OpenWeatherMap API request failed with status code ${response.statusCode}")
+        val response = withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
         }
 
-        return response
+        when (response.code) {
+            401, 403 -> {
+                Log.e(KarooHeadwindExtension.TAG, "OpenWeatherMap API key is invalid or expired")
+                throw WeatherProviderException(response.code, "OpenWeatherMap API key is invalid or expired")
+            }
+            !in 200..299 -> {
+                Log.e(KarooHeadwindExtension.TAG, "OpenWeatherMap API request failed with status code ${response.code}")
+                throw WeatherProviderException(response.code, "OpenWeatherMap API request failed with status code ${response.code}")
+            }
+        }
+
+        return response.body?.string() ?: throw WeatherProviderException(500, "Null Response from OpenWeatherMap")
     }
 }
