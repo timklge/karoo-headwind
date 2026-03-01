@@ -1,9 +1,14 @@
 package de.timklge.karooheadwind.screens
 
-import android.annotation.SuppressLint
+import android.Manifest
+import android.content.Context
+import android.os.Environment
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -19,70 +24,42 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.getGpsCoordinateFlow
-import de.timklge.karooheadwind.util.buildKarooOkHttpClient
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import org.maplibre.android.MapLibre
-import org.maplibre.android.geometry.LatLng
-import org.maplibre.android.maps.MapView
-import org.maplibre.android.module.http.HttpRequestUtil
+import org.mapsforge.core.model.LatLong
+import org.mapsforge.map.android.graphics.AndroidGraphicFactory
+import org.mapsforge.map.android.util.AndroidUtil
+import org.mapsforge.map.android.view.MapView
+import org.mapsforge.map.datastore.MultiMapDataStore
+import org.mapsforge.map.layer.labels.LabelLayer
+import org.mapsforge.map.layer.renderer.TileRendererLayer
+import org.mapsforge.map.reader.MapFile
+import org.mapsforge.map.rendertheme.internal.MapsforgeThemes
 
-fun getDistinctCoordinateFlow(karooSystem: KarooSystemService, ctx: android.content.Context) = karooSystem.getGpsCoordinateFlow(ctx).distinctUntilChanged { a, b ->
-    (a == null && b == null) || (a != null && b != null && a.distanceTo(b) < 1_000)
+
+val OFFLINE_MAPS_DIR get() = java.io.File(
+    java.io.File(Environment.getExternalStorageDirectory(), "offline"), "maps"
+)
+
+fun getDistinctCoordinateFlow(karooSystem: KarooSystemService, ctx: android.content.Context) =
+    karooSystem.getGpsCoordinateFlow(ctx).distinctUntilChanged { a, b ->
+        (a == null && b == null) || (a != null && b != null && a.distanceTo(b) < 1_000)
+    }
+
+fun hasExternalStoragePermission(context: Context): Boolean {
+    val readGranted = context.checkCallingOrSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+    val writeGranted = context.checkCallingOrSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+    return readGranted == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            writeGranted == android.content.pm.PackageManager.PERMISSION_GRANTED
 }
 
-fun isWifiConnected(context: android.content.Context): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
-    val connectivityManager = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
-
-    if (connectivityManager == null) {
-        trySend(false)
-        close()
-        return@callbackFlow
-    }
-
-    fun checkWifiConnected(): Boolean {
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
-    }
-
-    // Send initial state
-    trySend(checkWifiConnected())
-
-    val networkCallback = object : android.net.ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: android.net.Network) {
-            trySend(checkWifiConnected())
-        }
-
-        override fun onLost(network: android.net.Network) {
-            trySend(checkWifiConnected())
-        }
-
-        override fun onCapabilitiesChanged(
-            network: android.net.Network,
-            networkCapabilities: android.net.NetworkCapabilities
-        ) {
-            trySend(checkWifiConnected())
-        }
-    }
-
-    connectivityManager.registerDefaultNetworkCallback(networkCallback)
-
-    awaitClose {
-        connectivityManager.unregisterNetworkCallback(networkCallback)
-    }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun WindyScreen() {
+fun MapScreen() {
     var karooConnected by remember { mutableStateOf<Boolean?>(null) }
     val ctx = LocalContext.current
     val karooSystem = remember { KarooSystemService(ctx) }
-    val isWifiConnected by isWifiConnected(ctx).collectAsStateWithLifecycle(initialValue = false)
     var showWarnings by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -102,59 +79,132 @@ fun WindyScreen() {
         }
     }
 
-    val location by getDistinctCoordinateFlow(karooSystem, ctx).collectAsStateWithLifecycle(null)
+    val location by getDistinctCoordinateFlow(karooSystem, ctx)
+        .collectAsStateWithLifecycle(null)
 
     if (karooConnected == false && showWarnings) {
-        Text("Could not read device status. Is your Karoo updated?", modifier = Modifier.padding(10.dp))
+        Text(
+            "Could not read device status. Is your Karoo updated?",
+            modifier = Modifier.padding(10.dp)
+        )
         return
     }
 
-    if (!isWifiConnected) {
-        if (karooSystem.hardwareType == HardwareType.K2) {
-            if (showWarnings) Text("Please connect to WiFi / cellular to show the windy map.", modifier = Modifier.padding(10.dp))
-            return
-        } else {
-            if (showWarnings) Text("Please connect to WiFi to show the windy map.", modifier = Modifier.padding(10.dp))
-            return
+    if (!hasExternalStoragePermission(ctx)) {
+        Text(
+            "Storage permission not granted. Please grant storage permission to display the map.",
+            modifier = Modifier.padding(10.dp)
+        )
+
+        val storagePermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestMultiplePermissions()
+        ) { _ -> }
+
+        Button(onClick = {
+            storagePermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            )
+        }) {
+            Text("Request Permission")
         }
+        return
     }
 
-    // Create MapLibre view with current location
+    val mapFiles = remember {
+        OFFLINE_MAPS_DIR
+            .takeIf { it.isDirectory }
+            ?.listFiles { f -> f.extension.lowercase() == "map" }
+            ?.toList()
+            ?: emptyList()
+    }
+
+    if (mapFiles.isEmpty()) {
+        Text(
+            "No offline map files found. Please place *.map files in ${OFFLINE_MAPS_DIR.absolutePath}.",
+            modifier = Modifier.padding(10.dp)
+        )
+        return
+    }
+
+    val androidGraphicFactory = AndroidGraphicFactory.INSTANCE
+
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
-            MapLibre.getInstance(ctx)
-            HttpRequestUtil.setOkHttpClient(buildKarooOkHttpClient(karooSystem))
-
             MapView(context).apply {
-                getMapAsync { map ->
-                    // Set initial style
-                    map.setStyle("https://tiles.openfreemap.org/styles/liberty") {
-                        Log.i(KarooHeadwindExtension.TAG, "MapLibre style loaded")
-                    }
+                isClickable = true
+                isFocusable = true
+                mapScaleBar.isVisible = false
+                setBuiltInZoomControls(false)
+                clipToOutline = true
+                touchGestureHandler.isRotationEnabled = true;
 
-                    location?.let {
-                        map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                            .target(LatLng(it.lat, it.lon))
-                            .zoom(9.0)
-                            .build()
+                AndroidGraphicFactory.createInstance(context)
+
+                val tileCache = AndroidUtil.createTileCache(
+                    context,
+                    "tilecache",
+                    model.displayModel.tileSize,
+                    1f,
+                    model.frameBufferModel.overdrawFactor
+                )
+
+                val multiMapDataStore = MultiMapDataStore(
+                    MultiMapDataStore.DataPolicy.RETURN_ALL
+                )
+
+                for (file in mapFiles) {
+                    try {
+                        multiMapDataStore.addMapDataStore(MapFile(file), false, false)
+                        Log.i(KarooHeadwindExtension.TAG, "Loaded offline map: ${file.name}")
+                    } catch (e: Exception) {
+                        Log.e(KarooHeadwindExtension.TAG, "Failed to load map file ${file.name}: ${e.message}")
                     }
                 }
+
+                val rendererLayer = TileRendererLayer(
+                    tileCache,
+                    multiMapDataStore,
+                    model.mapViewPosition,
+                    false,
+                    false,
+                    true,
+                    androidGraphicFactory
+                )
+
+                rendererLayer.setXmlRenderTheme(MapsforgeThemes.DEFAULT)
+                layerManager.layers.add(rendererLayer)
+
+                val labelLayer = LabelLayer(AndroidGraphicFactory.INSTANCE, rendererLayer.labelStore)
+                layerManager.layers.add(labelLayer)
+
+                //val o = Overlay
+                //layerManager.layers.add(o)
+
+                val zoom: Byte = 9
+                model.mapViewPosition.mapPosition = org.mapsforge.core.model.MapPosition(
+                    location?.let { LatLong(it.lat, it.lon) } ?: LatLong(0.0, 0.0),
+                    zoom
+                )
+
+                Log.i(KarooHeadwindExtension.TAG, "Mapsforge offline MapView created with ${mapFiles.size} map file(s)")
             }
         },
         update = { mapView ->
-            // Update map when location changes
-            mapView.getMapAsync { map ->
-                location?.let {
-                    map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                        .target(LatLng(it.lat, it.lon))
-                        .zoom(7.0)
-                        .build()
+            location?.let {
+                val currentZoom = mapView.model.mapViewPosition.zoomLevel
+                mapView.model.mapViewPosition.center = LatLong(it.lat, it.lon)
+                if (currentZoom < 6) {
+                    mapView.model.mapViewPosition.zoomLevel = 9
                 }
             }
         },
         onRelease = { mapView ->
-            mapView.onDestroy()
-        },
+            mapView.destroyAll()
+            AndroidGraphicFactory.clearResourceMemoryCache()
+        }
     )
 }
