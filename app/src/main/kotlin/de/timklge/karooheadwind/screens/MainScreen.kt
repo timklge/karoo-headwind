@@ -137,7 +137,7 @@ fun MainScreen(close: () -> Unit) {
                 when (tabIndex) {
                     0 -> WeatherScreen(::onFinish)
                     1 -> SettingsScreen(::onFinish)
-                    2 -> WindyScreen(::onFinish)
+                    2 -> WindyScreen()
                 }
             }
         }

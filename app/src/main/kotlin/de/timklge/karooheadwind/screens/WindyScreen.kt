@@ -2,8 +2,6 @@ package de.timklge.karooheadwind.screens
 
 import android.annotation.SuppressLint
 import android.util.Log
-import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -21,14 +19,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.getGpsCoordinateFlow
-import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HardwareType
-import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import java.util.Locale
+import org.maplibre.android.MapLibre
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapView
 
 fun getDistinctCoordinateFlow(karooSystem: KarooSystemService, ctx: android.content.Context) = karooSystem.getGpsCoordinateFlow(ctx).distinctUntilChanged { a, b ->
     (a == null && b == null) || (a != null && b != null && a.distanceTo(b) < 1_000)
@@ -44,16 +42,9 @@ fun isWifiConnected(context: android.content.Context): kotlinx.coroutines.flow.F
     }
 
     fun checkWifiConnected(): Boolean {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return false
-            val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-            return capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
-        } else {
-            @Suppress("DEPRECATION")
-            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
-            @Suppress("DEPRECATION")
-            return networkInfo.isConnected && networkInfo.type == android.net.ConnectivityManager.TYPE_WIFI
-        }
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI)
     }
 
     // Send initial state
@@ -76,14 +67,7 @@ fun isWifiConnected(context: android.content.Context): kotlinx.coroutines.flow.F
         }
     }
 
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-        connectivityManager.registerDefaultNetworkCallback(networkCallback)
-    } else {
-        val request = android.net.NetworkRequest.Builder()
-            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-        connectivityManager.registerNetworkCallback(request, networkCallback)
-    }
+    connectivityManager.registerDefaultNetworkCallback(networkCallback)
 
     awaitClose {
         connectivityManager.unregisterNetworkCallback(networkCallback)
@@ -92,16 +76,12 @@ fun isWifiConnected(context: android.content.Context): kotlinx.coroutines.flow.F
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun WindyScreen(onFinish: () -> Unit) {
+fun WindyScreen() {
     var karooConnected by remember { mutableStateOf<Boolean?>(null) }
     val ctx = LocalContext.current
     val karooSystem = remember { KarooSystemService(ctx) }
     val isWifiConnected by isWifiConnected(ctx).collectAsStateWithLifecycle(initialValue = false)
     var showWarnings by remember { mutableStateOf(false) }
-    val profileFlow = remember { karooSystem.streamUserProfile() }
-    val profile by profileFlow.collectAsStateWithLifecycle(null)
-    val isImperialTemperature = profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL
-    val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
     LaunchedEffect(Unit) {
         karooSystem.connect { connected ->
@@ -137,55 +117,42 @@ fun WindyScreen(onFinish: () -> Unit) {
         }
     }
 
-    if (location == null) {
-        if (showWarnings) Text("Waiting for GPS fix...", modifier = Modifier.padding(10.dp))
-        return
-    }
-
-    val unitTemp = if (isImperialTemperature) "°F" else "°C"
-    val unitWind = if (isImperialDistance) "mph" else "km/h"
-    val unitRain = if (isImperialDistance) "in" else "mm"
-
-    // Build Windy embed URL with current location
-    val windyUrl = "https://embed.windy.com/embed.html?" +
-            "type=map&location=coordinates" +
-            "&metricRain=${unitRain}&metricTemp=${unitTemp}&metricWind=${unitWind}" +
-            "&zoom=7&overlay=wind&product=ecmwf&level=surface" +
-            "&lat=${String.format(Locale.US, "%.5f", location?.lat)}&lon=${String.format(Locale.US, "%.5f", location?.lon)}" +
-            "&detail=false&pressure=true"
-
+    // Create MapLibre view with current location
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.setSupportZoom(false)
+            MapLibre.getInstance(ctx)
 
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
+            MapView(context).apply {
+                getMapAsync { map ->
+                    // Set initial style
+                    map.setStyle("https://tiles.openfreemap.org/styles/liberty") {
+                        Log.i(KarooHeadwindExtension.TAG, "MapLibre style loaded")
+                    }
 
-                webViewClient = object : android.webkit.WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        Log.i(KarooHeadwindExtension.TAG, "Windy page loaded: $url")
+                    // Move camera to current location with zoom level 7
+                    location?.let {
+                        map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
+                            .target(LatLng(it.lat, it.lon))
+                            .zoom(7.0)
+                            .build()
                     }
                 }
-
-                WebView.setWebContentsDebuggingEnabled(true)
-
-                loadUrl(windyUrl)
             }
         },
-        update = { webView ->
-            webView.loadUrl(windyUrl)
+        update = { mapView ->
+            // Update map when location changes
+            mapView.getMapAsync { map ->
+                location?.let {
+                    map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
+                        .target(LatLng(it.lat, it.lon))
+                        .zoom(7.0)
+                        .build()
+                }
+            }
         },
-        onRelease = { webView ->
-            webView.stopLoading()
-            webView.loadUrl("about:blank")
-            webView.removeAllViews()
-            webView.destroy()
+        onRelease = { mapView ->
+            mapView.onDestroy()
         },
     )
 }

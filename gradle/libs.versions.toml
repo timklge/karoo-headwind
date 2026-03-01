@@ -1,5 +1,6 @@
 [versions]
 agp = "8.5.2"
+androidSdk = "12.3.1"
 datastorePreferences = "1.1.2"
 kotlin = "2.0.0"
 
@@ -18,6 +19,7 @@ jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = 
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 [libraries]
+maplibre-android-sdk = { module = "org.maplibre.gl:android-sdk", version.ref = "androidSdk" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 hammerhead-karoo-ext = { group = "io.hammerhead", name = "karoo-ext", version = "1.1.5" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
