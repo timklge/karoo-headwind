@@ -15,12 +15,10 @@ android {
     defaultConfig {
         applicationId = "de.timklge.karooheadwind"
         minSdk = 26
-        targetSdk = 35
+        //noinspection ExpiredTargetSdkVersion
+        targetSdk = 28
         versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
         versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-        }
     }
 
     signingConfigs {
@@ -121,6 +119,7 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
-    implementation(libs.maplibre.android.sdk)
+    implementation(libs.mapsforge.map.android)
+    implementation(libs.mapsforge.themes)
     testImplementation(kotlin("test"))
 }

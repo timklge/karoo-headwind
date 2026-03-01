@@ -1,9 +1,5 @@
 package de.timklge.karooheadwind.screens
 
-import android.annotation.SuppressLint
-import android.util.Log
-import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,23 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
-import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
-import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
-import io.hammerhead.karooext.models.UserProfile
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,7 +124,7 @@ fun MainScreen(close: () -> Unit) {
                 when (tabIndex) {
                     0 -> WeatherScreen(::onFinish)
                     1 -> SettingsScreen(::onFinish)
-                    2 -> WindyScreen()
+                    2 -> MapScreen()
                 }
             }
         }
