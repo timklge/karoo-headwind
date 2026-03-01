@@ -117,5 +117,6 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
+    implementation(libs.maplibre.android.sdk)
     testImplementation(kotlin("test"))
 }
