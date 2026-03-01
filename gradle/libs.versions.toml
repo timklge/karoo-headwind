@@ -3,6 +3,7 @@ agp = "8.5.2"
 androidSdk = "12.3.1"
 datastorePreferences = "1.1.2"
 kotlin = "2.0.0"
+okhttp = "4.12.0"
 
 androidxCore = "1.15.0"
 androidxLifecycle = "2.8.7"
@@ -40,6 +41,7 @@ androidx-glance-appwidget-preview = { group = "androidx.glance", name = "glance-
 androidx-glance-preview = { group = "androidx.glance", name = "glance-preview", version.ref = "glance" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 mapbox-sdk-turf = { module = "com.mapbox.mapboxsdk:mapbox-sdk-turf", version.ref = "mapboxSdkTurf" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 
 [bundles]
 androidx-lifeycle = ["androidx-lifecycle-runtime-compose", "androidx-lifecycle-viewmodel-compose"]
