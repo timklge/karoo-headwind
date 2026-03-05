@@ -16,7 +16,6 @@ import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.getRelativeHeadingFlow
-import de.timklge.karooheadwind.screens.isNightMode
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamDatatypeIsVisible
@@ -73,6 +72,11 @@ class TailwindAndRideSpeedDataType(
     private val karooSystem: KarooSystemService,
     private val applicationContext: Context
 ) : DataTypeImpl("karoo-headwind", "tailwind-and-ride-speed") {
+
+    companion object {
+        const val AVERAGE_SPEED_THRESHOLD = (0.1 / 3.6)
+    }
+
     private val glance = GlanceRemoteViews()
 
     data class StreamData(
@@ -80,10 +84,11 @@ class TailwindAndRideSpeedDataType(
         val absoluteWindDirection: Double?,
         val windSpeed: Double?,
         val settings: HeadwindSettings,
+        val averageRideSpeed: Double,
         val rideSpeed: Double? = null,
         val gustSpeed: Double? = null,
         val isImperial: Boolean = false,
-        val isVisible: Boolean = true
+        val isVisible: Boolean = true,
     )
 
     private fun previewFlow(profileFlow: Flow<UserProfile>): Flow<StreamData> {
@@ -96,8 +101,19 @@ class TailwindAndRideSpeedDataType(
                 val rideSpeed = (5..10).random().toDouble()
                 val gustSpeed = windSpeed * ((10..40).random().toDouble() / 10)
                 val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                val averageRideSpeed = (5..10).random().toDouble()
 
-                emit(StreamData(HeadingResponse.Value(bearing), bearing, windSpeed.toDouble(), HeadwindSettings(), rideSpeed, gustSpeed = gustSpeed, isImperial = isImperial, isVisible = true))
+                emit(StreamData(
+                    headingResponse = HeadingResponse.Value(bearing),
+                    absoluteWindDirection = bearing,
+                    windSpeed = windSpeed.toDouble(),
+                    settings = HeadwindSettings(),
+                    averageRideSpeed = averageRideSpeed,
+                    rideSpeed = rideSpeed,
+                    gustSpeed = gustSpeed,
+                    isImperial = isImperial,
+                    isVisible = true
+                ))
 
                 delay(2_000)
             }
@@ -106,6 +122,11 @@ class TailwindAndRideSpeedDataType(
 
     private fun streamSpeedInMs(): Flow<Double> {
         return karooSystem.streamDataFlow(DataType.Type.SMOOTHED_3S_AVERAGE_SPEED)
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0 }
+    }
+
+    private fun streamAverageSpeedInMs(): Flow<Double> {
+        return karooSystem.streamDataFlow(DataType.Type.AVERAGE_SPEED)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0 }
     }
 
@@ -130,7 +151,8 @@ class TailwindAndRideSpeedDataType(
                 context.streamSettings(karooSystem),
                 karooSystem.streamUserProfile(),
                 streamSpeedInMs(),
-                karooSystem.streamDatatypeIsVisible(dataTypeId)
+                karooSystem.streamDatatypeIsVisible(dataTypeId),
+                streamAverageSpeedInMs()
             ) { data ->
                 val headingResponse = data[0] as HeadingResponse
                 val weatherData = data[1] as? WeatherData
@@ -138,14 +160,24 @@ class TailwindAndRideSpeedDataType(
                 val userProfile = data[3] as UserProfile
                 val rideSpeedInMs = data[4] as Double
                 val isVisible = data[5] as Boolean
+                val averageRideSpeedInMs = data[6] as Double
 
                 val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                 val absoluteWindDirection = weatherData?.windDirection
                 val windSpeed = weatherData?.windSpeed
                 val gustSpeed = weatherData?.windGusts
-                val rideSpeed = rideSpeedInMs
 
-                StreamData(headingResponse, absoluteWindDirection, windSpeed, settings, rideSpeed = rideSpeed, isImperial = isImperial, gustSpeed = gustSpeed, isVisible = isVisible)
+                StreamData(
+                    headingResponse = headingResponse,
+                    absoluteWindDirection = absoluteWindDirection,
+                    windSpeed = windSpeed,
+                    settings = settings,
+                    rideSpeed = rideSpeedInMs,
+                    averageRideSpeed = averageRideSpeedInMs,
+                    isImperial = isImperial,
+                    gustSpeed = gustSpeed,
+                    isVisible = isVisible
+                )
             }
         }
 
@@ -197,7 +229,18 @@ class TailwindAndRideSpeedDataType(
 
                     val headwindSpeedUserUnit = msInUserUnit(headwindSpeed, streamData.isImperial)
 
-                    "$sign${headwindSpeedUserUnit.roundToInt().absoluteValue} ${windSpeedUserUnit.roundToInt()}${gustSpeedAddon}"
+                    val averageSpeedSign = if (streamData.rideSpeed != null) {
+                        when {
+                            streamData.rideSpeed > streamData.averageRideSpeed + AVERAGE_SPEED_THRESHOLD -> "▲"
+                            streamData.rideSpeed < streamData.averageRideSpeed - AVERAGE_SPEED_THRESHOLD -> "▼"
+                            streamData.rideSpeed in streamData.averageRideSpeed-AVERAGE_SPEED_THRESHOLD..streamData.averageRideSpeed+AVERAGE_SPEED_THRESHOLD -> "≈"
+                            else -> " "
+                        }
+                    } else {
+                        " "
+                    }
+
+                    "$sign${headwindSpeedUserUnit.roundToInt().absoluteValue}${averageSpeedSign}${windSpeedUserUnit.roundToInt()}${gustSpeedAddon}"
                 }
 
                 val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
@@ -207,13 +250,13 @@ class TailwindAndRideSpeedDataType(
 
                 val result = glance.compose(context, DpSize.Unspecified) {
                     HeadwindDirection(
-                        baseBitmap,
-                        windDirection.roundToInt(),
-                        config.textSize,
-                        text,
-                        subtextWithSign,
-                        dayColor,
-                        nightColor,
+                        baseBitmap = baseBitmap,
+                        bearing = windDirection.roundToInt(),
+                        fontSize = config.textSize,
+                        overlayText = text,
+                        overlaySubText = subtextWithSign,
+                        nightColor = dayColor,
+                        dayColor = nightColor,
                         preview = config.preview,
                         wideMode = wideMode,
                     )
