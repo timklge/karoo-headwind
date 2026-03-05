@@ -21,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindStats
@@ -42,11 +44,38 @@ import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
+
+private fun getTimeAgoString(timeInMs: Long): Pair<String, Color> {
+    val now = Instant.now()
+    val then = Instant.ofEpochMilli(timeInMs)
+    val duration = java.time.Duration.between(then, now)
+
+    val (timeString, color) = when {
+        duration.toMinutes() <= 1 -> {
+            "<1 minute ago" to Color(0xFF006400) // Dark Green
+        }
+        duration.toMinutes() <= 15 -> {
+            val minutes = duration.toMinutes()
+            "$minutes minute${if (minutes != 1L) "s" else ""} ago" to Color(0xFF006400) // Dark Green
+        }
+        duration.toHours() <= 1 -> {
+            val minutes = duration.toMinutes()
+            "$minutes minute${if (minutes != 1L) "s" else ""} ago" to Color.Black
+        }
+        duration.toHours() < 24 -> {
+            val hours = duration.toHours()
+            "$hours hour${if (hours != 1L) "s" else ""} ago" to Color.Red
+        }
+        else -> {
+            val days = duration.toDays()
+            "$days day${if (days != 1L) "s" else ""} ago" to Color.Red
+        }
+    }
+
+    return timeString to color
+}
 
 @Composable
 fun WeatherScreen(onFinish: () -> Unit) {
@@ -56,16 +85,16 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
     val profileFlow = remember { karooSystem.streamUserProfile() }
     val profile by profileFlow.collectAsStateWithLifecycle(null)
-    
+
     val statsFlow = remember { ctx.streamStats() }
     val stats by statsFlow.collectAsStateWithLifecycle(HeadwindStats())
-    
+
     val locationFlow = remember { karooSystem.getGpsCoordinateFlow(ctx) }
     val location by locationFlow.collectAsStateWithLifecycle(null)
-    
+
     val currentWeatherDataFlow = remember { ctx.streamCurrentWeatherData(karooSystem) }
     val currentWeatherData by currentWeatherDataFlow.collectAsStateWithLifecycle(null)
-    
+
     val forecastDataFlow = remember { ctx.streamCurrentForecastWeatherData() }
     val forecastData by forecastDataFlow.collectAsStateWithLifecycle(null)
 
@@ -137,55 +166,47 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 text = "Attempting to connect to weather background service... Please reboot your Karoo if this takes too long."
             )
         } else if (stats.failedWeatherRequest != null && (stats.lastSuccessfulWeatherRequest == null || stats.failedWeatherRequest!! > stats.lastSuccessfulWeatherRequest!!)) {
-            val successfulTime = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(
-                    stats.lastSuccessfulWeatherRequest ?: 0
-                ), ZoneOffset.systemDefault()
-            ).toLocalTime().truncatedTo(
-                ChronoUnit.SECONDS
-            )
-            val successfulDate = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(
-                    stats.lastSuccessfulWeatherRequest ?: 0
-                ), ZoneOffset.systemDefault()
-            ).toLocalDate()
-            val lastTryTime = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(stats.failedWeatherRequest ?: 0),
-                ZoneOffset.systemDefault()
-            ).toLocalTime().truncatedTo(
-                ChronoUnit.SECONDS
-            )
-            val lastTryDate = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(stats.failedWeatherRequest ?: 0),
-                ZoneOffset.systemDefault()
-            ).toLocalDate()
+            val lastSuccessfulRequest = stats.lastSuccessfulWeatherRequest
+            val lastFailedRequest = stats.failedWeatherRequest
 
-            val successStr =
-                if (lastPosition != null) " Last data received at $successfulDate ${successfulTime}${lastPositionDistanceStr}." else ""
+            val (lastTryTimeAgoString, lastTryColor) = lastFailedRequest?.let { getTimeAgoString(it) } ?: ("" to Color.Black)
+            val (lastSuccessTimeAgoString, lastSuccessColor) = lastSuccessfulRequest?.let { getTimeAgoString(it) } ?: ("" to Color.Black)
+
+            // Build annotated string to colorize the time ago parts
+            val annotatedText = buildAnnotatedString {
+                append("Failed to update weather data; last try ")
+                val tryStart = length
+                append(lastTryTimeAgoString)
+                addStyle(SpanStyle(color = lastTryColor), start = tryStart, end = length)
+                append(".${if (lastPosition != null) " Last data received " else ""}")
+                if (lastPosition != null) {
+                    val successStart = length
+                    append(lastSuccessTimeAgoString)
+                    addStyle(SpanStyle(color = lastSuccessColor), start = successStart, end = length)
+                    append("${lastPositionDistanceStr}.")
+                }
+            }
+
             Text(
                 modifier = Modifier.padding(5.dp),
-                text = "Failed to update weather data; last try at $lastTryDate ${lastTryTime}.${successStr}"
+                text = annotatedText
             )
         } else if (stats.lastSuccessfulWeatherRequest != null) {
-            val localDate = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(
-                    stats.lastSuccessfulWeatherRequest ?: 0
-                ), ZoneOffset.systemDefault()
-            ).toLocalDate()
-            val localTime = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(
-                    stats.lastSuccessfulWeatherRequest ?: 0
-                ), ZoneOffset.systemDefault()
-            ).toLocalTime().truncatedTo(
-                ChronoUnit.SECONDS
-            )
+            val (timeAgoString, timeAgoColor) = getTimeAgoString(stats.lastSuccessfulWeatherRequest!!)
 
             val providerName = stats.lastSuccessfulWeatherProvider?.label ?: "OpenMeteo"
 
+            val annotatedText = buildAnnotatedString {
+                append("Last weather data received from $providerName ")
+                val timeStart = length
+                append(timeAgoString)
+                addStyle(SpanStyle(color = timeAgoColor), start = timeStart, end = length)
+                append(lastPositionDistanceStr)
+            }
 
             Text(
                 modifier = Modifier.padding(5.dp),
-                text = "Last weather data received from $providerName at $localDate ${localTime}${lastPositionDistanceStr}"
+                text = annotatedText
             )
         } else {
             Text(
