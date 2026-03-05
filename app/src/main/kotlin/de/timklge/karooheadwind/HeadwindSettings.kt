@@ -88,7 +88,6 @@ data class HeadwindSettings(
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
     val openWeatherMapApiKey: String = "",
     val refreshRate: RefreshRate = RefreshRate.STANDARD,
-    val useMagnetometerForHeading: Boolean = false
 ){
 
     companion object {

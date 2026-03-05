@@ -76,7 +76,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var selectedWeatherProvider by remember { mutableStateOf(WeatherDataProvider.OPEN_METEO) }
     var openWeatherMapApiKey by remember { mutableStateOf("") }
     var isK2 by remember { mutableStateOf(false) }
-    var useMagnetometerForHeading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -87,7 +86,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selectedWeatherProvider = settings.weatherProvider
             openWeatherMapApiKey = settings.openWeatherMapApiKey
             refreshRateSetting = settings.refreshRate
-            useMagnetometerForHeading = settings.useMagnetometerForHeading
         }
     }
 
@@ -116,7 +114,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             weatherProvider = selectedWeatherProvider,
             openWeatherMapApiKey = openWeatherMapApiKey,
             refreshRate = refreshRateSetting,
-            useMagnetometerForHeading = useMagnetometerForHeading
         )
 
         saveSettings(ctx, newSettings)
@@ -232,17 +229,6 @@ fun SettingsScreen(onFinish: () -> Unit) {
             })
             Spacer(modifier = Modifier.width(10.dp))
             Text("Show Distance in Forecast")
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(checked = useMagnetometerForHeading, onCheckedChange = {
-                useMagnetometerForHeading = it
-                coroutineScope.launch {
-                    updateSettings()
-                }
-            })
-            Spacer(modifier = Modifier.width(10.dp))
-            Text("Use Magnetometer")
         }
 
         if (!karooConnected) {
