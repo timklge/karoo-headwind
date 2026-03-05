@@ -42,8 +42,6 @@ The app will automatically attempt to download weather data from the selected da
 New weather data is downloaded when you ride more than three kilometers from the location where the weather data was downloaded for or after one hour at the latest.
 If the app cannot connect to the weather service, it will retry the download every minute. Downloading weather data should work on Karoo 2 if you have a SIM card inserted or on Karoo 3 via your phone's internet connection if you have the Karoo companion app installed.
 
-By default, the app will use GPS bearing to determine your riding direction. You can switch to using the Karoo's magnetometer in the settings menu.
-
 If you are connected to WiFi, you can open an embedded [windy.com](https://www.windy.com) map to see a detailed wind forecast for your area. You can zoom and pan the map as desired.
 
 ## Credits
