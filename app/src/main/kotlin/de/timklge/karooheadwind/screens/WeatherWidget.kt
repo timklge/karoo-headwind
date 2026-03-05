@@ -163,7 +163,7 @@ fun WeatherWidget(
                 Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
-                    text = "$windSpeed,$windGusts",
+                    text = "$windSpeed-$windGusts",
                     style = TextStyle(
                         fontSize = fontSize
                     )
