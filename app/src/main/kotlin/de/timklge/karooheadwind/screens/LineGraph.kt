@@ -112,72 +112,21 @@ class LineGraphBuilder(val context: Context) {
             return bitmap
         }
 
-        // Dynamically calculate marginLeft based on Y-axis label widths
+        // Fixed margin based on space needed for 2 digits + minus sign (e.g. "-99")
         val yAxisLabelPaint = Paint().apply {
             textSize = 40f // Increased from 32f
             isAntiAlias = true
         }
 
-        var maxLabelWidthLeft = 0f
-        if (hasLeftYAxisData) {
-            val yLabelStringsLeft = mutableListOf<String>()
-            val numYTicksForCalc = 2 // As used later for drawing Y-axis ticks
-
-            val minRange = numYTicksForCalc.toFloat()
-            if (dataMaxYLeft - dataMinYLeft < minRange) {
-                dataMaxYLeft += minRange - (dataMaxYLeft - dataMinYLeft)
-            }
-
-            // Determine Y-axis label strings (mirrors logic from where labels are drawn)
-            if (abs(dataMaxYLeft - dataMinYLeft) < 0.0001f) {
-                yLabelStringsLeft.add(dataMinYLeft.roundToInt().toString())
-            } else {
-                for (i in 0..numYTicksForCalc) {
-                    val value = dataMinYLeft + ((dataMaxYLeft - dataMinYLeft) / numYTicksForCalc) * i
-                    yLabelStringsLeft.add(value.roundToInt().toString())
-                }
-            }
-
-            for (labelStr in yLabelStringsLeft) {
-                maxLabelWidthLeft =
-                    kotlin.math.max(maxLabelWidthLeft, yAxisLabelPaint.measureText(labelStr))
-            }
-        }
-
         val yAxisTextRightToAxisGap = 18f // Increased from 15f
         val canvasEdgePadding = 3f       // Increased from 5f
+        val fixedLabelWidth = yAxisLabelPaint.measureText("-99")
 
         val dynamicMarginLeft =
-            if (hasLeftYAxisData) maxLabelWidthLeft + yAxisTextRightToAxisGap + canvasEdgePadding else canvasEdgePadding
+            if (hasLeftYAxisData) fixedLabelWidth + yAxisTextRightToAxisGap + canvasEdgePadding else canvasEdgePadding
 
-        // Dynamically calculate marginRight based on Right Y-axis label widths
-        var maxLabelWidthRight = 0f
         if (hasRightYAxisData) {
-            val yLabelStringsRight = mutableListOf<String>()
-            val numYTicksForCalc = 2 // As used later for drawing Y-axis ticks
-
-            // Adjust Y-axis range based on numYTicksForCalc.
-            val minRange = numYTicksForCalc.toFloat()
-            if (dataMaxYRight - dataMinYRight < minRange) {
-                dataMaxYRight += minRange - (dataMaxYRight - dataMinYRight)
-            }
-
-            if (abs(dataMaxYRight - dataMinYRight) < 0.0001f) {
-                yLabelStringsRight.add(dataMinYRight.roundToInt().toString())
-            } else {
-                for (i in 0..numYTicksForCalc) {
-                    val value = dataMinYRight + ((dataMaxYRight - dataMinYRight) / numYTicksForCalc) * i
-                    yLabelStringsRight.add(value.roundToInt().toString())
-                }
-            }
-
-            for (labelStr in yLabelStringsRight) {
-                maxLabelWidthRight =
-                    kotlin.math.max(maxLabelWidthRight, yAxisLabelPaint.measureText(labelStr))
-            }
-            val dynamicMarginRight =
-                maxLabelWidthRight + yAxisTextRightToAxisGap + canvasEdgePadding
-            marginRight = dynamicMarginRight // Update marginRight
+            marginRight = fixedLabelWidth + yAxisTextRightToAxisGap + canvasEdgePadding
         }
 
         val graphWidth = width - dynamicMarginLeft - marginRight
