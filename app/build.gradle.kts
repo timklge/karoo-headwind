@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Fix crash when feels_like, visibility, pop are missing in openweathermap data",
+            "releaseNotes" to "* Reserve a fixed amount of space for the y axis labels in line graphs\n* Indicate whether speed is below or above average speed in tailwind data field\n* Remove magnetometer option",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview3.png",
                 "$baseUrl/preview1.png",
