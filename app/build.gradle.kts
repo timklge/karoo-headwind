@@ -78,7 +78,8 @@ tasks.register("generateManifest") {
                 "$baseUrl/preview1.png",
                 "$baseUrl/preview2.png",
                 "$baseUrl/preview0.png",
-            )
+            ),
+            "tags" to listOf("weather")
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
