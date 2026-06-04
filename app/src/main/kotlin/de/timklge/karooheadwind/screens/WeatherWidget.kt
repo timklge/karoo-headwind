@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,9 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
-import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.getArrowBitmapByBearing
 import de.timklge.karooheadwind.datatypes.getWeatherIcon
+import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
 
@@ -48,7 +47,8 @@ fun WeatherWidget(
     includeDistanceLabel: Boolean = false,
     precipitationProbability: Int? = null,
     isImperial: Boolean,
-    isNight: Boolean
+    isNight: Boolean,
+    windUnit: WindUnit,
 ) {
     val fontSize = 18.sp
 

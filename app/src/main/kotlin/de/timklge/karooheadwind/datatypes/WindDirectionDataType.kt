@@ -16,6 +16,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.text.FontFamily
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamDatatypeIsVisible
@@ -52,7 +53,7 @@ class WindDirectionDataType(val karooSystem: KarooSystemService, context: Contex
         )
     }
 
-    override fun getValue(data: WeatherData, userProfile: UserProfile): Double {
+    override fun getValue(data: WeatherData, userProfile: UserProfile, settings: HeadwindSettings): Double {
         return data.windDirection
     }
 

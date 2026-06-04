@@ -21,6 +21,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.getGpsCoordinateFlow
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HardwareType
@@ -100,6 +101,7 @@ fun WindyScreen(onFinish: () -> Unit) {
     var showWarnings by remember { mutableStateOf(false) }
     val profileFlow = remember { karooSystem.streamUserProfile() }
     val profile by profileFlow.collectAsStateWithLifecycle(null)
+    val headwindSettings by ctx.streamSettings(karooSystem).collectAsStateWithLifecycle(de.timklge.karooheadwind.HeadwindSettings())
     val isImperialTemperature = profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL
     val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
@@ -143,7 +145,7 @@ fun WindyScreen(onFinish: () -> Unit) {
     }
 
     val unitTemp = if (isImperialTemperature) "°F" else "°C"
-    val unitWind = if (isImperialDistance) "mph" else "km/h"
+    val unitWind = headwindSettings.getWindUnit(isImperialDistance).unitDisplay
     val unitRain = if (isImperialDistance) "in" else "mm"
 
     // Build Windy embed URL with current location

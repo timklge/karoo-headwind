@@ -17,6 +17,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import de.timklge.karooheadwind.screens.isNightMode
@@ -77,6 +78,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
     abstract fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
+        windUnit: WindUnit,
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
@@ -274,7 +276,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
 
                     val pointData = getLineData(
                         data,
-                        settingsAndProfile.isImperialTemperature,
+                        settingsAndProfile.isImperial,
+                        settingsAndProfile.settings.getWindUnit(settingsAndProfile.isImperial),
                         upcomingRoute,
                         config.preview,
                         context

@@ -3,6 +3,7 @@ package de.timklge.karooheadwind.datatypes
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import de.timklge.karooheadwind.TemperatureUnit
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 
@@ -23,6 +24,7 @@ class WeatherForecastDataType(karooSystem: KarooSystemService) : ForecastDataTyp
         distance: Double?,
         isImperial: Boolean,
         isNight: Boolean,
+        windUnit: WindUnit,
         uvi: Double,
     ) {
         Weather(

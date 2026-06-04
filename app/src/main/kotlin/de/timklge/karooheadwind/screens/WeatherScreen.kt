@@ -33,13 +33,14 @@ import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.util.celciusInUserUnit
 import de.timklge.karooheadwind.util.getTimeFormatter
 import de.timklge.karooheadwind.util.millimetersInUserUnit
-import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.util.msInWindUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
@@ -95,6 +96,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val currentWeatherDataFlow = remember { ctx.streamCurrentWeatherData(karooSystem) }
     val currentWeatherData by currentWeatherDataFlow.collectAsStateWithLifecycle(null)
 
+    val settingsFlow = remember { ctx.streamSettings(karooSystem) }
+    val settings by settingsFlow.collectAsStateWithLifecycle(de.timklge.karooheadwind.HeadwindSettings())
+
     val forecastDataFlow = remember { ctx.streamCurrentForecastWeatherData() }
     val forecastData by forecastDataFlow.collectAsStateWithLifecycle(null)
 
@@ -136,23 +140,26 @@ fun WeatherScreen(onFinish: () -> Unit) {
 
         val formattedTime = currentWeatherData?.let { getTimeFormatter(ctx).format(Instant.ofEpochSecond(it.time).atZone(ZoneId.systemDefault()).toLocalTime()) }
         val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(it.time)) }
+        val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+        val windUnit = settings.getWindUnit(isImperialDistance)
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
                 baseBitmap = baseBitmap,
                 current = WeatherInterpretation.fromWeatherCode(currentWeatherData?.weatherCode),
                 windBearing = currentWeatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = msInUserUnit(currentWeatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                windGusts = msInUserUnit(currentWeatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                precipitation = millimetersInUserUnit(currentWeatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                windSpeed = msInWindUnit(currentWeatherData?.windSpeed ?: 0.0, windUnit).roundToInt(),
+                windGusts = msInWindUnit(currentWeatherData?.windGusts ?: 0.0, windUnit).roundToInt(),
+                precipitation = millimetersInUserUnit(currentWeatherData?.precipitation ?: 0.0, isImperialDistance),
                 temperature = celciusInUserUnit(currentWeatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedTime,
                 dateLabel = formattedDate,
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
                 includeDistanceLabel = false,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                isNight = currentWeatherData?.isNight == true
+                isImperial = isImperialDistance,
+                isNight = currentWeatherData?.isNight == true,
+                windUnit = windUnit,
             )
         }
 
@@ -254,9 +261,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 baseBitmap,
                 current = interpretation,
                 windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                windSpeed = msInWindUnit(weatherData?.windSpeed ?: 0.0, windUnit).roundToInt(),
+                windGusts = msInWindUnit(weatherData?.windGusts ?: 0.0, windUnit).roundToInt(),
+                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, isImperialDistance),
                 temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
@@ -264,8 +271,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 distance = distanceFromCurrent,
                 includeDistanceLabel = true,
                 precipitationProbability = weatherData?.precipitationProbability?.toInt() ?: 0,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                isImperial = isImperialDistance,
                 isNight = weatherData?.isNight == true,
+                windUnit = windUnit,
             )
         }
 

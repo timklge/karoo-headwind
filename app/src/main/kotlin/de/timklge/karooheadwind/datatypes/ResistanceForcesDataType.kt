@@ -3,13 +3,13 @@ package de.timklge.karooheadwind.datatypes
 import android.content.Context
 import android.util.Log
 import androidx.compose.ui.unit.DpSize
+import androidx.glance.GlanceModifier
+import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.GlanceModifier
-import androidx.glance.Image
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.datatypes.RelativeGradeDataType.Companion.DEFAULT_BIKE_WEIGHT
@@ -19,14 +19,13 @@ import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.ShowCustomStreamState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
-import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,12 +40,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class ResistanceForcesDataType(val karooSystem: KarooSystemService, context: Context) : BaseDataType(karooSystem, context, "forces"){
-
-    override fun getValue(data: WeatherData, userProfile: UserProfile): Double {
-        return data.windDirection
-    }
-
+class ResistanceForcesDataType(val karooSystem: KarooSystemService, context: Context) : DataTypeImpl("karoo-headwind", "forces"){
     private fun previewFlow(): Flow<RelativeGradeDataType.ResistanceForces> {
         return flow {
             while (true) {

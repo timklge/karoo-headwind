@@ -2,6 +2,7 @@ package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
 import de.timklge.karooheadwind.UpcomingRoute
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import io.hammerhead.karooext.KarooSystemService
 
@@ -9,6 +10,7 @@ class PrecipitationForecastDataType(karooSystem: KarooSystemService) : LineGraph
     override fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
+        windUnit: WindUnit,
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context

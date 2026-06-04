@@ -31,11 +31,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -45,7 +43,9 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.RefreshRate
 import de.timklge.karooheadwind.RoundLocationSetting
 import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import de.timklge.karooheadwind.defaultWindUnit
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
@@ -70,6 +70,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var forecastKmPerHour by remember { mutableStateOf("20") }
     var forecastMilesPerHour by remember { mutableStateOf("12") }
     var showDistanceInForecast by remember { mutableStateOf(true) }
+    var selectedWindUnit by remember { mutableStateOf<WindUnit?>(null) }
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
 
@@ -86,6 +87,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selectedWeatherProvider = settings.weatherProvider
             openWeatherMapApiKey = settings.openWeatherMapApiKey
             refreshRateSetting = settings.refreshRate
+            selectedWindUnit = settings.windUnit
         }
     }
 
@@ -114,6 +116,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             weatherProvider = selectedWeatherProvider,
             openWeatherMapApiKey = openWeatherMapApiKey,
             refreshRate = refreshRateSetting,
+            windUnit = selectedWindUnit,
         )
 
         saveSettings(ctx, newSettings)
@@ -167,6 +170,27 @@ fun SettingsScreen(onFinish: () -> Unit) {
         ) { selectedOption ->
             selectedRoundLocationSetting =
                 RoundLocationSetting.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
+        }
+
+        val defaultProfileWindUnit = defaultWindUnit(profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
+        val windUnitDropdownOptions = listOf(
+            WindUnit.KILOMETERS_PER_HOUR,
+            WindUnit.MILES_PER_HOUR,
+            WindUnit.METERS_PER_SECOND,
+            WindUnit.KNOTS
+        ).map { unit -> DropdownOption(unit.id, unit.label) }
+        val windUnitSelection by remember(selectedWindUnit, defaultProfileWindUnit) {
+            mutableStateOf(windUnitDropdownOptions.find { option -> option.id == (selectedWindUnit ?: defaultProfileWindUnit).id }!!)
+        }
+        Dropdown(
+            label = "Wind Speed Unit",
+            options = windUnitDropdownOptions,
+            selected = windUnitSelection
+        ) { selectedOption ->
+            selectedWindUnit = WindUnit.entries.find { unit -> unit.id == selectedOption.id }!!
             coroutineScope.launch {
                 updateSettings()
             }
