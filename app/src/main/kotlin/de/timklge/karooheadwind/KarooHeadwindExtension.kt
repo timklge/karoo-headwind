@@ -10,6 +10,7 @@ import de.timklge.karooheadwind.datatypes.GpsCoordinates
 import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindForecastDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
+import de.timklge.karooheadwind.datatypes.HeadwindTimeDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationForecastDataType
 import de.timklge.karooheadwind.datatypes.RelativeElevationGainDataType
@@ -72,6 +73,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             WindDirectionAndSpeedDataTypeCircle(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
+            HeadwindTimeDataType(karooSystem, applicationContext),
             RelativeHumidityDataType(karooSystem, applicationContext),
             CloudCoverDataType(karooSystem, applicationContext),
             WindGustsDataType(karooSystem, applicationContext),
