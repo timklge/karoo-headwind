@@ -37,6 +37,8 @@
     <string name="temperature_description">Current temperature in configured unit</string>
     <string name="headwind_speed">Headwind speed</string>
     <string name="headwind_speed_description">Current headwind speed</string>
+    <string name="headwind_time">Headwind time</string>
+    <string name="headwind_time_description">Accumulated time spent riding into a headwind of at least 1 m/s</string>
     <string name="userwind_speed_description">Current headwind or wind speed based on user setting</string>
     <string name="userwind_speed">Set wind speed</string>
     <string name="relativeGrade">Relative Grade</string>
