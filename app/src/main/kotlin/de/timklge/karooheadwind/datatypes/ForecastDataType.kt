@@ -29,6 +29,7 @@ import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.streamCurrentForecastWeatherData
 import de.timklge.karooheadwind.streamDatatypeIsVisible
@@ -40,7 +41,7 @@ import de.timklge.karooheadwind.throttle
 import de.timklge.karooheadwind.util.celciusInUserUnit
 import de.timklge.karooheadwind.util.getTimeFormatter
 import de.timklge.karooheadwind.util.millimetersInUserUnit
-import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.util.msInWindUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import de.timklge.karooheadwind.weatherprovider.WeatherDataForLocation
 import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
@@ -86,6 +87,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
         distance: Double?,
         isImperial: Boolean,
         isNight: Boolean,
+        windUnit: WindUnit,
         uvi: Double
     )
 
@@ -318,6 +320,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                             }
 
                             if (isCurrent && data?.current != null) {
+                                val windUnit = settingsAndProfile.settings.getWindUnit(settingsAndProfile.isImperial)
                                 val interpretation = WeatherInterpretation.fromWeatherCode(data.current.weatherCode)
                                 val unixTime = data.current.time
                                 val formattedTime = getTimeFormatter(context).format(Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalTime())
@@ -328,8 +331,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     arrowBitmap = baseBitmap,
                                     current = interpretation,
                                     windBearing = data.current.windDirection.roundToInt(),
-                                    windSpeed = msInUserUnit(data.current.windSpeed, settingsAndProfile.isImperial).roundToInt(),
-                                    windGusts = msInUserUnit(data.current.windGusts, settingsAndProfile.isImperial).roundToInt(),
+                                    windSpeed = msInWindUnit(data.current.windSpeed, windUnit).roundToInt(),
+                                    windGusts = msInWindUnit(data.current.windGusts, windUnit).roundToInt(),
                                     precipitation = millimetersInUserUnit(data.current.precipitation, settingsAndProfile.isImperial),
                                     precipitationProbability = null,
                                     temperature = celciusInUserUnit(data.current.temperature, settingsAndProfile.isImperialTemperature).roundToInt(),
@@ -339,11 +342,13 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     distance = null,
                                     isImperial = settingsAndProfile.isImperial,
                                     isNight = data.current.isNight,
+                                    windUnit = windUnit,
                                     uvi = data.current.uvi
                                 )
 
                                 previousDate = formattedDate
                             } else {
+                                val windUnit = settingsAndProfile.settings.getWindUnit(settingsAndProfile.isImperial)
                                 val weatherData = data?.forecasts?.getOrNull(baseIndex)
                                 val interpretation = WeatherInterpretation.fromWeatherCode(weatherData?.weatherCode ?: 0)
                                 val unixTime = data?.forecasts?.getOrNull(baseIndex)?.time ?: 0
@@ -355,8 +360,8 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     arrowBitmap = baseBitmap,
                                     current = interpretation,
                                     windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                                    windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
-                                    windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, settingsAndProfile.isImperial).roundToInt(),
+                                    windSpeed = msInWindUnit(weatherData?.windSpeed ?: 0.0, windUnit).roundToInt(),
+                                    windGusts = msInWindUnit(weatherData?.windGusts ?: 0.0, windUnit).roundToInt(),
                                     precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, settingsAndProfile.isImperial),
                                     precipitationProbability = weatherData?.precipitationProbability?.toInt(),
                                     temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, settingsAndProfile.isImperialTemperature).roundToInt(),
@@ -366,6 +371,7 @@ abstract class ForecastDataType(private val karooSystem: KarooSystemService, typ
                                     distance = if (settingsAndProfile.settings.showDistanceInForecast) distanceFromCurrent else null,
                                     isImperial = settingsAndProfile.isImperial,
                                     isNight = weatherData?.isNight == true,
+                                    windUnit = windUnit,
                                     uvi = weatherData?.uvi ?: 0.0
                                 )
 

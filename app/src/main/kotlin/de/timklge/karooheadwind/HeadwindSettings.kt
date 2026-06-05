@@ -1,8 +1,6 @@
 package de.timklge.karooheadwind
 
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -11,6 +9,10 @@ enum class WindUnit(val id: String, val label: String, val unitDisplay: String){
     METERS_PER_SECOND("ms", "Meters (m/s)", "m/s"),
     MILES_PER_HOUR("mph", "Miles (mph)", "mph"),
     KNOTS("kn", "Knots (kn)", "kn")
+}
+
+fun defaultWindUnit(isImperial: Boolean): WindUnit {
+    return if (isImperial) WindUnit.MILES_PER_HOUR else WindUnit.KILOMETERS_PER_HOUR
 }
 
 enum class PrecipitationUnit(val id: String, val label: String, val unitDisplay: String){
@@ -88,6 +90,7 @@ data class HeadwindSettings(
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
     val openWeatherMapApiKey: String = "",
     val refreshRate: RefreshRate = RefreshRate.STANDARD,
+    val windUnit: WindUnit? = null,
 ){
 
     companion object {
@@ -97,10 +100,9 @@ data class HeadwindSettings(
     fun getForecastMetersPerHour(isImperial: Boolean): Int {
         return if (isImperial) forecastedMilesPerHour * 1609 else forecastedKmPerHour * 1000
     }
+
+    fun getWindUnit(isImperial: Boolean): WindUnit {
+        return windUnit ?: defaultWindUnit(isImperial)
+    }
 }
 
-@Serializable
-enum class WeatherDataProvider(val id: String, val label: String) {
-    OPEN_METEO("open-meteo", "OpenMeteo"),
-    OPEN_WEATHER_MAP("open-weather-map", "OpenWeatherMap")
-}

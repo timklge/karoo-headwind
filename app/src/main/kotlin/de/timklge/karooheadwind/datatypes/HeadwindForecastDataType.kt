@@ -10,9 +10,11 @@ import com.mapbox.turf.TurfMeasurement
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.UpcomingRoute
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.lerpWeather
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import de.timklge.karooheadwind.screens.isNightMode
+import de.timklge.karooheadwind.util.msInWindUnit
 import de.timklge.karooheadwind.util.signedAngleDifference
 import io.hammerhead.karooext.KarooSystemService
 import kotlin.math.ceil
@@ -38,6 +40,7 @@ class HeadwindForecastDataType(karooSystem: KarooSystemService) : LineGraphForec
     override fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
+        windUnit: WindUnit,
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
@@ -47,11 +50,7 @@ class HeadwindForecastDataType(karooSystem: KarooSystemService) : LineGraphForec
         }
 
         val windPoints = lineData.map { data ->
-            if (isImperial) { // Convert m/s to mph
-                data.weatherData.windSpeed * 2.23694 // Convert m/s to mph
-            } else { // Convert m/s to km/h
-                data.weatherData.windSpeed * 3.6 // Convert m/s to km/h
-            }
+            msInWindUnit(data.weatherData.windSpeed, windUnit)
         }
 
         val headwindPoints = try {
@@ -108,11 +107,7 @@ class HeadwindForecastDataType(karooSystem: KarooSystemService) : LineGraphForec
                 val diff = signedAngleDifference(bearingAlongRoute, windBearing)
                 val headwindSpeed = cos( (diff + 180) * Math.PI / 180.0) * interpolatedWeather.windSpeed
 
-                val headwindSpeedInUserUnit = if (isImperial) {
-                    headwindSpeed * 2.23694 // Convert m/s to mph
-                } else {
-                    headwindSpeed * 3.6 // Convert m/s to km/h
-                }
+                val headwindSpeedInUserUnit = msInWindUnit(headwindSpeed, windUnit)
 
                 LineGraphBuilder.DataPoint(
                     x = i.toFloat() * (windPoints.size / HEADWIND_SAMPLE_COUNT.toFloat()),
@@ -132,7 +127,12 @@ class HeadwindForecastDataType(karooSystem: KarooSystemService) : LineGraphForec
                     label = "Head", // if (!isImperial) "Headwind km/h" else "Headwind mph",
                     drawCircles = false,
                     colorFunc = { headwindSpeed ->
-                        val headwindSpeedInKmh = headwindSpeed * 3.6 // Convert m/s to km/h
+                        val headwindSpeedInKmh = when (windUnit) {
+                            WindUnit.KILOMETERS_PER_HOUR -> headwindSpeed.toDouble()
+                            WindUnit.METERS_PER_SECOND -> headwindSpeed.toDouble() * 3.6
+                            WindUnit.MILES_PER_HOUR -> headwindSpeed.toDouble() / 2.2369362920544 * 3.6
+                            WindUnit.KNOTS -> headwindSpeed.toDouble() / 1.9438444924406 * 3.6
+                        }
                         interpolateWindLineColor(headwindSpeedInKmh, isNightMode(context), context).toArgb()
                     },
                     alpha = 255

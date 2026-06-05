@@ -16,7 +16,7 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.util.msInWindUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -124,9 +124,10 @@ class WindDirectionAndSpeedDataType(
 
                 val windSpeed = streamData.windSpeed
                 val windDirection = streamData.headingResponse.diff
+                val windUnit = streamData.settings.getWindUnit(streamData.isImperial)
 
-                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
-                val gustSpeedUserUnit = msInUserUnit(streamData.gustSpeed ?: 0.0, streamData.isImperial)
+                val windSpeedUserUnit = msInWindUnit(windSpeed, windUnit)
+                val gustSpeedUserUnit = msInWindUnit(streamData.gustSpeed ?: 0.0, windUnit)
 
                 val mainText = let {
                     "${windSpeedUserUnit.roundToInt().absoluteValue}"
