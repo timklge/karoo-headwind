@@ -20,9 +20,11 @@ import android.content.Context
 import android.util.Log
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import de.timklge.karooheadwind.HeadwindSettings
+import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
 import de.timklge.karooheadwind.weatherprovider.WeatherData
@@ -49,23 +51,27 @@ abstract class BaseDataType(
 ) : DataTypeImpl("karoo-headwind", dataTypeId) {
     abstract fun getValue(data: WeatherData, userProfile: UserProfile, settings: HeadwindSettings): Double?
 
+    open fun getValue(data: WeatherData, userProfile: UserProfile, settings: HeadwindSettings, stats: HeadwindStats): Double? {
+        return getValue(data, userProfile, settings)
+    }
+
     open fun getFormatDataType(): String? = null
 
     override fun startStream(emitter: Emitter<StreamState>) {
         Log.d(KarooHeadwindExtension.TAG, "start $dataTypeId stream")
         val job = CoroutineScope(Dispatchers.IO).launch {
-            data class StreamData(val weatherData: WeatherData, val userProfile: UserProfile, val settings: HeadwindSettings)
+            data class StreamData(val weatherData: WeatherData, val userProfile: UserProfile, val settings: HeadwindSettings, val stats: HeadwindStats)
 
-            val currentWeatherData = combine(applicationContext.streamCurrentWeatherData(karooSystemService).filterNotNull(), karooSystemService.streamUserProfile(), applicationContext.streamSettings(karooSystemService)) { weatherData, userProfile, settings ->
-                StreamData(weatherData, userProfile, settings)
+            val currentWeatherData = combine(applicationContext.streamCurrentWeatherData(karooSystemService).filterNotNull(), karooSystemService.streamUserProfile(), applicationContext.streamSettings(karooSystemService), applicationContext.streamStats()) { weatherData, userProfile, settings, stats ->
+                StreamData(weatherData, userProfile, settings, stats)
             }
 
             val refreshRate = karooSystemService.getRefreshRateInMilliseconds(applicationContext)
 
             currentWeatherData.filterNotNull()
                 .throttle(refreshRate)
-                .collect { (data, userProfile, settings) ->
-                    val value = getValue(data, userProfile, settings)
+                .collect { (data, userProfile, settings, stats) ->
+                    val value = getValue(data, userProfile, settings, stats)
                     Log.d(KarooHeadwindExtension.TAG, "$dataTypeId: $value")
 
                     if (value != null) {

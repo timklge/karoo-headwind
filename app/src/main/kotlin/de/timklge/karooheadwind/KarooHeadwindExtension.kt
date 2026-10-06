@@ -38,6 +38,7 @@ import de.timklge.karooheadwind.datatypes.TailwindAndRideSpeedDataType
 import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
 import de.timklge.karooheadwind.datatypes.UviDataType
+import de.timklge.karooheadwind.datatypes.WeatherFetchedAtDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataTypeCircle
@@ -107,7 +108,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             TemperatureDataType(karooSystem, applicationContext),
             UviDataType(karooSystem, applicationContext),
             ResistanceForcesDataType(karooSystem, applicationContext),
-            CompassDataType(karooSystem, applicationContext)
+            CompassDataType(karooSystem, applicationContext),
+            WeatherFetchedAtDataType(karooSystem, applicationContext)
         )
     }
 

@@ -67,4 +67,6 @@
     <string name="forces_description">Current resistance forces (air, rolling, gradient)</string>
     <string name="compass">Compass</string>
     <string name="compass_description">Points to true north</string>
+    <string name="weatherFetchedAt">Weather fetched at</string>
+    <string name="weatherFetchedAt_description">Time of the last successful weather data download</string>
 </resources>

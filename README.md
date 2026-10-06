@@ -31,7 +31,7 @@ After installing this app on your Karoo and opening it once from the main menu, 
 - Relative elevation gain (numerical): Shows the relative elegation gain. The relative elevation gain is calculated using the relative grade and is an estimation of how much climbing would have been equivalent to the headwind you faced during the ride.
 - Resistance forces (graphical, 2x1 field): Shows a graphical representation of the different forces you have to overcome while riding, including gravity (actual gradient), rolling resistance (based on speed and weight), aerodynamic drag (based on speed) and wind resistance (based on headwind speed). The app reads your weight from your karoo user profile and uses rough estimates for CdA and Crr.
 - Compass (graphical, 1x1 field): Shows a compass needle (red points to true north).
-- Additionally, data fields that only show the current data value for headwind speed, humidity, cloud cover, absolute wind speed, absolute wind gust speed, absolute wind direction, rainfall and surface pressure can be added if desired.
+- Additionally, data fields that only show the current data value for headwind speed, humidity, cloud cover, absolute wind speed, absolute wind gust speed, absolute wind direction, rainfall and surface pressure can be added if desired. The "weather fetched at" data field shows the time of the last successful weather data download.
 
 The app can use OpenMeteo or OpenWeatherMap as providers for live weather data.
 
@@ -61,4 +61,5 @@ has not been set up. Otherwise, the value is the headwind direction in degrees.
 - The `windDirection` datatype contains a single field with the *absolute* wind direction in degrees (so 0 = North, 90 = East etc.)
 - The `headwindSpeed` datatype contains a single field that contains the *relative*  headwind speed in meters per second.
 - The `windSpeed` datatype contains a single field that contains the *absolute* wind speed in meters per second.
+- The `weatherFetchedAt` datatypes contains a single field with the time at which weather data was recently successfully downloaded (in ms since unix epoch) 
 - Other datatypes like `windGusts` etc. are also available, see [extension_info.xml](https://github.com/timklge/karoo-headwind/blob/master/app/src/main/res/xml/extension_info.xml)
