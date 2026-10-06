@@ -56,9 +56,16 @@ class HeadwindSpeedDataType(
                 StreamData(value, data, settings, userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
             }.throttle(refreshRate)
                 .collect { streamData ->
-                    val windSpeed = streamData.weatherData?.windSpeed ?: 0.0
-                    val windDirection = (streamData.headingResponse as? HeadingResponse.Value)?.diff ?: 0.0
-                    val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
+                    val heading = (streamData.headingResponse as? HeadingResponse.Value)?.diff
+                    val windSpeed = streamData.weatherData?.windSpeed
+                    val errorCode = HeadwindDirectionDataType.getErrorCode(streamData.headingResponse, streamData.settings)
+
+                    if (errorCode != null || heading == null || windSpeed == null) {
+                        emitter.onNext(StreamState.NotAvailable)
+                        return@collect
+                    }
+
+                    val headwindSpeed = cos( (heading + 180) * Math.PI / 180.0) * windSpeed
 
                     val headwindSpeedUserUnit = msInWindUnit(headwindSpeed, streamData.settings.getWindUnit(streamData.isImperial))
                     emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to headwindSpeedUserUnit))))
