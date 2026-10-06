@@ -1,0 +1,121 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package de.timklge.karooheadwind.datatypes
+
+import android.content.Context
+import android.util.Log
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import androidx.glance.GlanceModifier
+import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
+import androidx.glance.appwidget.GlanceRemoteViews
+import androidx.glance.color.ColorProvider
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.text.FontFamily
+import androidx.glance.text.Text
+import androidx.glance.text.TextStyle
+import de.timklge.karooheadwind.HeadwindSettings
+import de.timklge.karooheadwind.KarooHeadwindExtension
+import de.timklge.karooheadwind.WindUnit
+import de.timklge.karooheadwind.streamDataFlow
+import de.timklge.karooheadwind.weatherprovider.WeatherData
+import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.internal.ViewEmitter
+import io.hammerhead.karooext.models.ShowCustomStreamState
+import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.UpdateGraphicConfig
+import io.hammerhead.karooext.models.UserProfile
+import io.hammerhead.karooext.models.ViewConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
+class WindSpeedUnitDataType(val karooSystem: KarooSystemService, context: Context) : BaseDataType(karooSystem, context, "windSpeedUnit") {
+    @OptIn(ExperimentalGlanceRemoteViewsApi::class)
+    private val glance = GlanceRemoteViews()
+
+    override fun getValue(data: WeatherData, userProfile: UserProfile, settings: HeadwindSettings): Double {
+        val isImperial = userProfile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+        return settings.getWindUnit(isImperial).ordinal.toDouble()
+    }
+
+    private fun previewFlow(): Flow<Double> {
+        return flow {
+            while (true) {
+                emit(WindUnit.entries.random().ordinal.toDouble())
+                delay(1.seconds)
+            }
+        }
+    }
+
+    @OptIn(ExperimentalGlanceRemoteViewsApi::class)
+    override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
+        val configJob = CoroutineScope(Dispatchers.IO).launch {
+            emitter.onNext(UpdateGraphicConfig(showHeader = true))
+            awaitCancellation()
+        }
+
+        val viewJob = CoroutineScope(Dispatchers.IO).launch {
+            emitter.onNext(ShowCustomStreamState("", null))
+
+            val flow = if (config.preview) {
+                previewFlow()
+            } else {
+                karooSystem.streamDataFlow(dataTypeId)
+                    .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+                    .filterNotNull()
+            }
+
+            flow.collect { unitOrdinal ->
+                val unit = WindUnit.entries.getOrElse(unitOrdinal.toInt()) { WindUnit.KILOMETERS_PER_HOUR }
+                Log.d(KarooHeadwindExtension.TAG, "Updating wind speed unit view")
+                val result = glance.compose(context, DpSize.Unspecified) {
+                    Box(modifier = GlanceModifier.fillMaxSize(),
+                        contentAlignment = Alignment(
+                            vertical = Alignment.Vertical.Top,
+                            horizontal = when (config.alignment) {
+                                ViewConfig.Alignment.LEFT -> Alignment.Horizontal.Start
+                                ViewConfig.Alignment.CENTER -> Alignment.Horizontal.CenterHorizontally
+                                ViewConfig.Alignment.RIGHT -> Alignment.Horizontal.End
+                            },
+                        )) {
+                        Text(unit.unitDisplay, style = TextStyle(color = ColorProvider(Color.Black, Color.White), fontFamily = FontFamily.Monospace, fontSize = TextUnit(
+                            config.textSize.toFloat(), TextUnitType.Sp)))
+                    }
+                }
+                emitter.updateView(result.remoteViews)
+            }
+        }
+
+        emitter.setCancellable {
+            configJob.cancel()
+            viewJob.cancel()
+        }
+    }
+}

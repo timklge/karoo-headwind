@@ -59,6 +59,7 @@ Use data type id `TYPE_EXT::karoo-headwind::TYPE_ID` with `TYPE_ID` being one of
 - The `headwind` datatype contains a single field that either represents an error code or the *relative* wind direction. A `-1.0` indicates missing gps receiption, `-2.0` no weather data, `-3.0` that the headwind extension
 has not been set up. Otherwise, the value is the headwind direction in degrees.
 - The `windDirection` datatype contains a single field with the *absolute* wind direction in degrees (so 0 = North, 90 = East etc.)
-- The `headwindSpeed` datatype contains a single field that contains the *relative*  headwind speed in meters per second.
-- The `windSpeed` datatype contains a single field that contains the *absolute* wind speed in meters per second.
+- The `headwindSpeed` datatype contains a single field that contains the *relative* headwind speed in the user's configured wind speed unit
+- The `windSpeed` datatype contains a single field that contains the *absolute* wind speed in the user's configured wind speed unit
+- The `windSpeedUnit` datatype contains a single field that contains the configured unit of measurement for wind speed, where `0` = km/h, `1` = ms, `2` = mph, `3` = knots
 - Other datatypes like `windGusts` etc. are also available, see [extension_info.xml](https://github.com/timklge/karoo-headwind/blob/master/app/src/main/res/xml/extension_info.xml)

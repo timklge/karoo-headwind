@@ -188,4 +188,11 @@
         graphical="true"
         icon="@drawable/arrow"
         typeId="compass" />
+
+    <DataType
+        description="@string/windSpeedUnit_description"
+        displayName="@string/windSpeedUnit"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="windSpeedUnit" />
 </ExtensionInfo>

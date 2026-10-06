@@ -45,6 +45,7 @@ import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
+import de.timklge.karooheadwind.datatypes.WindSpeedUnitDataType
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderFactory
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
@@ -107,7 +108,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             TemperatureDataType(karooSystem, applicationContext),
             UviDataType(karooSystem, applicationContext),
             ResistanceForcesDataType(karooSystem, applicationContext),
-            CompassDataType(karooSystem, applicationContext)
+            CompassDataType(karooSystem, applicationContext),
+            WindSpeedUnitDataType(karooSystem, applicationContext)
         )
     }
 

@@ -31,6 +31,8 @@
     <string name="windGusts_description">Current wind gust speed in configured unit</string>
     <string name="windDirection">Absolute wind direction</string>
     <string name="windDirection_description">Current absolute wind direction</string>
+    <string name="windSpeedUnit">Wind speed unit</string>
+    <string name="windSpeedUnit_description">Configured unit of measurement for wind speed</string>
     <string name="precipitation">Rainfall</string>
     <string name="precipitation_description">Current precipitation (rainfall / snowfall)</string>
     <string name="surfacePressure">Surface pressure</string>
