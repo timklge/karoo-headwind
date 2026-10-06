@@ -128,4 +128,5 @@ dependencies {
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
     testImplementation(kotlin("test"))
+    testImplementation(libs.junit)
 }

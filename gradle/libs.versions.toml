@@ -11,6 +11,7 @@ androidxComposeMaterial = "1.4.0"
 glance = "1.2.0"
 kotlinxSerializationJson = "1.11.0"
 mapboxSdkTurf = "7.3.1"
+junit = "4.13.2"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -38,6 +39,7 @@ androidx-glance-appwidget-preview = { group = "androidx.glance", name = "glance-
 androidx-glance-preview = { group = "androidx.glance", name = "glance-preview", version.ref = "glance" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 mapbox-sdk-turf = { module = "com.mapbox.mapboxsdk:mapbox-sdk-turf", version.ref = "mapboxSdkTurf" }
+junit = { module = "junit:junit", version.ref = "junit" }
 
 [bundles]
 androidx-lifeycle = ["androidx-lifecycle-runtime-compose", "androidx-lifecycle-viewmodel-compose"]
