@@ -62,6 +62,7 @@ data class HeadwindStats(
     val lastSuccessfulWeatherRequest: Long? = null,
     val lastSuccessfulWeatherPosition: GpsCoordinates? = null,
     val failedWeatherRequest: Long? = null,
+    val lastWeatherError: String? = null,
     val lastSuccessfulWeatherProvider: WeatherDataProvider? = null
 ){
     companion object {

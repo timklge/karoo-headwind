@@ -1,0 +1,53 @@
+name: Publish client
+
+on:
+  push:
+    tags: [ "*" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, e.g. 1.6.9'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Determine version
+      env:
+        INPUT_VERSION: ${{ github.event.inputs.version }}
+        REF_NAME: ${{ github.ref_name }}
+        REF_TYPE: ${{ github.ref_type }}
+      run: |
+        if [ "$REF_TYPE" = "tag" ]; then
+          VERSION="$REF_NAME"
+        else
+          VERSION="$INPUT_VERSION"
+        fi
+        echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+        echo "Publishing client version $VERSION"
+
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v4.0.4
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Publish to GitHub Packages
+      env:
+        GPR_USER: ${{ github.actor }}
+        GPR_KEY: ${{ secrets.GITHUB_TOKEN }}
+      run: ./gradlew :client:publishReleasePublicationToGitHubPackagesRepository

@@ -49,6 +49,15 @@
                 android:resource="@xml/extension_info" />
         </service>
 
+        <service
+            android:name="de.timklge.karooheadwind.aidl.HeadwindService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="de.timklge.karooheadwind.HEADWIND_SERVICE" />
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="io.hammerhead.karooext.MANIFEST_URL"
             android:value="$BASE_URL$/manifest.json" />
