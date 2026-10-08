@@ -340,15 +340,7 @@ fun Context.streamCurrentWeatherData(karooSystemService: KarooSystemService): Fl
         emitAll(karooSystemService.getGpsCoordinateFlow(this@streamCurrentWeatherData))
     }
 
-    return dataStore.data.map { settingsJson ->
-        try {
-            val data = settingsJson[currentDataKey]
-            data?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
-        } catch (e: Throwable) {
-            Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
-            null
-        }
-    }.combine(locationFlow) {
+    return streamCurrentForecastWeatherData().combine(locationFlow) {
         weatherData, location -> weatherData to location
     }.distinctUntilChanged()
     .flatMapLatest { (weatherData, location) ->

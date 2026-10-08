@@ -60,3 +60,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Karoo Headwind"
 include("app")
+include(":client")
+include(":client-example")
