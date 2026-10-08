@@ -47,10 +47,9 @@ import de.timklge.karooheadwind.ServiceStatusSingleton
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
-import de.timklge.karooheadwind.streamCurrentForecastWeatherData
+import de.timklge.karooheadwind.streamForecastRecord
 import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.util.celciusInUserUnit
@@ -103,8 +102,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val profileFlow = remember { karooSystem.streamUserProfile() }
     val profile by profileFlow.collectAsStateWithLifecycle(null)
 
-    val statsFlow = remember { ctx.streamStats() }
-    val stats by statsFlow.collectAsStateWithLifecycle(HeadwindStats())
+    val forecastRecordFlow = remember { ctx.streamForecastRecord() }
+    val forecastRecord by forecastRecordFlow.collectAsStateWithLifecycle(null)
+    val stats = forecastRecord?.stats ?: HeadwindStats()
 
     val locationFlow = remember { karooSystem.getGpsCoordinateFlow(ctx) }
     val location by locationFlow.collectAsStateWithLifecycle(null)
@@ -115,8 +115,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val settingsFlow = remember { ctx.streamSettings(karooSystem) }
     val settings by settingsFlow.collectAsStateWithLifecycle(de.timklge.karooheadwind.HeadwindSettings())
 
-    val forecastDataFlow = remember { ctx.streamCurrentForecastWeatherData() }
-    val forecastData by forecastDataFlow.collectAsStateWithLifecycle(null)
+    val forecastData = forecastRecord?.response
 
     val upcomingRouteFlow = remember { karooSystem.streamUpcomingRoute() }
     val upcomingRoute by upcomingRouteFlow.collectAsStateWithLifecycle(null)

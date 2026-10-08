@@ -22,20 +22,18 @@ import android.os.IBinder
 import android.os.RemoteCallbackList
 import android.os.RemoteException
 import android.util.Log
+import de.timklge.karooheadwind.ForecastRecord
 import de.timklge.karooheadwind.HeadwindSettings
-import de.timklge.karooheadwind.HeadwindStats
 import de.timklge.karooheadwind.IHeadwindCallback
 import de.timklge.karooheadwind.IHeadwindService
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.aidl.model.HeadwindSnapshot
 import de.timklge.karooheadwind.aidl.model.buildHeadwindSnapshot
 import de.timklge.karooheadwind.aidl.model.headwindSnapshotJson
-import de.timklge.karooheadwind.streamCurrentForecastWeatherData
+import de.timklge.karooheadwind.streamForecastRecord
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamStats
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.weatherprovider.WeatherDataResponse
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
@@ -127,13 +125,12 @@ class HeadwindService : Service() {
 
     private fun streamSnapshots(karooSystem: KarooSystemService): Flow<HeadwindSnapshot> {
         return combine(
-            streamStats(),
-            streamCurrentForecastWeatherData(),
+            streamForecastRecord(),
             streamSettings(karooSystem),
             karooSystem.streamUserProfile(),
-        ) { stats: HeadwindStats, response: WeatherDataResponse?, settings: HeadwindSettings, profile: UserProfile ->
+        ) { record: ForecastRecord, settings: HeadwindSettings, profile: UserProfile ->
             val isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-            buildHeadwindSnapshot(stats, response, settings.getWindUnit(isImperial))
+            buildHeadwindSnapshot(record.stats, record.response, settings.getWindUnit(isImperial))
         }.distinctUntilChanged()
             .throttle(1_000L)
             .catch { e ->

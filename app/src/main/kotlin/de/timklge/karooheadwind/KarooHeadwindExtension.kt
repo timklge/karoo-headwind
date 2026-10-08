@@ -233,13 +233,10 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 val response = try {
                     WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
                 } catch(e: Throwable){
-                    val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
-                    launch {
-                        try {
-                            saveStats(this@KarooHeadwindExtension, stats)
-                        } catch(e: Exception){
-                            Log.e(TAG, "Failed to write stats", e)
-                        }
+                    try {
+                        saveStats(this@KarooHeadwindExtension, lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis()))
+                    } catch(writeError: Exception){
+                        Log.e(TAG, "Failed to write stats", writeError)
                     }
                     throw e
                 }
@@ -250,9 +247,9 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                         lastSuccessfulWeatherPosition = gps,
                         lastSuccessfulWeatherProvider = response.provider
                     )
-                    launch { saveStats(this@KarooHeadwindExtension, stats) }
+                    saveForecastRecord(this@KarooHeadwindExtension, response, stats)
                 } catch(e: Exception){
-                    Log.e(TAG, "Failed to write stats", e)
+                    Log.e(TAG, "Failed to write forecast", e)
                 }
 
                 response
@@ -261,7 +258,6 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 delay(2.minutes); true
             }.collect { response ->
                 try {
-                    saveCurrentData(applicationContext, response)
                     Log.d(TAG, "Got updated weather info: $response")
 
                     saveWidgetSettings(applicationContext, HeadwindWidgetSettings(currentForecastHourOffset = 0))
