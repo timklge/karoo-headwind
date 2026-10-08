@@ -82,7 +82,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that provides headwind direction, wind speed, forecast and other weather data fields.",
-            "releaseNotes" to "* Add wind unit selection dropdown (mph, kmh, ms, knots)",
+            "releaseNotes" to "* Add AIDL service to provide weather data to other extensions\n* Fix headwind speed unit conversion",
             "screenshotUrls" to listOf(
                 "$baseUrl/preview3.png",
                 "$baseUrl/preview1.png",
