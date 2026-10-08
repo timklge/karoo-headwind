@@ -39,7 +39,6 @@ import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 abstract class BaseDataType(
@@ -54,18 +53,18 @@ abstract class BaseDataType(
     override fun startStream(emitter: Emitter<StreamState>) {
         Log.d(KarooHeadwindExtension.TAG, "start $dataTypeId stream")
         val job = CoroutineScope(Dispatchers.IO).launch {
-            data class StreamData(val weatherData: WeatherData, val userProfile: UserProfile, val settings: HeadwindSettings)
+            data class StreamData(val weatherData: WeatherData?, val userProfile: UserProfile, val settings: HeadwindSettings)
 
-            val currentWeatherData = combine(applicationContext.streamCurrentWeatherData(karooSystemService).filterNotNull(), karooSystemService.streamUserProfile(), applicationContext.streamSettings(karooSystemService)) { weatherData, userProfile, settings ->
+            val currentWeatherData = combine(applicationContext.streamCurrentWeatherData(karooSystemService), karooSystemService.streamUserProfile(), applicationContext.streamSettings(karooSystemService)) { weatherData, userProfile, settings ->
                 StreamData(weatherData, userProfile, settings)
             }
 
             val refreshRate = karooSystemService.getRefreshRateInMilliseconds(applicationContext)
 
-            currentWeatherData.filterNotNull()
+            currentWeatherData
                 .throttle(refreshRate)
                 .collect { (data, userProfile, settings) ->
-                    val value = getValue(data, userProfile, settings)
+                    val value = data?.let { getValue(it, userProfile, settings) }
                     Log.d(KarooHeadwindExtension.TAG, "$dataTypeId: $value")
 
                     if (value != null) {

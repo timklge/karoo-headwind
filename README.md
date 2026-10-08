@@ -61,4 +61,5 @@ has not been set up. Otherwise, the value is the headwind direction in degrees. 
 - The `windDirection` datatype contains a single field with the *absolute* wind direction in degrees (so 0 = North, 90 = East etc.)
 - The `headwindSpeed` datatype contains a single field that contains the *relative*  headwind speed in meters per second.
 - The `windSpeed` datatype contains a single field that contains the *absolute* wind speed in meters per second.
+- All datatypes except `headwind` stream `NotAvailable` instead of a data point if no weather data has been downloaded yet or if the headwind app has not been set up. `headwindSpeed` additionally streams `NotAvailable` while no heading is available, since the relative headwind speed cannot be calculated without one.
 - Other datatypes like `windGusts` etc. are also available, see [extension_info.xml](https://github.com/timklge/karoo-headwind/blob/master/app/src/main/res/xml/extension_info.xml)
