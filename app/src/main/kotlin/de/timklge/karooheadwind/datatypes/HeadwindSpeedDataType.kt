@@ -71,7 +71,7 @@ class HeadwindSpeedDataType(
     }
 
     override fun startView(context: Context, config: ViewConfig, emitter: ViewEmitter) {
-        emitter.onNext(UpdateGraphicConfig(formatDataTypeId = DataType.Type.SPEED))
+        emitter.onNext(UpdateGraphicConfig(formatDataTypeId = DataType.Type.INTENSITY_FACTOR))
     }
 }
 
