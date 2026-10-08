@@ -78,14 +78,16 @@ class HeadwindDirectionDataType(
                 )
             }.collect { streamData ->
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
+                val errorCode = getErrorCode(streamData.headingResponse, streamData.settings)
 
-                var returnValue = 0.0
-                if (value != null && streamData.absoluteWindDirection != null && streamData.windSpeed != null) {
+                val returnValue = if (errorCode == null && value != null && streamData.absoluteWindDirection != null && streamData.windSpeed != null) {
                     var windDirection = value
 
                     if (windDirection < 0) windDirection += 360
 
-                    returnValue = windDirection
+                    windDirection
+                } else {
+                    (errorCode ?: ERROR_NO_WEATHER_DATA).toDouble()
                 }
 
                 emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to returnValue))))
@@ -187,5 +189,16 @@ class HeadwindDirectionDataType(
         const val ERROR_NO_GPS = -1
         const val ERROR_NO_WEATHER_DATA = -2
         const val ERROR_APP_NOT_SET_UP = -3
+
+        /**
+         * Maps a heading state to the error code documented in the README, or null if the
+         * headwind direction is available.
+         */
+        fun getErrorCode(headingResponse: HeadingResponse, settings: HeadwindSettings): Int? = when {
+            !settings.welcomeDialogAccepted -> ERROR_APP_NOT_SET_UP
+            headingResponse is HeadingResponse.NoGps -> ERROR_NO_GPS
+            headingResponse is HeadingResponse.NoWeatherData -> ERROR_NO_WEATHER_DATA
+            else -> null
+        }
     }
 }
