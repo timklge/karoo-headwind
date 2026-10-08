@@ -234,7 +234,10 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
                 } catch(e: Throwable){
                     try {
-                        saveStats(this@KarooHeadwindExtension, lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis()))
+                        saveStats(this@KarooHeadwindExtension, lastKnownStats.copy(
+                            failedWeatherRequest = System.currentTimeMillis(),
+                            lastWeatherError = e.message ?: e.toString()
+                        ))
                     } catch(writeError: Exception){
                         Log.e(TAG, "Failed to write stats", writeError)
                     }
@@ -245,7 +248,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     val stats = lastKnownStats.copy(
                         lastSuccessfulWeatherRequest = System.currentTimeMillis(),
                         lastSuccessfulWeatherPosition = gps,
-                        lastSuccessfulWeatherProvider = response.provider
+                        lastSuccessfulWeatherProvider = response.provider,
+                        lastWeatherError = null
                     )
                     saveForecastRecord(this@KarooHeadwindExtension, response, stats)
                 } catch(e: Exception){

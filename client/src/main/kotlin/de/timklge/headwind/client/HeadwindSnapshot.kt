@@ -25,6 +25,7 @@ import kotlinx.serialization.json.Json
  * All values are SI: wind in m/s, directions in degrees, temperature in °C, timestamps in epoch seconds.
  * [windUnit] is the wind unit the user chose for display in karoo-headwind. Values are not converted to it.
  * Fetch timestamps are the last successful and last failed weather download. Choose your own staleness threshold.
+ * [error] is the message of the most recent failed weather download, or null if the last download succeeded.
  * [forecast] holds the cached forecast for each location along the route, or null when nothing is cached.
  */
 @Serializable

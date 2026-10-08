@@ -37,7 +37,7 @@ fun buildHeadwindSnapshot(stats: HeadwindStats, response: WeatherDataResponse?, 
     }
 
     return HeadwindSnapshot(
-        error = response?.error,
+        error = stats.lastWeatherError,
         lastSuccessfulFetchEpochSeconds = stats.lastSuccessfulWeatherRequest?.let { it / 1000 },
         lastFailedFetchEpochSeconds = stats.failedWeatherRequest?.let { it / 1000 },
         provider = stats.lastSuccessfulWeatherProvider,
@@ -52,6 +52,7 @@ fun buildHeadwindSnapshot(stats: HeadwindStats, response: WeatherDataResponse?, 
  * All values are SI: wind in m/s, directions in degrees, temperature in °C, timestamps in epoch seconds.
  * [windUnit] is the wind unit the user chose for display in karoo-headwind. Values are not converted to it.
  * Fetch timestamps are the last successful and last failed weather download. Clients choose their own staleness threshold.
+ * [error] is the message of the most recent failed weather download, or null if the last download succeeded.
  * [forecast] holds the cached forecast for each requested location along the route, or null when nothing is cached.
  */
 @Serializable
