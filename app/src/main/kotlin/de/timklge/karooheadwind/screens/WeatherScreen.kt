@@ -18,6 +18,7 @@ package de.timklge.karooheadwind.screens
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -34,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -113,7 +116,7 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val currentWeatherData by currentWeatherDataFlow.collectAsStateWithLifecycle(null)
 
     val settingsFlow = remember { ctx.streamSettings(karooSystem) }
-    val settings by settingsFlow.collectAsStateWithLifecycle(de.timklge.karooheadwind.HeadwindSettings())
+    val settings by settingsFlow.collectAsStateWithLifecycle(null)
 
     val forecastData = forecastRecord?.response
 
@@ -140,23 +143,32 @@ fun WeatherScreen(onFinish: () -> Unit) {
         }
     }
 
+    val loadedSettings = settings
+    if (loadedSettings == null || profile == null) {
+        if (karooConnected == false) {
+            Text(
+                modifier = Modifier.padding(10.dp),
+                text = "Could not read device status. Is your Karoo updated?"
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        return
+    }
+
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
         .padding(5.dp)) {
-        if (karooConnected == false) {
-            Text(
-                modifier = Modifier.padding(5.dp),
-                text = "Could not read device status. Is your Karoo updated?"
-            )
-        }
 
         val requestedWeatherPosition = forecastData?.data?.firstOrNull()?.coords
 
         val formattedTime = currentWeatherData?.let { getTimeFormatter(ctx).format(Instant.ofEpochSecond(it.time).atZone(ZoneId.systemDefault()).toLocalTime()) }
         val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(it.time)) }
         val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-        val windUnit = settings.getWindUnit(isImperialDistance)
+        val windUnit = loadedSettings.getWindUnit(isImperialDistance)
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
