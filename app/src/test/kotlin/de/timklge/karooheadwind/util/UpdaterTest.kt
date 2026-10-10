@@ -25,14 +25,4 @@ class UpdaterTest {
         assert(!Updater.isUpdateAvailable(102, 101))
         assert(!Updater.isUpdateAvailable(101, 101))
     }
-
-    @Test
-    fun testVersionNameComparison() {
-        assert(Updater.isUpdateAvailable(101, 101))
-        assert(Updater.isUpdateAvailable(101, 101))
-        assert(Updater.isUpdateAvailable(101, 101))
-        assert(!Updater.isUpdateAvailable(101, 101))
-        assert(!Updater.isUpdateAvailable(101, 101))
-        assert(!Updater.isUpdateAvailable(101, 101))
-    }
 }
