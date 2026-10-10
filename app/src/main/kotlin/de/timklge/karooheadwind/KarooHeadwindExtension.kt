@@ -48,10 +48,13 @@ import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
+import de.timklge.karooheadwind.fit.HeadwindFitFileWriter
 import de.timklge.karooheadwind.util.Updater
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderFactory
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.FitEffect
 import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
@@ -283,6 +286,14 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     Log.e(TAG, "Failed to read current weather data", e)
                 }
             }
+        }
+    }
+
+    override fun startFit(emitter: Emitter<FitEffect>) {
+        val fitWriteJob = HeadwindFitFileWriter(karooSystem, applicationContext).start(emitter)
+
+        emitter.setCancellable {
+            fitWriteJob.cancel()
         }
     }
 
