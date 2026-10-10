@@ -45,9 +45,11 @@ import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
+import de.timklge.karooheadwind.util.Updater
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderFactory
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -80,6 +82,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
 
     private var updateLastKnownGpsJob: Job? = null
     private var serviceJob: Job? = null
+    private var updateCheckJob: Job? = null
 
     override val types by lazy {
         listOf(
@@ -127,6 +130,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             karooSystem.connect { connected ->
                 if (connected) {
                     Log.d(TAG, "Connected to Karoo system")
+                    checkForUpdates()
                 }
             }
 
@@ -272,9 +276,35 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         }
     }
 
+    private fun checkForUpdates() {
+        if (updateCheckJob != null) return
+
+        updateCheckJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val update = Updater.checkForUpdate(this@KarooHeadwindExtension, karooSystem)
+                if (update != null) {
+                    karooSystem.dispatch(SystemNotification(
+                        id = "karoo-headwind-update",
+                        message = "Headwind ${update.latestVersion} available",
+                        subText = "You are running version ${update.currentVersion}. Open Headwind for details.",
+                        header = "Headwind update",
+                        style = SystemNotification.Style.UPDATE,
+                        action = "Open",
+                        actionIntent = "de.timklge.karooheadwind.MainActivity",
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Update check failed", e)
+            }
+        }
+    }
+
     override fun onDestroy() {
         serviceJob?.cancel()
         serviceJob = null
+
+        updateCheckJob?.cancel()
+        updateCheckJob = null
 
         updateLastKnownGpsJob?.cancel()
         updateLastKnownGpsJob = null

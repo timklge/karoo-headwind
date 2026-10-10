@@ -60,6 +60,6 @@
 
         <meta-data
             android:name="io.hammerhead.karooext.MANIFEST_URL"
-            android:value="$BASE_URL$/manifest.json" />
+            android:value="https://github.com/timklge/karoo-headwind/releases/latest/download/manifest.json" />
     </application>
 </manifest>

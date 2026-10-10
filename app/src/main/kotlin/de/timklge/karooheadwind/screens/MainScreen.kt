@@ -16,6 +16,10 @@
 
 package de.timklge.karooheadwind.screens
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,7 +33,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -50,15 +53,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import de.timklge.karooheadwind.HeadwindSettings
+import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
+import de.timklge.karooheadwind.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+private var updateNotificationShown = false
+
 @Composable
 fun MainScreen(close: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
@@ -67,6 +73,7 @@ fun MainScreen(close: () -> Unit) {
     val karooSystem = remember { KarooSystemService(ctx) }
 
     var welcomeDialogVisible by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<Updater.UpdateInfo?>(null) }
     var tabIndex by remember { mutableIntStateOf(0) }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -114,6 +121,21 @@ fun MainScreen(close: () -> Unit) {
     LaunchedEffect(Unit) {
         karooSystem.connect { connected ->
             karooConnected = connected
+        }
+    }
+
+    LaunchedEffect(karooConnected) {
+        if (karooConnected && updateInfo == null && !updateNotificationShown) {
+            try {
+                val updateInfoResult = Updater.checkForUpdate(ctx, karooSystem)
+
+                if (updateInfoResult != null) {
+                    updateNotificationShown = true
+                    updateInfo = updateInfoResult
+                }
+            } catch (e: Exception) {
+                Log.w(KarooHeadwindExtension.TAG, "Update check failed", e)
+            }
         }
     }
 
@@ -171,6 +193,42 @@ fun MainScreen(close: () -> Unit) {
             )
         }
 
+        if (!welcomeDialogVisible) {
+            updateInfo?.let { update ->
+                AlertDialog(
+                    onDismissRequest = { updateInfo = null },
+                    confirmButton = {
+                        Button(onClick = {
+                            updateInfo = null
+                            openAppInfoInSettings(ctx)
+                        }) { Text("Update") }
+                    },
+                    dismissButton = {
+                        Button(onClick = { updateInfo = null }) { Text("Later") }
+                    },
+                    text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text("A new version of karoo-headwind is available.")
+
+                            Spacer(Modifier.padding(10.dp))
+
+                            Text("Version ${update.latestVersion} (you are running ${update.currentVersion}).")
+
+                            if (update.releaseNotes != null) {
+                                Spacer(Modifier.padding(10.dp))
+
+                                Text("Release notes:")
+
+                                Spacer(Modifier.padding(4.dp))
+
+                                Text(update.releaseNotes)
+                            }
+                        }
+                    }
+                )
+            }
+        }
+
         // Do not show back button on the Windy tab
         if (tabIndex != 2) {
             Image(
@@ -185,5 +243,21 @@ fun MainScreen(close: () -> Unit) {
                     }
             )
         }
+    }
+}
+
+private const val SETTINGS_APP_PACKAGE = "io.hammerhead.settingsapp"
+private const val APP_INFO_ACTION = "io.hammerhead.action.APP_INFO"
+
+private fun openAppInfoInSettings(context: Context) {
+    val intent = Intent(APP_INFO_ACTION).apply {
+        setPackage(SETTINGS_APP_PACKAGE)
+        Updater.getManifestUrl(context)?.let { putExtra("manifestUrl", it) }
+    }
+
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Log.w(KarooHeadwindExtension.TAG, "Could not open the settings app", e)
     }
 }
