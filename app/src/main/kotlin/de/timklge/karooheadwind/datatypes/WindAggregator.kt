@@ -20,10 +20,13 @@ import android.content.Context
 import de.timklge.karooheadwind.HeadingResponse
 import de.timklge.karooheadwind.getRelativeHeadingFlow
 import de.timklge.karooheadwind.streamCurrentWeatherData
+import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamRideState
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.RideState
+import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,8 +36,66 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.sin
+
+data class WindCategoryStats(
+    val timePercent: Double,
+    val avgRideSpeed: Double?, // m/s
+    val maxRideSpeed: Double?, // m/s
+    val avgWindSpeed: Double?, // m/s
+    val maxWindSpeed: Double?, // m/s
+)
+
+data class WindSessionStats(
+    val headwind: WindCategoryStats,
+    val tailwind: WindCategoryStats,
+    val crosswind: WindCategoryStats,
+    val avgWindSpeed: Double?, // m/s, absolute wind speed over all samples
+    val maxWindSpeed: Double?, // m/s, absolute wind speed over all samples
+)
+
+internal class CategoryAccumulator {
+    private var samples = 0
+    private var windSpeedSum = 0.0
+    private var windSpeedMax = 0.0
+    private var rideSpeedSamples = 0
+    private var rideSpeedSum = 0.0
+    private var rideSpeedMax = 0.0
+
+    fun add(windSpeed: Double, rideSpeed: Double?) {
+        samples++
+        windSpeedSum += windSpeed
+        windSpeedMax = max(windSpeedMax, windSpeed)
+
+        if (rideSpeed != null) {
+            rideSpeedSamples++
+            rideSpeedSum += rideSpeed
+            rideSpeedMax = max(rideSpeedMax, rideSpeed)
+        }
+    }
+
+    fun clear() {
+        samples = 0
+        windSpeedSum = 0.0
+        windSpeedMax = 0.0
+        rideSpeedSamples = 0
+        rideSpeedSum = 0.0
+        rideSpeedMax = 0.0
+    }
+
+    fun toStats(totalSamples: Int): WindCategoryStats {
+        return WindCategoryStats(
+            timePercent = if (totalSamples > 0) samples * 100.0 / totalSamples else 0.0,
+            avgRideSpeed = if (rideSpeedSamples > 0) rideSpeedSum / rideSpeedSamples else null,
+            maxRideSpeed = if (rideSpeedSamples > 0) rideSpeedMax else null,
+            avgWindSpeed = if (samples > 0) windSpeedSum / samples else null,
+            maxWindSpeed = if (samples > 0) windSpeedMax else null,
+        )
+    }
+}
 
 class WindAggregator(val context: Context) {
     companion object {
@@ -47,16 +108,29 @@ class WindAggregator(val context: Context) {
         fun toBucket(speed: Double): Int {
             return (speed.coerceIn(-MAX_WIND_SPEED, MAX_WIND_SPEED) / BUCKET_SIZE).toInt()
         }
+        
+        fun toBucketSpeed(speed: Double): Double = toBucket(speed) * BUCKET_SIZE
     }
 
     private val headwindSpeedBuckets = mutableMapOf<Int, Int>() // wind speed bucket to count of samples
     private val crosswindSpeedBuckets = mutableMapOf<Int, Int>() // wind speed bucket to count of samples
     private val headwindGustBuckets = mutableMapOf<Int, Int>() // gust speed bucket to count of samples
     private val crosswindGustBuckets = mutableMapOf<Int, Int>() // gust speed bucket to count of samples
+    private val headwindAccumulator = CategoryAccumulator()
+    private val tailwindAccumulator = CategoryAccumulator()
+    private val crosswindAccumulator = CategoryAccumulator()
+    private val allWindAccumulator = CategoryAccumulator()
     private var totalSamples = 0
     private val lock = Any()
 
-    fun addSample(headwindSpeed: Double, crosswindSpeed: Double, headwindGustSpeed: Double, crosswindGustSpeed: Double) {
+    fun addSample(
+        headwindSpeed: Double,
+        crosswindSpeed: Double,
+        headwindGustSpeed: Double,
+        crosswindGustSpeed: Double,
+        windSpeed: Double,
+        rideSpeed: Double?,
+    ) {
         synchronized(lock) {
             headwindSpeedBuckets.merge(toBucket(headwindSpeed), 1, Int::plus)
             crosswindSpeedBuckets.merge(toBucket(crosswindSpeed), 1, Int::plus)
@@ -64,6 +138,18 @@ class WindAggregator(val context: Context) {
             crosswindGustBuckets.merge(toBucket(crosswindGustSpeed), 1, Int::plus)
 
             totalSamples++
+
+            val headwindBucketSpeed = toBucketSpeed(headwindSpeed)
+            val crosswindBucketSpeed = toBucketSpeed(crosswindSpeed)
+            if (headwindBucketSpeed >= HEADWIND_THRESHOLD) {
+                headwindAccumulator.add(headwindSpeed, rideSpeed)
+            } else if (headwindBucketSpeed <= -HEADWIND_THRESHOLD) {
+                tailwindAccumulator.add(-headwindSpeed, rideSpeed)
+            }
+            if (abs(crosswindBucketSpeed) >= CROSSWIND_THRESHOLD) {
+                crosswindAccumulator.add(abs(crosswindSpeed), rideSpeed)
+            }
+            allWindAccumulator.add(abs(windSpeed), null)
         }
     }
 
@@ -73,7 +159,24 @@ class WindAggregator(val context: Context) {
             crosswindSpeedBuckets.clear()
             headwindGustBuckets.clear()
             crosswindGustBuckets.clear()
+            headwindAccumulator.clear()
+            tailwindAccumulator.clear()
+            crosswindAccumulator.clear()
+            allWindAccumulator.clear()
             totalSamples = 0
+        }
+    }
+
+    fun getSessionStats(): WindSessionStats {
+        synchronized(lock) {
+            val allWind = allWindAccumulator.toStats(totalSamples)
+            return WindSessionStats(
+                headwind = headwindAccumulator.toStats(totalSamples),
+                tailwind = tailwindAccumulator.toStats(totalSamples),
+                crosswind = crosswindAccumulator.toStats(totalSamples),
+                avgWindSpeed = allWind.avgWindSpeed,
+                maxWindSpeed = allWind.maxWindSpeed,
+            )
         }
     }
 
@@ -97,17 +200,16 @@ class WindAggregator(val context: Context) {
         }
     }
 
-    fun getRideTimeInCrosswind(): Duration {
-        synchronized(lock) {
-            val crosswindSamples = crosswindSpeedBuckets.filter { (bucket, _) -> bucket * BUCKET_SIZE >= CROSSWIND_THRESHOLD }
-                .values.sum()
-            return Duration.ofMillis(crosswindSamples * SAMPLE_INTERVAL_MS)
-        }
-    }
-
     fun start(karooSystemService: KarooSystemService): Job {
         return CoroutineScope(Dispatchers.IO).launch {
             val latestInput = MutableStateFlow<Pair<HeadingResponse, WeatherData?>?>(null)
+            val latestRideSpeed = MutableStateFlow<Double?>(null)
+
+            launch {
+                karooSystemService.streamDataFlow(DataType.Type.SPEED).collect { state ->
+                    latestRideSpeed.value = (state as? StreamState.Streaming)?.dataPoint?.singleValue
+                }
+            }
 
             launch {
                 var previousRideState: RideState? = null
@@ -142,7 +244,9 @@ class WindAggregator(val context: Context) {
                     headwindSpeed = headwind * weather.windSpeed,
                     crosswindSpeed = crosswind * weather.windSpeed,
                     headwindGustSpeed = headwind * weather.windGusts,
-                    crosswindGustSpeed = crosswind * weather.windGusts
+                    crosswindGustSpeed = crosswind * weather.windGusts,
+                    windSpeed = weather.windSpeed,
+                    rideSpeed = latestRideSpeed.value,
                 )
             }
         }

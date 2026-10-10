@@ -290,7 +290,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
     }
 
     override fun startFit(emitter: Emitter<FitEffect>) {
-        val fitWriteJob = HeadwindFitFileWriter(karooSystem, applicationContext).start(emitter)
+        val fitWriteJob = HeadwindFitFileWriter(karooSystem, applicationContext, windAggregator).start(emitter)
 
         emitter.setCancellable {
             fitWriteJob.cancel()

@@ -48,12 +48,9 @@ If you are connected to WiFi, you can open an embedded [windy.com](https://www.w
 
 ## Fit File
 
-The extension writes the following data fields to your FIT files, at most once per second:
-- `wind_speed` (cm/s): Absolute wind speed
-- `wind_direction` (degrees): Absolute wind direction
-- `wind_gust` (cm/s): Absolute wind gust speed
-- `headwind_speed` (cm/s): Headwind speed
-- `headwind_direction` (degrees): Headwind direction
+The extension writes the following data fields to your FIT files:
+- Record fields, at most once per second: `wind_speed` (cm/s), `wind_direction` (degrees), `wind_gust` (cm/s), `headwind_speed` (cm/s), `headwind_direction` (degrees)
+- Session fields, every 60 seconds: for each of `headwind`, `tailwind` and `crosswind`: `<category>_time_percent` (%), `<category>_avg_ride_speed`, `<category>_max_ride_speed`, `<category>_avg_wind_speed`, `<category>_max_wind_speed` (cm/s); plus `wind_avg_speed` and `wind_max_speed` (cm/s)
 
 ## Credits
 
