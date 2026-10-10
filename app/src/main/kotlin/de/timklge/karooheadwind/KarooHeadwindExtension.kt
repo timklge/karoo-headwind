@@ -281,6 +281,12 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
 
         updateCheckJob = CoroutineScope(Dispatchers.IO).launch {
             try {
+                val settings = streamSettings(karooSystem).first()
+                if (!settings.enableUpdateNotifications) {
+                    Log.d(TAG, "Update notifications disabled, skipping update check")
+                    return@launch
+                }
+
                 val update = Updater.checkForUpdate(this@KarooHeadwindExtension, karooSystem)
                 if (update != null) {
                     karooSystem.dispatch(SystemNotification(

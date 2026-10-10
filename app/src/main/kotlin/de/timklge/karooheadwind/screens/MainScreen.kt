@@ -74,6 +74,7 @@ fun MainScreen(close: () -> Unit) {
 
     var welcomeDialogVisible by remember { mutableStateOf(false) }
     var updateInfo by remember { mutableStateOf<Updater.UpdateInfo?>(null) }
+    var updateNotificationsEnabled by remember { mutableStateOf<Boolean?>(null) }
     var tabIndex by remember { mutableIntStateOf(0) }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -115,6 +116,8 @@ fun MainScreen(close: () -> Unit) {
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
             welcomeDialogVisible = !settings.welcomeDialogAccepted
+            updateNotificationsEnabled = settings.enableUpdateNotifications
+            if (!settings.enableUpdateNotifications) updateInfo = null
         }
     }
 
@@ -124,8 +127,8 @@ fun MainScreen(close: () -> Unit) {
         }
     }
 
-    LaunchedEffect(karooConnected) {
-        if (karooConnected && updateInfo == null && !updateNotificationShown) {
+    LaunchedEffect(karooConnected, updateNotificationsEnabled) {
+        if (karooConnected && updateNotificationsEnabled == true && updateInfo == null && !updateNotificationShown) {
             try {
                 val updateInfoResult = Updater.checkForUpdate(ctx, karooSystem)
 

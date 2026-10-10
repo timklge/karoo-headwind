@@ -108,6 +108,7 @@ data class HeadwindSettings(
     val openWeatherMapApiKey: String = "",
     val refreshRate: RefreshRate = RefreshRate.STANDARD,
     val windUnit: WindUnit? = null,
+    val enableUpdateNotifications: Boolean = true,
 ){
 
     companion object {

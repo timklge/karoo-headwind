@@ -93,6 +93,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var selectedWeatherProvider by remember { mutableStateOf(WeatherDataProvider.OPEN_METEO) }
     var openWeatherMapApiKey by remember { mutableStateOf("") }
     var isK2 by remember { mutableStateOf(false) }
+    var enableUpdateNotifications by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -104,6 +105,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             openWeatherMapApiKey = settings.openWeatherMapApiKey
             refreshRateSetting = settings.refreshRate
             selectedWindUnit = settings.windUnit
+            enableUpdateNotifications = settings.enableUpdateNotifications
         }
     }
 
@@ -133,6 +135,7 @@ fun SettingsScreen(onFinish: () -> Unit) {
             openWeatherMapApiKey = openWeatherMapApiKey,
             refreshRate = refreshRateSetting,
             windUnit = selectedWindUnit,
+            enableUpdateNotifications = enableUpdateNotifications,
         )
 
         saveSettings(ctx, newSettings)
@@ -297,6 +300,17 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 }
             }
         )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = enableUpdateNotifications, onCheckedChange = {
+                enableUpdateNotifications = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
+            Spacer(modifier = Modifier.width(10.dp))
+            Text("Enable Update Notifications")
+        }
 
         Spacer(modifier = Modifier.padding(30.dp))
 
