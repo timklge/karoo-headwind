@@ -55,6 +55,12 @@ dependencyResolutionManagement {
         maven {
             url = uri("https://api.mapbox.com/downloads/v2/releases/maven")
         }
+
+        // karoo-ext-testing, test-only
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("com.github.nikosavola.karoo-ext-testing") }
+        }
     }
 }
 

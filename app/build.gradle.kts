@@ -24,6 +24,7 @@ plugins {
 }
 
 android {
+    testOptions { unitTests { isIncludeAndroidResources = true } }
     namespace = "de.timklge.karooheadwind"
     compileSdk = 37
 
@@ -122,4 +123,8 @@ dependencies {
     implementation(libs.androidx.glance.preview)
     testImplementation(kotlin("test"))
     testImplementation(libs.junit)
+    testImplementation(libs.karoo.ext.testing)
+    testImplementation(libs.karoo.ext.testing.robolectric)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

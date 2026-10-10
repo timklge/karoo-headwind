@@ -12,6 +12,9 @@ glance = "1.2.0"
 kotlinxSerializationJson = "1.11.0"
 mapboxSdkTurf = "7.3.1"
 junit = "4.13.2"
+robolectric = "4.17"
+androidxTestCore = "1.7.0"
+karooExtTesting = "0.1.0"
 kotlinxCoroutines = "1.10.2"
 
 [plugins]
@@ -42,6 +45,10 @@ androidx-glance-preview = { group = "androidx.glance", name = "glance-preview", 
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 mapbox-sdk-turf = { module = "com.mapbox.mapboxsdk:mapbox-sdk-turf", version.ref = "mapboxSdkTurf" }
 junit = { module = "junit:junit", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTestCore" }
+karoo-ext-testing = { module = "com.github.nikosavola.karoo-ext-testing:karoo-ext-testing", version.ref = "karooExtTesting" }
+karoo-ext-testing-robolectric = { module = "com.github.nikosavola.karoo-ext-testing:karoo-ext-testing-robolectric", version.ref = "karooExtTesting" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 
 [bundles]
