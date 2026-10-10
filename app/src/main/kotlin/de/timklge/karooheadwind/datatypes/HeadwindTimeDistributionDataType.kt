@@ -44,14 +44,14 @@ class HeadwindTimeDistributionDataType(
 ) : DataTypeImpl("karoo-headwind", "headwindTimeDistribution") {
 
     private fun previewDistributions(): Pair<Map<Int, Int>, Map<Int, Int>> {
-        val speedMean = Random.nextInt(-20, 20)
+        val speedMean = Random.nextInt(-WindAggregator.MAX_WIND_SPEED.toInt(), WindAggregator.MAX_WIND_SPEED.toInt())
         val gustMean = speedMean + Random.nextInt(0, 15)
         val speedSigma = Random.nextDouble(5.0, 9.0)
         val gustSigma = speedSigma * Random.nextDouble(1.1, 1.4)
-        val speedAmplitude = Random.nextDouble(60.0, 120.0)
+        val speedAmplitude = Random.nextDouble(5.0, 30.0)
         val gustAmplitude = speedAmplitude * Random.nextDouble(1.1, 2.0)
 
-        fun bell(mean: Int, sigma: Double, amplitude: Double): Map<Int, Int> = (-60..60).mapNotNull { bucket ->
+        fun bell(mean: Int, sigma: Double, amplitude: Double): Map<Int, Int> = (-WindAggregator.MAX_WIND_SPEED.toInt()..WindAggregator.MAX_WIND_SPEED.toInt()).mapNotNull { bucket ->
             val z = (bucket - mean) / sigma
             val base = amplitude * exp(-0.5 * z * z)
             val count = (base * Random.nextDouble(0.85, 1.15)).roundToInt()
@@ -154,7 +154,8 @@ class HeadwindTimeDistributionDataType(
                         config.gridSize.first,
                         config.gridSize.second,
                         lines,
-                        leftYLabelProvider = { minutes -> if (minutes < 10f) "%.1f".format(minutes) else minutes.roundToInt().toString() }
+                        leftYLabelProvider = { minutes -> if (minutes < 10f) "%.1f".format(minutes) else minutes.roundToInt().toString() },
+                        histogram = true
                     ) { x -> x.roundToInt().toString() }
 
                     val result = glance.compose(context, DpSize.Unspecified) {

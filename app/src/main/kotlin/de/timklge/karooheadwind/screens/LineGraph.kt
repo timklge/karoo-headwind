@@ -59,6 +59,7 @@ class LineGraphBuilder(val context: Context) {
         gridHeight: Int,
         lines: Set<Line>,
         leftYLabelProvider: ((Float) -> String) = { it.roundToInt().toString() },
+        histogram: Boolean = false, // Draw each data point as a distinct bar (bin) instead of a line/area
         labelProvider: ((Float) -> String)
     ): Bitmap {
         val bitmap = createBitmap(width, height)
@@ -169,7 +170,21 @@ class LineGraphBuilder(val context: Context) {
         var effectiveMinYRight = dataMinYRight
         var effectiveMaxYRight = dataMaxYRight
 
-        if (dataMinX == dataMaxX) {
+        // Width of one histogram bin: smallest distance between distinct x values across all lines
+        val histogramBinWidth = if (histogram) {
+            lines.flatMap { line -> line.dataPoints.map { it.x } }.distinct().sorted()
+                .zipWithNext { a, b -> b - a }
+                .filter { it > 0f }
+                .minOrNull() ?: 1f
+        } else {
+            0f
+        }
+
+        if (histogram) {
+            // Pad by half a bin so the outermost bars are fully visible
+            effectiveMinX -= histogramBinWidth / 2f
+            effectiveMaxX += histogramBinWidth / 2f
+        } else if (dataMinX == dataMaxX) {
             effectiveMinX -= 1f
             effectiveMaxX += 1f
         } else {
@@ -319,6 +334,38 @@ class LineGraphBuilder(val context: Context) {
 
             // Draw area between line and X axis, colorized per segment (match line colorization)
             val zeroY = mapY((if (line.yAxis == YAxis.LEFT) effectiveMinYLeft else effectiveMinYRight).coerceAtLeast(0f))
+
+            if (histogram) {
+                // Each data point is one bin: a bar centred on its x value, spanning one bin width
+                val halfBin = histogramBinWidth / 2f
+                val barGap = 2f // Pixel gap between neighbouring bars so bins stay distinct
+                for (point in line.dataPoints) {
+                    if (point.y <= 0f) continue
+
+                    val left = mapX(point.x - halfBin) + barGap
+                    val right = maxOf(mapX(point.x + halfBin) - barGap, left + 1f)
+                    val top = mapY(point.y)
+                    val color = line.colorFunc?.invoke(point.y) ?: line.color
+
+                    val barPaint = Paint().apply {
+                        style = Paint.Style.FILL
+                        isAntiAlias = true
+                        this.color = color
+                        alpha = line.alpha
+                    }
+                    canvas.drawRect(left, top, right, zeroY, barPaint)
+
+                    val outlinePaint = Paint().apply {
+                        style = Paint.Style.STROKE
+                        strokeWidth = 2f
+                        isAntiAlias = true
+                        this.color = color
+                    }
+                    canvas.drawRect(left, top, right, zeroY, outlinePaint)
+                }
+                continue
+            }
+
             for (i in 1 until line.dataPoints.size) {
                 val prev = line.dataPoints[i - 1]
                 val curr = line.dataPoints[i]

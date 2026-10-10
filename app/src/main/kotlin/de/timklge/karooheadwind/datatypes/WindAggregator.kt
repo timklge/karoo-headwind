@@ -38,8 +38,8 @@ import kotlin.math.sin
 
 class WindAggregator(val context: Context) {
     companion object {
-        const val BUCKET_SIZE = 0.2 // m/s per bucket
-        const val MAX_WIND_SPEED = 30.0 // m/s, bucket indices are limited to [-MAX_WIND_SPEED, MAX_WIND_SPEED]
+        const val BUCKET_SIZE = 1 / 3.0 // m/s per bucket
+        const val MAX_WIND_SPEED = 20.0 // m/s, bucket indices are limited to [-MAX_WIND_SPEED, MAX_WIND_SPEED]
         const val SAMPLE_INTERVAL_MS = 1_000L
         const val HEADWIND_THRESHOLD = 1.0 // m/s, only count samples with headwind speed >= this threshold
         const val CROSSWIND_THRESHOLD = 1.0 // m/s, only count samples with crosswind speed >= this threshold
