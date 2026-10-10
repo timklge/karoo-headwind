@@ -46,6 +46,12 @@ If the app cannot connect to the weather service, it will retry the download eve
 
 If you are connected to WiFi, you can open an embedded [windy.com](https://www.windy.com) map to see a detailed wind forecast for your area. You can zoom and pan the map as desired.
 
+## Fit File
+
+The extension writes the following data fields to your FIT files:
+- Record fields, at most once per second: `wind_speed` (cm/s), `wind_direction` (degrees), `wind_gust` (cm/s), `headwind_speed` (cm/s), `headwind_direction` (degrees)
+- Session fields, every 60 seconds: for each of `headwind`, `tailwind` and `crosswind`: `<category>_time_percent` (%), `<category>_avg_ride_speed`, `<category>_max_ride_speed`, `<category>_avg_wind_speed`, `<category>_max_wind_speed` (cm/s); plus `wind_avg_speed` and `wind_max_speed` (cm/s)
+
 ## Credits
 
 - Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt)) and the [Google Noto Color Emoji font](https://fonts.google.com/noto/specimen/Noto+Color+Emoji) (SIL Open Font License 1.1)
