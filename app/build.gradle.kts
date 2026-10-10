@@ -71,7 +71,7 @@ tasks.register("generateManifest") {
     group = "build"
 
     doLast {
-        val baseUrl = System.getenv("BASE_URL") ?: "https://github.com/timklge/karoo-headwind/releases/latest/download"
+        val baseUrl = "https://github.com/timklge/karoo-headwind/releases/latest/download"
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
             "label" to "Headwind",
@@ -95,14 +95,6 @@ tasks.register("generateManifest") {
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
         manifestFile.writeText(gson)
         println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
-
-        if (System.getenv()["BASE_URL"] != null){
-            val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
-            var androidManifestContent = androidManifestFile.readText()
-            androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
-            androidManifestFile.writeText(androidManifestContent)
-            println("Replaced \$BASE_URL$ in AndroidManifest.xml")
-        }
     }
 }
 
