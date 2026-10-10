@@ -83,6 +83,13 @@
         typeId="headwindTime" />
 
     <DataType
+        description="@string/headwind_time_distribution_description"
+        displayName="@string/headwind_time_distribution"
+        graphical="true"
+        icon="@drawable/wind"
+        typeId="headwindTimeDistribution" />
+
+    <DataType
         description="@string/relativeHumidity_description"
         displayName="@string/relativeHumidity"
         graphical="false"

@@ -11,6 +11,7 @@ import de.timklge.karooheadwind.datatypes.HeadwindDirectionDataType
 import de.timklge.karooheadwind.datatypes.HeadwindForecastDataType
 import de.timklge.karooheadwind.datatypes.HeadwindSpeedDataType
 import de.timklge.karooheadwind.datatypes.HeadwindTimeDataType
+import de.timklge.karooheadwind.datatypes.HeadwindTimeDistributionDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationDataType
 import de.timklge.karooheadwind.datatypes.PrecipitationForecastDataType
 import de.timklge.karooheadwind.datatypes.RelativeElevationGainDataType
@@ -24,6 +25,7 @@ import de.timklge.karooheadwind.datatypes.TemperatureDataType
 import de.timklge.karooheadwind.datatypes.TemperatureForecastDataType
 import de.timklge.karooheadwind.datatypes.UviDataType
 import de.timklge.karooheadwind.datatypes.WeatherForecastDataType
+import de.timklge.karooheadwind.datatypes.WindAggregator
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataType
 import de.timklge.karooheadwind.datatypes.WindDirectionAndSpeedDataTypeCircle
 import de.timklge.karooheadwind.datatypes.WindDirectionDataType
@@ -62,9 +64,11 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
     }
 
     private lateinit var karooSystem: KarooSystemService
+    private lateinit var windAggregator: WindAggregator
 
     private var updateLastKnownGpsJob: Job? = null
     private var serviceJob: Job? = null
+    private var windAggregationJob: Job? = null
 
     override val types by lazy {
         listOf(
@@ -73,7 +77,8 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             WindDirectionAndSpeedDataTypeCircle(karooSystem, applicationContext),
             WeatherForecastDataType(karooSystem),
             HeadwindSpeedDataType(karooSystem, applicationContext),
-            HeadwindTimeDataType(karooSystem, applicationContext),
+            HeadwindTimeDataType(karooSystem, applicationContext, windAggregator),
+            HeadwindTimeDistributionDataType(karooSystem, applicationContext, windAggregator),
             RelativeHumidityDataType(karooSystem, applicationContext),
             CloudCoverDataType(karooSystem, applicationContext),
             WindGustsDataType(karooSystem, applicationContext),
@@ -108,6 +113,9 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         updateLastKnownGpsJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.updateLastKnownGps(this@KarooHeadwindExtension)
         }
+
+        windAggregator = WindAggregator(this)
+        windAggregationJob = windAggregator.start(karooSystem)
 
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.connect { connected ->

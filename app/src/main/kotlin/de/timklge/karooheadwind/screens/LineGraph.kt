@@ -42,6 +42,7 @@ class LineGraphBuilder(val context: Context) {
         gridWidth: Int,
         gridHeight: Int,
         lines: Set<Line>,
+        leftYLabelProvider: ((Float) -> String) = { it.roundToInt().toString() },
         labelProvider: ((Float) -> String)
     ): Bitmap {
         val bitmap = createBitmap(width, height)
@@ -420,7 +421,7 @@ class LineGraphBuilder(val context: Context) {
                         // Draw faint horizontal grid line
                         canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                         canvas.drawText(
-                            value.roundToInt().toString(),
+                            leftYLabelProvider(value),
                             graphLeft - 15f,
                             yPos + (textPaint.textSize / 3),
                             textPaint
@@ -433,7 +434,7 @@ class LineGraphBuilder(val context: Context) {
                 // Draw faint horizontal grid line
                 canvas.drawLine(graphLeft, yPos, graphRight, yPos, gridLinePaint)
                 canvas.drawText(
-                    dataMinYLeft.roundToInt().toString(),
+                    leftYLabelProvider(dataMinYLeft),
                     graphLeft - 15f,
                     yPos + (textPaint.textSize / 3),
                     textPaint
