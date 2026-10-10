@@ -1,21 +1,36 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import com.android.build.gradle.tasks.ProcessApplicationManifest
 import java.util.Base64
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
-    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("plugin.serialization") version "2.4.20"
 }
 
 android {
     namespace = "de.timklge.karooheadwind"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "de.timklge.karooheadwind"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
         versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
     }
@@ -40,19 +55,14 @@ android {
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
     }
     buildFeatures {
         compose = true
         buildConfig = true
+        aidl = true
     }
 }
 
@@ -61,7 +71,7 @@ tasks.register("generateManifest") {
     group = "build"
 
     doLast {
-        val baseUrl = System.getenv("BASE_URL") ?: "https://github.com/timklge/karoo-headwind/releases/latest/download"
+        val baseUrl = "https://github.com/timklge/karoo-headwind/releases/latest/download"
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
             "label" to "Headwind",
@@ -85,14 +95,6 @@ tasks.register("generateManifest") {
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
         manifestFile.writeText(gson)
         println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
-
-        if (System.getenv()["BASE_URL"] != null){
-            val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
-            var androidManifestContent = androidManifestFile.readText()
-            androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
-            androidManifestFile.writeText(androidManifestContent)
-            println("Replaced \$BASE_URL$ in AndroidManifest.xml")
-        }
     }
 }
 
@@ -119,4 +121,5 @@ dependencies {
     implementation(libs.androidx.glance.appwidget.preview)
     implementation(libs.androidx.glance.preview)
     testImplementation(kotlin("test"))
+    testImplementation(libs.junit)
 }

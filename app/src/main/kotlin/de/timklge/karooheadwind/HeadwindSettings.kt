@@ -1,8 +1,22 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind
 
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
-import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -11,6 +25,10 @@ enum class WindUnit(val id: String, val label: String, val unitDisplay: String){
     METERS_PER_SECOND("ms", "Meters (m/s)", "m/s"),
     MILES_PER_HOUR("mph", "Miles (mph)", "mph"),
     KNOTS("kn", "Knots (kn)", "kn")
+}
+
+fun defaultWindUnit(isImperial: Boolean): WindUnit {
+    return if (isImperial) WindUnit.MILES_PER_HOUR else WindUnit.KILOMETERS_PER_HOUR
 }
 
 enum class PrecipitationUnit(val id: String, val label: String, val unitDisplay: String){
@@ -44,6 +62,7 @@ data class HeadwindStats(
     val lastSuccessfulWeatherRequest: Long? = null,
     val lastSuccessfulWeatherPosition: GpsCoordinates? = null,
     val failedWeatherRequest: Long? = null,
+    val lastWeatherError: String? = null,
     val lastSuccessfulWeatherProvider: WeatherDataProvider? = null
 ){
     companion object {
@@ -88,6 +107,8 @@ data class HeadwindSettings(
     val weatherProvider: WeatherDataProvider = WeatherDataProvider.OPEN_METEO,
     val openWeatherMapApiKey: String = "",
     val refreshRate: RefreshRate = RefreshRate.STANDARD,
+    val windUnit: WindUnit? = null,
+    val enableUpdateNotifications: Boolean = true,
 ){
 
     companion object {
@@ -97,10 +118,9 @@ data class HeadwindSettings(
     fun getForecastMetersPerHour(isImperial: Boolean): Int {
         return if (isImperial) forecastedMilesPerHour * 1609 else forecastedKmPerHour * 1000
     }
+
+    fun getWindUnit(isImperial: Boolean): WindUnit {
+        return windUnit ?: defaultWindUnit(isImperial)
+    }
 }
 
-@Serializable
-enum class WeatherDataProvider(val id: String, val label: String) {
-    OPEN_METEO("open-meteo", "OpenMeteo"),
-    OPEN_WEATHER_MAP("open-weather-map", "OpenWeatherMap")
-}

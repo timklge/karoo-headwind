@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
@@ -14,9 +30,7 @@ import de.timklge.karooheadwind.streamCurrentWeatherData
 import de.timklge.karooheadwind.streamDataFlow
 import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.util.msInUserUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter
@@ -25,7 +39,6 @@ import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
-import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,14 +78,16 @@ class HeadwindDirectionDataType(
                 )
             }.collect { streamData ->
                 val value = (streamData.headingResponse as? HeadingResponse.Value)?.diff
+                val errorCode = getErrorCode(streamData.headingResponse, streamData.settings)
 
-                var returnValue = 0.0
-                if (value != null && streamData.absoluteWindDirection != null && streamData.windSpeed != null) {
+                val returnValue = if (errorCode == null && value != null && streamData.absoluteWindDirection != null && streamData.windSpeed != null) {
                     var windDirection = value
 
                     if (windDirection < 0) windDirection += 360
 
-                    returnValue = windDirection
+                    windDirection
+                } else {
+                    (errorCode ?: ERROR_NO_WEATHER_DATA).toDouble()
                 }
 
                 emitter.onNext(StreamState.Streaming(DataPoint(dataTypeId, mapOf(DataType.Field.SINGLE to returnValue))))
@@ -87,7 +102,6 @@ class HeadwindDirectionDataType(
         val bearing: Double,
         val speed: Double?,
         val isVisible: Boolean,
-        val isImperial: Boolean
     )
 
     private fun previewFlow(): Flow<DirectionAndSpeed> {
@@ -100,7 +114,6 @@ class HeadwindDirectionDataType(
                     bearing,
                     windSpeed.toDouble(),
                     true,
-                    true
                 ))
 
                 delay(2_000)
@@ -131,8 +144,8 @@ class HeadwindDirectionDataType(
                 emitAll(karooSystem.streamDataFlow(DataType.dataTypeId("karoo-headwind", "headwindSpeed")).map { (it as? StreamState.Streaming)?.dataPoint?.singleValue ?: 0.0 })
             }
 
-            combine(directionFlow.filterNotNull(), speedFlow, karooSystem.streamDatatypeIsVisible(dataTypeId), karooSystem.streamUserProfile()) { direction, speed, isVisible, profile ->
-                DirectionAndSpeed(direction, speed, isVisible, profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
+            combine(directionFlow.filterNotNull(), speedFlow, karooSystem.streamDatatypeIsVisible(dataTypeId)) { direction, speed, isVisible ->
+                DirectionAndSpeed(direction, speed, isVisible)
             }
         }
 
@@ -150,14 +163,13 @@ class HeadwindDirectionDataType(
 
                 val windDirection = streamData.bearing
                 val windSpeed = streamData.speed ?: 0.0
-                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
 
                 val result = glance.compose(context, DpSize.Unspecified) {
                     HeadwindDirection(
                         baseBitmap,
                         windDirection.roundToInt(),
                         config.textSize,
-                        windSpeedUserUnit.roundToInt().toString(),
+                        windSpeed.roundToInt().toString(),
                         preview = config.preview,
                         wideMode = false
                     )
@@ -177,5 +189,16 @@ class HeadwindDirectionDataType(
         const val ERROR_NO_GPS = -1
         const val ERROR_NO_WEATHER_DATA = -2
         const val ERROR_APP_NOT_SET_UP = -3
+
+        /**
+         * Maps a heading state to the error code documented in the README, or null if the
+         * headwind direction is available.
+         */
+        fun getErrorCode(headingResponse: HeadingResponse, settings: HeadwindSettings): Int? = when {
+            !settings.welcomeDialogAccepted -> ERROR_APP_NOT_SET_UP
+            headingResponse is HeadingResponse.NoGps -> ERROR_NO_GPS
+            headingResponse is HeadingResponse.NoWeatherData -> ERROR_NO_WEATHER_DATA
+            else -> null
+        }
     }
 }

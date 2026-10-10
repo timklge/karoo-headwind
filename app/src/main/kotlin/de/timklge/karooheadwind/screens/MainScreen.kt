@@ -1,9 +1,25 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.screens
 
-import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import android.util.Log
-import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,7 +33,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -37,25 +52,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.HeadwindSettings
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
-import de.timklge.karooheadwind.getGpsCoordinateFlow
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
-import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.util.Updater
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
-import io.hammerhead.karooext.models.UserProfile
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+private var updateNotificationShown = false
+
 @Composable
 fun MainScreen(close: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
@@ -64,6 +73,8 @@ fun MainScreen(close: () -> Unit) {
     val karooSystem = remember { KarooSystemService(ctx) }
 
     var welcomeDialogVisible by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<Updater.UpdateInfo?>(null) }
+    var updateNotificationsEnabled by remember { mutableStateOf<Boolean?>(null) }
     var tabIndex by remember { mutableIntStateOf(0) }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -105,12 +116,29 @@ fun MainScreen(close: () -> Unit) {
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
             welcomeDialogVisible = !settings.welcomeDialogAccepted
+            updateNotificationsEnabled = settings.enableUpdateNotifications
+            if (!settings.enableUpdateNotifications) updateInfo = null
         }
     }
 
     LaunchedEffect(Unit) {
         karooSystem.connect { connected ->
             karooConnected = connected
+        }
+    }
+
+    LaunchedEffect(karooConnected, updateNotificationsEnabled) {
+        if (karooConnected && updateNotificationsEnabled == true && updateInfo == null && !updateNotificationShown) {
+            try {
+                val updateInfoResult = Updater.checkForUpdate(ctx, karooSystem)
+
+                if (updateInfoResult != null) {
+                    updateNotificationShown = true
+                    updateInfo = updateInfoResult
+                }
+            } catch (e: Exception) {
+                Log.w(KarooHeadwindExtension.TAG, "Update check failed", e)
+            }
         }
     }
 
@@ -168,6 +196,42 @@ fun MainScreen(close: () -> Unit) {
             )
         }
 
+        if (!welcomeDialogVisible) {
+            updateInfo?.let { update ->
+                AlertDialog(
+                    onDismissRequest = { updateInfo = null },
+                    confirmButton = {
+                        Button(onClick = {
+                            updateInfo = null
+                            openAppInfoInSettings(ctx)
+                        }) { Text("Update") }
+                    },
+                    dismissButton = {
+                        Button(onClick = { updateInfo = null }) { Text("Later") }
+                    },
+                    text = {
+                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text("A new version of karoo-headwind is available.")
+
+                            Spacer(Modifier.padding(10.dp))
+
+                            Text("Version ${update.latestVersion} (you are running ${update.currentVersion}).")
+
+                            if (update.releaseNotes != null) {
+                                Spacer(Modifier.padding(10.dp))
+
+                                Text("Release notes:")
+
+                                Spacer(Modifier.padding(4.dp))
+
+                                Text(update.releaseNotes)
+                            }
+                        }
+                    }
+                )
+            }
+        }
+
         // Do not show back button on the Windy tab
         if (tabIndex != 2) {
             Image(
@@ -182,5 +246,21 @@ fun MainScreen(close: () -> Unit) {
                     }
             )
         }
+    }
+}
+
+private const val SETTINGS_APP_PACKAGE = "io.hammerhead.settingsapp"
+private const val APP_INFO_ACTION = "io.hammerhead.action.APP_INFO"
+
+private fun openAppInfoInSettings(context: Context) {
+    val intent = Intent(APP_INFO_ACTION).apply {
+        setPackage(SETTINGS_APP_PACKAGE)
+        Updater.getManifestUrl(context)?.let { putExtra("manifestUrl", it) }
+    }
+
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Log.w(KarooHeadwindExtension.TAG, "Could not open the settings app", e)
     }
 }

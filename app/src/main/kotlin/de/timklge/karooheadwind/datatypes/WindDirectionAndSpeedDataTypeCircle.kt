@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
@@ -16,16 +32,10 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.util.msInUserUnit
-import de.timklge.karooheadwind.weatherprovider.WeatherData
+import de.timklge.karooheadwind.util.msInWindUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
-import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.internal.ViewEmitter
-import io.hammerhead.karooext.models.DataPoint
-import io.hammerhead.karooext.models.DataType
-import io.hammerhead.karooext.models.HardwareType
-import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UpdateGraphicConfig
 import io.hammerhead.karooext.models.UserProfile
 import io.hammerhead.karooext.models.ViewConfig
@@ -35,12 +45,10 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import kotlin.math.cos
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalGlanceRemoteViewsApi::class)
@@ -120,7 +128,7 @@ class WindDirectionAndSpeedDataTypeCircle(
                 }
 
                 val windSpeed = streamData.windSpeed
-                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
+                val windSpeedUserUnit = msInWindUnit(windSpeed, streamData.settings.getWindUnit(streamData.isImperial))
 
                 val result = glance.compose(context, DpSize.Unspecified) {
                     HeadwindDirection(

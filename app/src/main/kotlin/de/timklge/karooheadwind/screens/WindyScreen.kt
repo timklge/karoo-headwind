@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.screens
 
 import android.annotation.SuppressLint
@@ -21,6 +37,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.getGpsCoordinateFlow
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HardwareType
@@ -100,6 +117,7 @@ fun WindyScreen(onFinish: () -> Unit) {
     var showWarnings by remember { mutableStateOf(false) }
     val profileFlow = remember { karooSystem.streamUserProfile() }
     val profile by profileFlow.collectAsStateWithLifecycle(null)
+    val headwindSettings by ctx.streamSettings(karooSystem).collectAsStateWithLifecycle(de.timklge.karooheadwind.HeadwindSettings())
     val isImperialTemperature = profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL
     val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
 
@@ -143,7 +161,7 @@ fun WindyScreen(onFinish: () -> Unit) {
     }
 
     val unitTemp = if (isImperialTemperature) "°F" else "°C"
-    val unitWind = if (isImperialDistance) "mph" else "km/h"
+    val unitWind = headwindSettings.getWindUnit(isImperialDistance).unitDisplay
     val unitRain = if (isImperialDistance) "in" else "mm"
 
     // Build Windy embed URL with current location

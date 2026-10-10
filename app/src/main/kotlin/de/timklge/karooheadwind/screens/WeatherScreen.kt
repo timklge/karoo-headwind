@@ -1,7 +1,24 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.screens
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -18,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -31,15 +50,15 @@ import de.timklge.karooheadwind.ServiceStatusSingleton
 import de.timklge.karooheadwind.TemperatureUnit
 import de.timklge.karooheadwind.datatypes.getShortDateFormatter
 import de.timklge.karooheadwind.getGpsCoordinateFlow
-import de.timklge.karooheadwind.streamCurrentForecastWeatherData
+import de.timklge.karooheadwind.streamForecastRecord
 import de.timklge.karooheadwind.streamCurrentWeatherData
-import de.timklge.karooheadwind.streamStats
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUpcomingRoute
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.util.celciusInUserUnit
 import de.timklge.karooheadwind.util.getTimeFormatter
 import de.timklge.karooheadwind.util.millimetersInUserUnit
-import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.util.msInWindUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherInterpretation
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
@@ -86,8 +105,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val profileFlow = remember { karooSystem.streamUserProfile() }
     val profile by profileFlow.collectAsStateWithLifecycle(null)
 
-    val statsFlow = remember { ctx.streamStats() }
-    val stats by statsFlow.collectAsStateWithLifecycle(HeadwindStats())
+    val forecastRecordFlow = remember { ctx.streamForecastRecord() }
+    val forecastRecord by forecastRecordFlow.collectAsStateWithLifecycle(null)
+    val stats = forecastRecord?.stats ?: HeadwindStats()
 
     val locationFlow = remember { karooSystem.getGpsCoordinateFlow(ctx) }
     val location by locationFlow.collectAsStateWithLifecycle(null)
@@ -95,8 +115,10 @@ fun WeatherScreen(onFinish: () -> Unit) {
     val currentWeatherDataFlow = remember { ctx.streamCurrentWeatherData(karooSystem) }
     val currentWeatherData by currentWeatherDataFlow.collectAsStateWithLifecycle(null)
 
-    val forecastDataFlow = remember { ctx.streamCurrentForecastWeatherData() }
-    val forecastData by forecastDataFlow.collectAsStateWithLifecycle(null)
+    val settingsFlow = remember { ctx.streamSettings(karooSystem) }
+    val settings by settingsFlow.collectAsStateWithLifecycle(null)
+
+    val forecastData = forecastRecord?.response
 
     val upcomingRouteFlow = remember { karooSystem.streamUpcomingRoute() }
     val upcomingRoute by upcomingRouteFlow.collectAsStateWithLifecycle(null)
@@ -121,38 +143,50 @@ fun WeatherScreen(onFinish: () -> Unit) {
         }
     }
 
+    val loadedSettings = settings
+    if (loadedSettings == null || profile == null) {
+        if (karooConnected == false) {
+            Text(
+                modifier = Modifier.padding(10.dp),
+                text = "Could not read device status. Is your Karoo updated?"
+            )
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        return
+    }
+
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
         .padding(5.dp)) {
-        if (karooConnected == false) {
-            Text(
-                modifier = Modifier.padding(5.dp),
-                text = "Could not read device status. Is your Karoo updated?"
-            )
-        }
 
         val requestedWeatherPosition = forecastData?.data?.firstOrNull()?.coords
 
         val formattedTime = currentWeatherData?.let { getTimeFormatter(ctx).format(Instant.ofEpochSecond(it.time).atZone(ZoneId.systemDefault()).toLocalTime()) }
         val formattedDate = currentWeatherData?.let { getShortDateFormatter().format(Instant.ofEpochSecond(it.time)) }
+        val isImperialDistance = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+        val windUnit = loadedSettings.getWindUnit(isImperialDistance)
 
         if (karooConnected == true && currentWeatherData != null) {
             WeatherWidget(
                 baseBitmap = baseBitmap,
                 current = WeatherInterpretation.fromWeatherCode(currentWeatherData?.weatherCode),
                 windBearing = currentWeatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = msInUserUnit(currentWeatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                windGusts = msInUserUnit(currentWeatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                precipitation = millimetersInUserUnit(currentWeatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                windSpeed = msInWindUnit(currentWeatherData?.windSpeed ?: 0.0, windUnit).roundToInt(),
+                windGusts = msInWindUnit(currentWeatherData?.windGusts ?: 0.0, windUnit).roundToInt(),
+                precipitation = millimetersInUserUnit(currentWeatherData?.precipitation ?: 0.0, isImperialDistance),
                 temperature = celciusInUserUnit(currentWeatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if(profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.METRIC) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedTime,
                 dateLabel = formattedDate,
                 distance = requestedWeatherPosition?.let { l -> location?.distanceTo(l)?.times(1000) },
                 includeDistanceLabel = false,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
-                isNight = currentWeatherData?.isNight == true
+                isImperial = isImperialDistance,
+                isNight = currentWeatherData?.isNight == true,
+                windUnit = windUnit,
             )
         }
 
@@ -254,9 +288,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 baseBitmap,
                 current = interpretation,
                 windBearing = weatherData?.windDirection?.roundToInt() ?: 0,
-                windSpeed = msInUserUnit(weatherData?.windSpeed ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                windGusts = msInUserUnit(weatherData?.windGusts ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
-                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL),
+                windSpeed = msInWindUnit(weatherData?.windSpeed ?: 0.0, windUnit).roundToInt(),
+                windGusts = msInWindUnit(weatherData?.windGusts ?: 0.0, windUnit).roundToInt(),
+                precipitation = millimetersInUserUnit(weatherData?.precipitation ?: 0.0, isImperialDistance),
                 temperature = celciusInUserUnit(weatherData?.temperature ?: 0.0, profile?.preferredUnit?.temperature == UserProfile.PreferredUnit.UnitType.IMPERIAL).roundToInt(),
                 temperatureUnit = if (profile?.preferredUnit?.temperature != UserProfile.PreferredUnit.UnitType.IMPERIAL) TemperatureUnit.CELSIUS else TemperatureUnit.FAHRENHEIT,
                 timeLabel = formattedForecastTime,
@@ -264,8 +298,9 @@ fun WeatherScreen(onFinish: () -> Unit) {
                 distance = distanceFromCurrent,
                 includeDistanceLabel = true,
                 precipitationProbability = weatherData?.precipitationProbability?.toInt() ?: 0,
-                isImperial = profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL,
+                isImperial = isImperialDistance,
                 isNight = weatherData?.isNight == true,
+                windUnit = windUnit,
             )
         }
 

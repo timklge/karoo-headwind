@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
@@ -17,6 +33,7 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.R
 import de.timklge.karooheadwind.UpcomingRoute
 import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.getHeadingFlow
 import de.timklge.karooheadwind.screens.LineGraphBuilder
 import de.timklge.karooheadwind.screens.isNightMode
@@ -77,6 +94,7 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
     abstract fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
+        windUnit: WindUnit,
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
@@ -274,7 +292,8 @@ abstract class LineGraphForecastDataType(private val karooSystem: KarooSystemSer
 
                     val pointData = getLineData(
                         data,
-                        settingsAndProfile.isImperialTemperature,
+                        settingsAndProfile.isImperial,
+                        settingsAndProfile.settings.getWindUnit(settingsAndProfile.isImperial),
                         upcomingRoute,
                         config.preview,
                         context

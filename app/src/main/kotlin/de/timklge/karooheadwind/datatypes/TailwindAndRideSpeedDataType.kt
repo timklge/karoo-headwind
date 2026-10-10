@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
@@ -22,7 +38,8 @@ import de.timklge.karooheadwind.streamDatatypeIsVisible
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
 import de.timklge.karooheadwind.throttle
-import de.timklge.karooheadwind.util.msInUserUnit
+import de.timklge.karooheadwind.util.msInUserSpeedUnit
+import de.timklge.karooheadwind.util.msInWindUnit
 import de.timklge.karooheadwind.weatherprovider.WeatherData
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -203,13 +220,14 @@ class TailwindAndRideSpeedDataType(
 
                 val windSpeed = streamData.windSpeed
                 val windDirection = streamData.headingResponse.diff
+                val windUnit = streamData.settings.getWindUnit(streamData.isImperial)
 
-                val rideSpeedInUserUnit = msInUserUnit(streamData.rideSpeed ?: 0.0, streamData.isImperial)
+                val rideSpeedInUserUnit = msInUserSpeedUnit(streamData.rideSpeed ?: 0.0, streamData.isImperial)
                 val text = String.format(Locale.current.platformLocale, "%.1f", rideSpeedInUserUnit)
 
                 val wideMode = config.gridSize.first == 60
 
-                val gustSpeedInUserUnit = msInUserUnit(streamData.gustSpeed ?: 0.0, streamData.isImperial)
+                val gustSpeedInUserUnit = msInWindUnit(streamData.gustSpeed ?: 0.0, windUnit)
 
                 val gustSpeedAddon = if (wideMode) {
                     "-${gustSpeedInUserUnit.roundToInt()}"
@@ -217,7 +235,7 @@ class TailwindAndRideSpeedDataType(
                     ""
                 }
 
-                val windSpeedUserUnit = msInUserUnit(windSpeed, streamData.isImperial)
+                val windSpeedUserUnit = msInWindUnit(windSpeed, windUnit)
 
                 val subtextWithSign = let {
                     val headwindSpeed = cos( (windDirection + 180) * Math.PI / 180.0) * windSpeed
@@ -227,7 +245,7 @@ class TailwindAndRideSpeedDataType(
                         if (headwindSpeed > 0) "-" else ""
                     }
 
-                    val headwindSpeedUserUnit = msInUserUnit(headwindSpeed, streamData.isImperial)
+                    val headwindSpeedUserUnit = msInWindUnit(headwindSpeed, windUnit)
 
                     val averageSpeedSign = if (streamData.rideSpeed != null) {
                         when {

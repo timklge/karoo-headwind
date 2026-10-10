@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind
 
 import android.content.Context
@@ -70,9 +86,10 @@ suspend fun saveStats(context: Context, stats: HeadwindStats) {
     }
 }
 
-suspend fun saveCurrentData(context: Context, response: WeatherDataResponse) {
+suspend fun saveForecastRecord(context: Context, response: WeatherDataResponse, stats: HeadwindStats) {
     context.dataStore.edit { t ->
         t[currentDataKey] = Json.encodeToString(response)
+        t[statsKey] = Json.encodeToString(stats)
     }
 }
 
@@ -157,16 +174,33 @@ fun KarooSystemService.streamUpcomingRoute(): Flow<UpcomingRoute?> {
     return navigationStateStream
 }
 
+private fun decodeStats(prefs: Preferences): HeadwindStats {
+    return try {
+        jsonWithUnknownKeys.decodeFromString<HeadwindStats>(
+            prefs[statsKey] ?: HeadwindStats.defaultStats
+        )
+    } catch(e: Throwable){
+        Log.e(KarooHeadwindExtension.TAG, "Failed to read stats", e)
+        jsonWithUnknownKeys.decodeFromString<HeadwindStats>(HeadwindStats.defaultStats)
+    }
+}
+
+private fun decodeCurrentForecast(prefs: Preferences): WeatherDataResponse? {
+    return try {
+        prefs[currentDataKey]?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
+    } catch (e: Throwable) {
+        Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
+        null
+    }
+}
+
 fun Context.streamStats(): Flow<HeadwindStats> {
-    return dataStore.data.map { statsJson ->
-        try {
-            jsonWithUnknownKeys.decodeFromString<HeadwindStats>(
-                statsJson[statsKey] ?: HeadwindStats.defaultStats
-            )
-        } catch(e: Throwable){
-            Log.e(KarooHeadwindExtension.TAG, "Failed to read stats", e)
-            jsonWithUnknownKeys.decodeFromString<HeadwindStats>(HeadwindStats.defaultStats)
-        }
+    return dataStore.data.map { prefs -> decodeStats(prefs) }.distinctUntilChanged()
+}
+
+fun Context.streamForecastRecord(): Flow<ForecastRecord> {
+    return dataStore.data.map { prefs ->
+        ForecastRecord(stats = decodeStats(prefs), response = decodeCurrentForecast(prefs))
     }.distinctUntilChanged()
 }
 
@@ -197,17 +231,10 @@ fun KarooSystemService.streamUserProfile(): Flow<UserProfile> {
     }
 }
 
-fun Context.streamCurrentForecastWeatherData(): Flow<WeatherDataResponse?> {
-    return dataStore.data.map { settingsJson ->
-        try {
-            val data = settingsJson[currentDataKey]
+data class ForecastRecord(val stats: HeadwindStats, val response: WeatherDataResponse?)
 
-            data?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
-        } catch (e: Throwable) {
-            Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
-            null
-        }
-    }.distinctUntilChanged()
+fun Context.streamCurrentForecastWeatherData(): Flow<WeatherDataResponse?> {
+    return dataStore.data.map { prefs -> decodeCurrentForecast(prefs) }.distinctUntilChanged()
 }
 
 fun lerp(
@@ -324,15 +351,7 @@ fun Context.streamCurrentWeatherData(karooSystemService: KarooSystemService): Fl
         emitAll(karooSystemService.getGpsCoordinateFlow(this@streamCurrentWeatherData))
     }
 
-    return dataStore.data.map { settingsJson ->
-        try {
-            val data = settingsJson[currentDataKey]
-            data?.let { d -> jsonWithUnknownKeys.decodeFromString<WeatherDataResponse>(d) }
-        } catch (e: Throwable) {
-            Log.e(KarooHeadwindExtension.TAG, "Failed to read weather data", e)
-            null
-        }
-    }.combine(locationFlow) {
+    return streamCurrentForecastWeatherData().combine(locationFlow) {
         weatherData, location -> weatherData to location
     }.distinctUntilChanged()
     .flatMapLatest { (weatherData, location) ->

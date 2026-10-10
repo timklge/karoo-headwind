@@ -1,21 +1,28 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.datatypes
 
 import android.content.Context
 import android.graphics.Color
-import android.util.Log
-import androidx.compose.ui.graphics.toArgb
-import com.mapbox.turf.TurfConstants
-import com.mapbox.turf.TurfMeasurement
-import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.UpcomingRoute
-import de.timklge.karooheadwind.lerpWeather
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.screens.LineGraphBuilder
-import de.timklge.karooheadwind.screens.isNightMode
-import de.timklge.karooheadwind.util.signedAngleDifference
+import de.timklge.karooheadwind.util.msInWindUnit
 import io.hammerhead.karooext.KarooSystemService
-import kotlin.math.ceil
-import kotlin.math.cos
-import kotlin.math.floor
 
 fun remap(value: Float, fromLow: Float, fromHigh: Float, toLow: Float, toHigh: Float): Float {
     if (fromHigh == fromLow) return toLow
@@ -26,24 +33,17 @@ class WindForecastDataType(karooSystem: KarooSystemService) : LineGraphForecastD
     override fun getLineData(
         lineData: List<LineData>,
         isImperial: Boolean,
+        windUnit: WindUnit,
         upcomingRoute: UpcomingRoute?,
         isPreview: Boolean,
         context: Context
     ): LineGraphForecastData {
         val windPoints = lineData.map { data ->
-            if (isImperial) { // Convert m/s to mph
-                data.weatherData.windSpeed * 2.23694 // Convert m/s to mph
-            } else { // Convert m/s to km/h
-                data.weatherData.windSpeed * 3.6 // Convert m/s to km/h
-            }
+            msInWindUnit(data.weatherData.windSpeed, windUnit)
         }
 
         val gustPoints = lineData.map { data ->
-            if (isImperial) { // Convert m/s to mph
-                data.weatherData.windGusts * 2.23694 // Convert m/s to mph
-            } else { // Convert m/s to km/h
-                data.weatherData.windGusts * 3.6 // Convert m/s to km/h
-            }
+            msInWindUnit(data.weatherData.windGusts, windUnit)
         }
 
         return LineGraphForecastData.LineData(buildSet {

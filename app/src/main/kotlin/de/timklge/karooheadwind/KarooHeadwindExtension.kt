@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind
 
 import android.util.Log
@@ -32,9 +48,11 @@ import de.timklge.karooheadwind.datatypes.WindDirectionDataType
 import de.timklge.karooheadwind.datatypes.WindForecastDataType
 import de.timklge.karooheadwind.datatypes.WindGustsDataType
 import de.timklge.karooheadwind.datatypes.WindSpeedDataType
+import de.timklge.karooheadwind.util.Updater
 import de.timklge.karooheadwind.weatherprovider.WeatherProviderFactory
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +87,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
     private var updateLastKnownGpsJob: Job? = null
     private var serviceJob: Job? = null
     private var windAggregationJob: Job? = null
+    private var updateCheckJob: Job? = null
 
     override val types by lazy {
         listOf(
@@ -121,6 +140,7 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
             karooSystem.connect { connected ->
                 if (connected) {
                     Log.d(TAG, "Connected to Karoo system")
+                    checkForUpdates()
                 }
             }
 
@@ -227,13 +247,13 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 val response = try {
                     WeatherProviderFactory.makeWeatherRequest(karooSystem, requestedGpsCoordinates, settings, profile)
                 } catch(e: Throwable){
-                    val stats = lastKnownStats.copy(failedWeatherRequest = System.currentTimeMillis())
-                    launch {
-                        try {
-                            saveStats(this@KarooHeadwindExtension, stats)
-                        } catch(e: Exception){
-                            Log.e(TAG, "Failed to write stats", e)
-                        }
+                    try {
+                        saveStats(this@KarooHeadwindExtension, lastKnownStats.copy(
+                            failedWeatherRequest = System.currentTimeMillis(),
+                            lastWeatherError = e.message ?: e.toString()
+                        ))
+                    } catch(writeError: Exception){
+                        Log.e(TAG, "Failed to write stats", writeError)
                     }
                     throw e
                 }
@@ -242,11 +262,12 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                     val stats = lastKnownStats.copy(
                         lastSuccessfulWeatherRequest = System.currentTimeMillis(),
                         lastSuccessfulWeatherPosition = gps,
-                        lastSuccessfulWeatherProvider = response.provider
+                        lastSuccessfulWeatherProvider = response.provider,
+                        lastWeatherError = null
                     )
-                    launch { saveStats(this@KarooHeadwindExtension, stats) }
+                    saveForecastRecord(this@KarooHeadwindExtension, response, stats)
                 } catch(e: Exception){
-                    Log.e(TAG, "Failed to write stats", e)
+                    Log.e(TAG, "Failed to write forecast", e)
                 }
 
                 response
@@ -255,7 +276,6 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
                 delay(2.minutes); true
             }.collect { response ->
                 try {
-                    saveCurrentData(applicationContext, response)
                     Log.d(TAG, "Got updated weather info: $response")
 
                     saveWidgetSettings(applicationContext, HeadwindWidgetSettings(currentForecastHourOffset = 0))
@@ -266,9 +286,41 @@ class KarooHeadwindExtension : KarooExtension("karoo-headwind", BuildConfig.VERS
         }
     }
 
+    private fun checkForUpdates() {
+        if (updateCheckJob != null) return
+
+        updateCheckJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val settings = streamSettings(karooSystem).first()
+                if (!settings.enableUpdateNotifications) {
+                    Log.d(TAG, "Update notifications disabled, skipping update check")
+                    return@launch
+                }
+
+                val update = Updater.checkForUpdate(this@KarooHeadwindExtension, karooSystem)
+                if (update != null) {
+                    karooSystem.dispatch(SystemNotification(
+                        id = "karoo-headwind-update",
+                        message = "Headwind ${update.latestVersion} available",
+                        subText = "You are running version ${update.currentVersion}. Open Headwind for details.",
+                        header = "Headwind update",
+                        style = SystemNotification.Style.UPDATE,
+                        action = "Open",
+                        actionIntent = "de.timklge.karooheadwind.MainActivity",
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Update check failed", e)
+            }
+        }
+    }
+
     override fun onDestroy() {
         serviceJob?.cancel()
         serviceJob = null
+
+        updateCheckJob?.cancel()
+        updateCheckJob = null
 
         updateLastKnownGpsJob?.cancel()
         updateLastKnownGpsJob = null

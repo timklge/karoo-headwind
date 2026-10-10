@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024-2026 karoo-headwind contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package de.timklge.karooheadwind.screens
 
 import android.util.Log
@@ -31,11 +47,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -45,7 +59,9 @@ import de.timklge.karooheadwind.KarooHeadwindExtension
 import de.timklge.karooheadwind.RefreshRate
 import de.timklge.karooheadwind.RoundLocationSetting
 import de.timklge.karooheadwind.WeatherDataProvider
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.datatypes.GpsCoordinates
+import de.timklge.karooheadwind.defaultWindUnit
 import de.timklge.karooheadwind.saveSettings
 import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
@@ -70,12 +86,14 @@ fun SettingsScreen(onFinish: () -> Unit) {
     var forecastKmPerHour by remember { mutableStateOf("20") }
     var forecastMilesPerHour by remember { mutableStateOf("12") }
     var showDistanceInForecast by remember { mutableStateOf(true) }
+    var selectedWindUnit by remember { mutableStateOf<WindUnit?>(null) }
 
     val profile by karooSystem.streamUserProfile().collectAsStateWithLifecycle(null)
 
     var selectedWeatherProvider by remember { mutableStateOf(WeatherDataProvider.OPEN_METEO) }
     var openWeatherMapApiKey by remember { mutableStateOf("") }
     var isK2 by remember { mutableStateOf(false) }
+    var enableUpdateNotifications by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         ctx.streamSettings(karooSystem).collect { settings ->
@@ -86,6 +104,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
             selectedWeatherProvider = settings.weatherProvider
             openWeatherMapApiKey = settings.openWeatherMapApiKey
             refreshRateSetting = settings.refreshRate
+            selectedWindUnit = settings.windUnit
+            enableUpdateNotifications = settings.enableUpdateNotifications
         }
     }
 
@@ -114,6 +134,8 @@ fun SettingsScreen(onFinish: () -> Unit) {
             weatherProvider = selectedWeatherProvider,
             openWeatherMapApiKey = openWeatherMapApiKey,
             refreshRate = refreshRateSetting,
+            windUnit = selectedWindUnit,
+            enableUpdateNotifications = enableUpdateNotifications,
         )
 
         saveSettings(ctx, newSettings)
@@ -167,6 +189,27 @@ fun SettingsScreen(onFinish: () -> Unit) {
         ) { selectedOption ->
             selectedRoundLocationSetting =
                 RoundLocationSetting.entries.find { unit -> unit.id == selectedOption.id }!!
+            coroutineScope.launch {
+                updateSettings()
+            }
+        }
+
+        val defaultProfileWindUnit = defaultWindUnit(profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL)
+        val windUnitDropdownOptions = listOf(
+            WindUnit.KILOMETERS_PER_HOUR,
+            WindUnit.MILES_PER_HOUR,
+            WindUnit.METERS_PER_SECOND,
+            WindUnit.KNOTS
+        ).map { unit -> DropdownOption(unit.id, unit.label) }
+        val windUnitSelection by remember(selectedWindUnit, defaultProfileWindUnit) {
+            mutableStateOf(windUnitDropdownOptions.find { option -> option.id == (selectedWindUnit ?: defaultProfileWindUnit).id }!!)
+        }
+        Dropdown(
+            label = "Wind Speed Unit",
+            options = windUnitDropdownOptions,
+            selected = windUnitSelection
+        ) { selectedOption ->
+            selectedWindUnit = WindUnit.entries.find { unit -> unit.id == selectedOption.id }!!
             coroutineScope.launch {
                 updateSettings()
             }
@@ -257,6 +300,17 @@ fun SettingsScreen(onFinish: () -> Unit) {
                 }
             }
         )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = enableUpdateNotifications, onCheckedChange = {
+                enableUpdateNotifications = it
+                coroutineScope.launch {
+                    updateSettings()
+                }
+            })
+            Spacer(modifier = Modifier.width(10.dp))
+            Text("Enable Update Notifications")
+        }
 
         Spacer(modifier = Modifier.padding(30.dp))
 

@@ -53,14 +53,6 @@ If you are connected to WiFi, you can open an embedded [windy.com](https://www.w
 - Interfaces with [openweathermap.org](https://openweathermap.org)
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)
 
-## Extension Developers: Headwind Data Type
+## Extension Developers
 
-If the user has installed the headwind extension on his karoo, you can stream the headwind data type from other extensions via `karoo-ext`.
-Use data type id `TYPE_EXT::karoo-headwind::TYPE_ID` with `TYPE_ID` being one of `headwind`, `windDirection`, `headwindSpeed`, `windSpeed` etc.
-
-- The `headwind` datatype contains a single field that either represents an error code or the *relative* wind direction. A `-1.0` indicates missing gps receiption, `-2.0` no weather data, `-3.0` that the headwind extension
-has not been set up. Otherwise, the value is the headwind direction in degrees.
-- The `windDirection` datatype contains a single field with the *absolute* wind direction in degrees (so 0 = North, 90 = East etc.)
-- The `headwindSpeed` datatype contains a single field that contains the *relative*  headwind speed in meters per second.
-- The `windSpeed` datatype contains a single field that contains the *absolute* wind speed in meters per second.
-- Other datatypes like `windGusts` etc. are also available, see [extension_info.xml](https://github.com/timklge/karoo-headwind/blob/master/app/src/main/res/xml/extension_info.xml)
+For information on streaming headwind data types and binding to the current weather service (AIDL), see [EXTENSION_DEVELOPERS.md](EXTENSION_DEVELOPERS.md).
