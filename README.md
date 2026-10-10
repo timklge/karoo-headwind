@@ -48,7 +48,7 @@ If you are connected to WiFi, you can open an embedded [windy.com](https://www.w
 
 ## Fit File
 
-The extension writes the following data fields to your FIT files every second:
+The extension writes the following data fields to your FIT files, at most once per second:
 - `wind_speed` (cm/s): Absolute wind speed
 - `wind_direction` (degrees): Absolute wind direction
 - `wind_gust` (cm/s): Absolute wind gust speed

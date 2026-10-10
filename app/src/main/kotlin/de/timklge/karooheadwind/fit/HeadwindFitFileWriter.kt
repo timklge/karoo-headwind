@@ -49,7 +49,7 @@ class HeadwindFitFileWriter(
         val HEADWIND_SPEED = DeveloperField(2, FIT_BASE_TYPE_SINT16, "headwind_speed", "cm/s")
         val HEADWIND_DIRECTION = DeveloperField(3, FIT_BASE_TYPE_UINT16, "headwind_direction", "degrees")
         val WIND_GUST = DeveloperField(4, FIT_BASE_TYPE_SINT16, "wind_gust", "cm/s")
-        
+
         private fun toCentimetersPerSecond(metersPerSecond: Double): Double {
             return (metersPerSecond * 100.0).roundToInt()
                 .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
