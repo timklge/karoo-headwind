@@ -9,8 +9,12 @@ import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
+import de.timklge.karooheadwind.WindUnit
 import de.timklge.karooheadwind.screens.LineGraphBuilder
+import de.timklge.karooheadwind.streamDatatypeIsVisible
+import de.timklge.karooheadwind.streamSettings
 import de.timklge.karooheadwind.streamUserProfile
+import de.timklge.karooheadwind.util.msInWindUnit
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.ViewEmitter
@@ -22,10 +26,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -38,31 +46,37 @@ class HeadwindTimeDistributionDataType(
     private fun previewDistributions(): Pair<Map<Int, Int>, Map<Int, Int>> {
         val speedMean = Random.nextInt(-20, 20)
         val gustMean = speedMean + Random.nextInt(0, 15)
+        val speedSigma = Random.nextDouble(5.0, 9.0)
+        val gustSigma = speedSigma * Random.nextDouble(1.1, 1.4)
+        val speedAmplitude = Random.nextDouble(60.0, 120.0)
+        val gustAmplitude = speedAmplitude * Random.nextDouble(1.1, 2.0)
 
-        fun peak(mean: Int): Map<Int, Int> = (-60..60).mapNotNull { bucket ->
-            val count = (100 - abs(bucket - mean) * 3).coerceAtLeast(0)
+        fun bell(mean: Int, sigma: Double, amplitude: Double): Map<Int, Int> = (-60..60).mapNotNull { bucket ->
+            val z = (bucket - mean) / sigma
+            val base = amplitude * exp(-0.5 * z * z)
+            val count = (base * Random.nextDouble(0.85, 1.15)).roundToInt()
             if (count > 0) bucket to count else null
         }.toMap()
 
-        return peak(speedMean) to peak(gustMean)
+        return bell(speedMean, speedSigma, speedAmplitude) to bell(gustMean, gustSigma, gustAmplitude)
     }
 
     private fun buildLines(
         headwindSpeedDistribution: Map<Int, Int>,
         headwindGustDistribution: Map<Int, Int>,
-        isImperial: Boolean
+        windUnit: WindUnit
     ): Set<LineGraphBuilder.Line> {
         val allBuckets = headwindSpeedDistribution.keys + headwindGustDistribution.keys
         if (allBuckets.isEmpty()) return emptySet()
 
-        val minBucket = allBuckets.min()
-        val maxBucket = allBuckets.max()
+        // Symmetric range around 0 so that 0 is always centred on the x axis
+        val bound = allBuckets.maxOf { abs(it) }
 
         // Time spent per bucket in minutes, including empty buckets so lines return to zero between peaks
         fun toDataPoints(distribution: Map<Int, Int>): List<LineGraphBuilder.DataPoint> {
-            return (minBucket..maxBucket).map { bucket ->
+            return (-bound..bound).map { bucket ->
                 val speedInMs = bucket * WindAggregator.BUCKET_SIZE
-                val speed = if (isImperial) speedInMs * 2.23694 else speedInMs * 3.6
+                val speed = msInWindUnit(speedInMs, windUnit)
                 val minutes = (distribution[bucket] ?: 0) * WindAggregator.SAMPLE_INTERVAL_MS / 60_000f
 
                 LineGraphBuilder.DataPoint(x = speed.toFloat(), y = minutes)
@@ -71,15 +85,15 @@ class HeadwindTimeDistributionDataType(
 
         return buildSet {
             add(LineGraphBuilder.Line(
-                dataPoints = toDataPoints(headwindSpeedDistribution),
-                color = 0xFF2196F3.toInt(), // Blue
-                label = "Headwind",
-                drawCircles = false
-            ))
-            add(LineGraphBuilder.Line(
                 dataPoints = toDataPoints(headwindGustDistribution),
                 color = 0xFFFF9800.toInt(), // Orange
                 label = "Gusts",
+                drawCircles = false
+            ))
+            add(LineGraphBuilder.Line(
+                dataPoints = toDataPoints(headwindSpeedDistribution),
+                color = 0xFF2196F3.toInt(), // Blue
+                label = "Headwind",
                 drawCircles = false
             ))
         }
@@ -100,14 +114,30 @@ class HeadwindTimeDistributionDataType(
             val isImperial = karooSystem.streamUserProfile().first().preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
             var isShowingMessage = false
 
-            while (isActive) {
+            val ticks = flow {
+                while (true) {
+                    emit(Unit)
+                    delay(refreshRate)
+                }
+            }
+
+            val updates = if (config.preview) {
+                ticks
+            } else {
+                karooSystem.streamDatatypeIsVisible(dataTypeId)
+                    .distinctUntilChanged()
+                    .flatMapLatest { isVisible -> if (isVisible) ticks else emptyFlow() }
+            }
+
+            updates.collect {
                 val (headwindSpeedDistribution, headwindGustDistribution) = if (config.preview) {
                     previewDistributions()
                 } else {
                     windAggregator.getHeadwindSpeedDistribution() to windAggregator.getHeadwindGustDistribution()
                 }
 
-                val lines = buildLines(headwindSpeedDistribution, headwindGustDistribution, isImperial)
+                val windUnit = context.streamSettings(karooSystem).first().getWindUnit(isImperial)
+                val lines = buildLines(headwindSpeedDistribution, headwindGustDistribution, windUnit)
 
                 if (lines.isEmpty()) {
                     emitter.onNext(ShowCustomStreamState("No wind data", null))
@@ -139,8 +169,6 @@ class HeadwindTimeDistributionDataType(
 
                     emitter.updateView(result.remoteViews)
                 }
-
-                delay(refreshRate)
             }
         }
 
