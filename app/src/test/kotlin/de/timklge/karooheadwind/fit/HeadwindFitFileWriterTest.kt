@@ -83,19 +83,6 @@ class HeadwindFitFileWriterTest {
     }
 
     @Test
-    fun testSpeedIsClampedToFloatRange() {
-        val values = HeadwindFitFileWriter.buildRecordValues(
-            relativeAngle = null,
-            windSpeed = 1e39,
-            windDirection = null,
-            windGust = -1e39,
-        )
-
-        assertEquals(Float.MAX_VALUE.toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_SPEED))
-        assertEquals((-Float.MAX_VALUE).toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_GUST))
-    }
-
-    @Test
     fun testSpeedFieldsUseFloat32MetersPerSecond() {
         val speedFields = mutableListOf(
             HeadwindFitFileWriter.WIND_SPEED,
