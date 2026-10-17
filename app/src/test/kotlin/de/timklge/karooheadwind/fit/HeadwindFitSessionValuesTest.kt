@@ -57,7 +57,7 @@ class HeadwindFitSessionValuesTest {
     }
 
     @Test
-    fun testSpeedsAreScaledToCentimetersPerSecond() {
+    fun testSpeedsAreWrittenInMetersPerSecond() {
         val values = HeadwindFitFileWriter.buildSessionValues(
             WindSessionStats(
                 headwind = WindCategoryStats(
@@ -75,12 +75,12 @@ class HeadwindFitSessionValuesTest {
         )
 
         assertEquals(25.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.timePercent))
-        assertEquals(800.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.avgRideSpeed))
-        assertEquals(1000.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.maxRideSpeed))
-        assertEquals(350.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.avgWindSpeed))
-        assertEquals(400.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.maxWindSpeed))
-        assertEquals(200.0, values.valueOf(HeadwindFitFileWriter.WIND_AVG_SPEED))
-        assertEquals(600.0, values.valueOf(HeadwindFitFileWriter.WIND_MAX_SPEED))
+        assertEquals(8.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.avgRideSpeed))
+        assertEquals(10.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.maxRideSpeed))
+        assertEquals(3.5, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.avgWindSpeed))
+        assertEquals(4.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_FIELDS.maxWindSpeed))
+        assertEquals(2.0, values.valueOf(HeadwindFitFileWriter.WIND_AVG_SPEED))
+        assertEquals(6.0, values.valueOf(HeadwindFitFileWriter.WIND_MAX_SPEED))
     }
 
     @Test

@@ -47,9 +47,9 @@ class HeadwindFitFileWriterTest {
             windGust = 7.5,
         )
 
-        assertEquals(500.0, values.valueOf(HeadwindFitFileWriter.WIND_SPEED))
+        assertEquals(5.0, values.valueOf(HeadwindFitFileWriter.WIND_SPEED))
         assertEquals(270.0, values.valueOf(HeadwindFitFileWriter.WIND_DIRECTION))
-        assertEquals(750.0, values.valueOf(HeadwindFitFileWriter.WIND_GUST))
+        assertEquals(7.5, values.valueOf(HeadwindFitFileWriter.WIND_GUST))
         assertEquals(null, values.valueOf(HeadwindFitFileWriter.HEADWIND_SPEED))
         assertEquals(null, values.valueOf(HeadwindFitFileWriter.HEADWIND_DIRECTION))
     }
@@ -64,7 +64,7 @@ class HeadwindFitFileWriterTest {
             windGust = 5.0,
         )
 
-        assertEquals(-500.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_SPEED))
+        assertEquals(-5.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_SPEED))
         assertEquals(0.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_DIRECTION))
     }
 
@@ -78,19 +78,42 @@ class HeadwindFitFileWriterTest {
         )
 
         assertEquals(270.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_DIRECTION))
-        assertEquals(0.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_SPEED))
+        // cos(90 deg) is not exactly zero in floating point, so compare with a tolerance
+        assertEquals(0.0, values.valueOf(HeadwindFitFileWriter.HEADWIND_SPEED)!!, 1e-9)
     }
 
     @Test
-    fun testSpeedIsClampedToSignedShortRange() {
+    fun testSpeedIsClampedToFloatRange() {
         val values = HeadwindFitFileWriter.buildRecordValues(
             relativeAngle = null,
-            windSpeed = 400.0,
+            windSpeed = 1e39,
             windDirection = null,
-            windGust = -400.0,
+            windGust = -1e39,
         )
 
-        assertEquals(Short.MAX_VALUE.toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_SPEED))
-        assertEquals(Short.MIN_VALUE.toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_GUST))
+        assertEquals(Float.MAX_VALUE.toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_SPEED))
+        assertEquals((-Float.MAX_VALUE).toDouble(), values.valueOf(HeadwindFitFileWriter.WIND_GUST))
+    }
+
+    @Test
+    fun testSpeedFieldsUseFloat32MetersPerSecond() {
+        val speedFields = mutableListOf(
+            HeadwindFitFileWriter.WIND_SPEED,
+            HeadwindFitFileWriter.HEADWIND_SPEED,
+            HeadwindFitFileWriter.WIND_GUST,
+            HeadwindFitFileWriter.WIND_AVG_SPEED,
+            HeadwindFitFileWriter.WIND_MAX_SPEED,
+        )
+
+        listOf(
+            HeadwindFitFileWriter.HEADWIND_FIELDS,
+            HeadwindFitFileWriter.TAILWIND_FIELDS,
+            HeadwindFitFileWriter.CROSSWIND_FIELDS,
+        ).forEach { fields ->
+            speedFields += listOf(fields.avgRideSpeed, fields.maxRideSpeed, fields.avgWindSpeed, fields.maxWindSpeed)
+        }
+
+        assertTrue(speedFields.all { it.fitBaseTypeId == HeadwindFitFileWriter.FIT_BASE_TYPE_FLOAT32 })
+        assertTrue(speedFields.all { it.units == "m/s" })
     }
 }

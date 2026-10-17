@@ -39,7 +39,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.cos
-import kotlin.math.roundToInt
 
 class HeadwindFitFileWriter(
     private val karooSystem: KarooSystemService,
@@ -48,16 +47,16 @@ class HeadwindFitFileWriter(
 ) {
     companion object {
         // FIT base types
-        private const val FIT_BASE_TYPE_SINT16: Short = 0x83
         private const val FIT_BASE_TYPE_UINT16: Short = 0x84
+        internal const val FIT_BASE_TYPE_FLOAT32: Short = 0x88
 
         const val SESSION_UPDATE_INTERVAL_MS = 60_000L
 
-        val WIND_SPEED = DeveloperField(0, FIT_BASE_TYPE_SINT16, "wind_speed", "cm/s")
+        val WIND_SPEED = DeveloperField(0, FIT_BASE_TYPE_FLOAT32, "wind_speed", "m/s")
         val WIND_DIRECTION = DeveloperField(1, FIT_BASE_TYPE_UINT16, "wind_direction", "degrees")
-        val HEADWIND_SPEED = DeveloperField(2, FIT_BASE_TYPE_SINT16, "headwind_speed", "cm/s")
+        val HEADWIND_SPEED = DeveloperField(2, FIT_BASE_TYPE_FLOAT32, "headwind_speed", "m/s")
         val HEADWIND_DIRECTION = DeveloperField(3, FIT_BASE_TYPE_UINT16, "headwind_direction", "degrees")
-        val WIND_GUST = DeveloperField(4, FIT_BASE_TYPE_SINT16, "wind_gust", "cm/s")
+        val WIND_GUST = DeveloperField(4, FIT_BASE_TYPE_FLOAT32, "wind_gust", "m/s")
 
         class CategoryFields(
             val timePercent: DeveloperField,
@@ -69,40 +68,34 @@ class HeadwindFitFileWriter(
 
         val HEADWIND_FIELDS = CategoryFields(
             timePercent = DeveloperField(5, FIT_BASE_TYPE_UINT16, "headwind_time_percent", "%"),
-            avgRideSpeed = DeveloperField(6, FIT_BASE_TYPE_UINT16, "headwind_avg_ride_speed", "cm/s"),
-            maxRideSpeed = DeveloperField(7, FIT_BASE_TYPE_UINT16, "headwind_max_ride_speed", "cm/s"),
-            avgWindSpeed = DeveloperField(8, FIT_BASE_TYPE_UINT16, "headwind_avg_wind_speed", "cm/s"),
-            maxWindSpeed = DeveloperField(9, FIT_BASE_TYPE_UINT16, "headwind_max_wind_speed", "cm/s"),
+            avgRideSpeed = DeveloperField(6, FIT_BASE_TYPE_FLOAT32, "headwind_avg_ride_speed", "m/s"),
+            maxRideSpeed = DeveloperField(7, FIT_BASE_TYPE_FLOAT32, "headwind_max_ride_speed", "m/s"),
+            avgWindSpeed = DeveloperField(8, FIT_BASE_TYPE_FLOAT32, "headwind_avg_wind_speed", "m/s"),
+            maxWindSpeed = DeveloperField(9, FIT_BASE_TYPE_FLOAT32, "headwind_max_wind_speed", "m/s"),
         )
         val TAILWIND_FIELDS = CategoryFields(
             timePercent = DeveloperField(10, FIT_BASE_TYPE_UINT16, "tailwind_time_percent", "%"),
-            avgRideSpeed = DeveloperField(11, FIT_BASE_TYPE_UINT16, "tailwind_avg_ride_speed", "cm/s"),
-            maxRideSpeed = DeveloperField(12, FIT_BASE_TYPE_UINT16, "tailwind_max_ride_speed", "cm/s"),
-            avgWindSpeed = DeveloperField(13, FIT_BASE_TYPE_UINT16, "tailwind_avg_wind_speed", "cm/s"),
-            maxWindSpeed = DeveloperField(14, FIT_BASE_TYPE_UINT16, "tailwind_max_wind_speed", "cm/s"),
+            avgRideSpeed = DeveloperField(11, FIT_BASE_TYPE_FLOAT32, "tailwind_avg_ride_speed", "m/s"),
+            maxRideSpeed = DeveloperField(12, FIT_BASE_TYPE_FLOAT32, "tailwind_max_ride_speed", "m/s"),
+            avgWindSpeed = DeveloperField(13, FIT_BASE_TYPE_FLOAT32, "tailwind_avg_wind_speed", "m/s"),
+            maxWindSpeed = DeveloperField(14, FIT_BASE_TYPE_FLOAT32, "tailwind_max_wind_speed", "m/s"),
         )
         val CROSSWIND_FIELDS = CategoryFields(
             timePercent = DeveloperField(15, FIT_BASE_TYPE_UINT16, "crosswind_time_percent", "%"),
-            avgRideSpeed = DeveloperField(16, FIT_BASE_TYPE_UINT16, "crosswind_avg_ride_speed", "cm/s"),
-            maxRideSpeed = DeveloperField(17, FIT_BASE_TYPE_UINT16, "crosswind_max_ride_speed", "cm/s"),
-            avgWindSpeed = DeveloperField(18, FIT_BASE_TYPE_UINT16, "crosswind_avg_wind_speed", "cm/s"),
-            maxWindSpeed = DeveloperField(19, FIT_BASE_TYPE_UINT16, "crosswind_max_wind_speed", "cm/s"),
+            avgRideSpeed = DeveloperField(16, FIT_BASE_TYPE_FLOAT32, "crosswind_avg_ride_speed", "m/s"),
+            maxRideSpeed = DeveloperField(17, FIT_BASE_TYPE_FLOAT32, "crosswind_max_ride_speed", "m/s"),
+            avgWindSpeed = DeveloperField(18, FIT_BASE_TYPE_FLOAT32, "crosswind_avg_wind_speed", "m/s"),
+            maxWindSpeed = DeveloperField(19, FIT_BASE_TYPE_FLOAT32, "crosswind_max_wind_speed", "m/s"),
         )
-        val WIND_AVG_SPEED = DeveloperField(20, FIT_BASE_TYPE_UINT16, "wind_avg_speed", "cm/s")
-        val WIND_MAX_SPEED = DeveloperField(21, FIT_BASE_TYPE_UINT16, "wind_max_speed", "cm/s")
-
-        private fun toCentimetersPerSecond(metersPerSecond: Double): Double {
-            return (metersPerSecond * 100.0).roundToInt()
-                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                .toDouble()
-        }
+        val WIND_AVG_SPEED = DeveloperField(20, FIT_BASE_TYPE_FLOAT32, "wind_avg_speed", "m/s")
+        val WIND_MAX_SPEED = DeveloperField(21, FIT_BASE_TYPE_FLOAT32, "wind_max_speed", "m/s")
 
         private fun MutableList<FieldValue>.addCategoryValues(fields: CategoryFields, stats: WindCategoryStats) {
             add(FieldValue(fields.timePercent, stats.timePercent))
-            stats.avgRideSpeed?.let { add(FieldValue(fields.avgRideSpeed, toCentimetersPerSecond(it))) }
-            stats.maxRideSpeed?.let { add(FieldValue(fields.maxRideSpeed, toCentimetersPerSecond(it))) }
-            stats.avgWindSpeed?.let { add(FieldValue(fields.avgWindSpeed, toCentimetersPerSecond(it))) }
-            stats.maxWindSpeed?.let { add(FieldValue(fields.maxWindSpeed, toCentimetersPerSecond(it))) }
+            stats.avgRideSpeed?.let { add(FieldValue(fields.avgRideSpeed, it)) }
+            stats.maxRideSpeed?.let { add(FieldValue(fields.maxRideSpeed, it)) }
+            stats.avgWindSpeed?.let { add(FieldValue(fields.avgWindSpeed, it)) }
+            stats.maxWindSpeed?.let { add(FieldValue(fields.maxWindSpeed, it)) }
         }
 
         fun buildSessionValues(stats: WindSessionStats): List<FieldValue> {
@@ -110,8 +103,8 @@ class HeadwindFitFileWriter(
                 addCategoryValues(HEADWIND_FIELDS, stats.headwind)
                 addCategoryValues(TAILWIND_FIELDS, stats.tailwind)
                 addCategoryValues(CROSSWIND_FIELDS, stats.crosswind)
-                stats.avgWindSpeed?.let { add(FieldValue(WIND_AVG_SPEED, toCentimetersPerSecond(it))) }
-                stats.maxWindSpeed?.let { add(FieldValue(WIND_MAX_SPEED, toCentimetersPerSecond(it))) }
+                stats.avgWindSpeed?.let { add(FieldValue(WIND_AVG_SPEED, it)) }
+                stats.maxWindSpeed?.let { add(FieldValue(WIND_MAX_SPEED, it)) }
             }
         }
 
@@ -122,13 +115,13 @@ class HeadwindFitFileWriter(
             windGust: Double?,
         ): List<FieldValue> {
             return buildList {
-                if (windSpeed != null) add(FieldValue(WIND_SPEED, toCentimetersPerSecond(windSpeed)))
+                if (windSpeed != null) add(FieldValue(WIND_SPEED, windSpeed))
                 if (windDirection != null) add(FieldValue(WIND_DIRECTION, windDirection))
-                if (windGust != null) add(FieldValue(WIND_GUST, toCentimetersPerSecond(windGust)))
+                if (windGust != null) add(FieldValue(WIND_GUST, windGust))
 
                 if (relativeAngle != null && windSpeed != null) {
                     val headwindSpeed = cos(Math.toRadians(relativeAngle + 180)) * windSpeed
-                    add(FieldValue(HEADWIND_SPEED, toCentimetersPerSecond(headwindSpeed)))
+                    add(FieldValue(HEADWIND_SPEED, headwindSpeed))
 
                     val headwindDirection = if (relativeAngle < 0) relativeAngle + 360 else relativeAngle
                     add(FieldValue(HEADWIND_DIRECTION, headwindDirection))
