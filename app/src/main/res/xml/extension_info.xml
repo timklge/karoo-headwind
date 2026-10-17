@@ -19,7 +19,8 @@
     displayName="@string/extension_name"
     icon="@drawable/wind"
     id="karoo-headwind"
-    scansDevices="false">
+    scansDevices="false"
+    fitFile="true">
 
     <DataType
         description="@string/tailwind_and_speed_description"
